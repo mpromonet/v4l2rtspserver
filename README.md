@@ -1,7 +1,7 @@
 h264_v4l2_rtspserver
 ====================
 
-This implement an RTSP server feed reading H264 from a Video4Linux device.
+This provide an RTSP server feed from an Video4Linux device that support H264 format.
 
 It involves :
 - libv4l to capture video frames
@@ -15,4 +15,13 @@ The RTSP server support :
 
 For the raspberry a V4L2 driver for the Raspberry Pi Camera Module in available 
 http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
+
+License
+-------
+Domain public 
+
+Build
+-----
+make
+
 
