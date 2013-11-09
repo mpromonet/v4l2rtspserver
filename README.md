@@ -26,14 +26,14 @@ make
 
 Usage
 -----
-./h264_v4l2_rtspserver [-v][-m][-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-W width] [-H height] [-F fps] [-O file] [device]
-	 -v       : Verbose 
-	 -Q length: Number of frame queue  (default 10)
-	 -O file  : Dump capture to a file
-	 -m       : Enable multicast output
-	 -P port  : RTSP port (default 8554)
-	 -H port  : RTSP over HTTP port (default 8080)
-	 -F fps   : V4L2 capture framerate (default 25)
-	 -W width : V4L2 capture width (default 640)
-	 -H height: V4L2 capture height (default 480)
-	 device   : V4L2 capture device (default /dev/video0)
+	./h264_v4l2_rtspserver [-v][-m][-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-W width] [-H height] [-F fps] [-O file] [device]
+		 -v       : Verbose 
+		 -Q length: Number of frame queue  (default 10)
+		 -O file  : Dump capture to a file
+		 -m       : Enable multicast output
+		 -P port  : RTSP port (default 8554)
+		 -H port  : RTSP over HTTP port (default 8080)
+		 -F fps   : V4L2 capture framerate (default 25)
+		 -W width : V4L2 capture width (default 640)
+		 -H height: V4L2 capture height (default 480)
+		 device   : V4L2 capture device (default /dev/video0)
