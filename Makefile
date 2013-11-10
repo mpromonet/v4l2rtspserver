@@ -6,14 +6,15 @@ LIVE555_FDFLAGS=-lliveMedia -lgroupsock  -lBasicUsageEnvironment -lUsageEnvironm
 all: /usr/include/libv4l2.h /usr/include/liveMedia/liveMedia.hh $(TARGETS)
 
 /usr/include/libv4l2.h:
-	$(info install libv4l-dev)
+	$(info Cannot find /usr/include/libv4l2.h)
 	sudo apt-get install libv4l-dev
 
 /usr/include/liveMedia/liveMedia.hh:
-	$(info install liblivemedia-dev)
+	$(info Cannot find /usr/include/liveMedia/liveMedia.hh)
 	sudo apt-get install liblivemedia-dev
 
 %: %.cpp
+	$(info $(OS))
 	g++ -g -o $@ $< $(LIVE555_CFLAGS) $(LIVE555_FDFLAGS) -lv4l2 
 
 
