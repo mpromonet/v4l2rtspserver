@@ -428,7 +428,7 @@ class V4L2DeviceSource: public FramedSource
 			{
 				if (m_params.m_verbose) 
 				{
-					envir() << "Queue full size drop frame size:"  << m_captureQueue.size() << " \n";		
+					envir() << "Queue full size drop frame size:"  << (int)m_captureQueue.size() << " \n";		
 				}
 				delete m_captureQueue.front();
 				m_captureQueue.pop_front();
