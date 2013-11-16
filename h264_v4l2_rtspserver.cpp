@@ -256,6 +256,10 @@ class V4L2DeviceSource: public FramedSource
 		
 		virtual void doGetNextFrame()
 		{
+			if (!m_captureQueue.empty())
+			{
+				deliverFrame();
+			}
 		}
 				
 		static void deliverFrameStub(void* clientData)
@@ -265,51 +269,44 @@ class V4L2DeviceSource: public FramedSource
 		
 		virtual void deliverFrame()
 		{			
-			if (!isCurrentlyAwaitingData()) return;
-			
-			fDurationInMicroseconds = 0;
-			fFrameSize = 0;
-			
-			if (m_captureQueue.empty())
+			if (isCurrentlyAwaitingData()) 
 			{
-				if (m_params.m_verbose) 
-				{
-					envir() << "Queue is empty \n";		
-				}
-			}
-			else
-			{				
-				gettimeofday(&fPresentationTime, NULL);			
-				m_out.notify(fPresentationTime.tv_sec);
+				fDurationInMicroseconds = 0;
+				fFrameSize = 0;
 				
-				Frame * frame = m_captureQueue.front();
-				m_captureQueue.pop_front();
-												
-				if (frame->m_size > fMaxSize) 
+				if (m_captureQueue.empty())
 				{
-					fFrameSize = fMaxSize;
-					fNumTruncatedBytes = frame->m_size - fMaxSize;
-				} 
-				else 
-				{
-					fFrameSize = frame->m_size;
+					if ( m_params.m_verbose) envir() << "Queue is empty \n";		
 				}
-				timeval diff;
-				timersub(&fPresentationTime,&(frame->m_timestamp),&diff);
-				
-				if (m_params.m_verbose) 
-				{
-					printf ("deliverFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
+				else
+				{				
+					gettimeofday(&fPresentationTime, NULL);			
+					m_out.notify(fPresentationTime.tv_sec);
+					
+					Frame * frame = m_captureQueue.front();
+					m_captureQueue.pop_front();
+													
+					if (frame->m_size > fMaxSize) 
+					{
+						fFrameSize = fMaxSize;
+						fNumTruncatedBytes = frame->m_size - fMaxSize;
+					} 
+					else 
+					{
+						fFrameSize = frame->m_size;
+					}
+					timeval diff;
+					timersub(&fPresentationTime,&(frame->m_timestamp),&diff);
+					
+					if (m_params.m_verbose) 
+					{
+						printf ("deliverFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
+					}
+					
+					memcpy(fTo, frame->m_buffer, fFrameSize);
+					delete frame;
 				}
-				
-				memcpy(fTo, frame->m_buffer, fFrameSize);
-				delete frame;
-			}
-			FramedSource::afterGetting(this);
-			
-			if (!m_captureQueue.empty())
-			{
-				nextTask() = envir().taskScheduler().scheduleDelayedTask(0, V4L2DeviceSource::deliverFrameStub, this);
+				FramedSource::afterGetting(this);			
 			}
 		}
 		
