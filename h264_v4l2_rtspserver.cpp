@@ -313,10 +313,8 @@ bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize)
 				char* pps_base64 = base64Encode(pps, ppsSize);		
 
 				std::ostringstream os; 
-				os << "a=fmtp:96 packetization-mode=1";
-				os << ";profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
+				os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
 				os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
-				os << "\r\n";
 				m_auxLine.assign(os.str());
 				
 				free(sps);
@@ -404,7 +402,7 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 	// Start Playing the Sink
 	videoSink->startPlaying(*videoSource, NULL, NULL);
 	
-	return new MulticastServerMediaSubsession(replicator, *videoSink,rtcpInstance);
+	return new MulticastServerMediaSubsession(replicator, videoSink, rtcpInstance);
 }
 		
 char const* MulticastServerMediaSubsession::sdpLines() 
@@ -413,20 +411,14 @@ char const* MulticastServerMediaSubsession::sdpLines()
 	{
 		// Ugly workaround to give SPS/PPS that are get from the RTPSink 
 		m_SDPLines.assign(PassiveServerMediaSubsession::sdpLines());
-		m_SDPLines.append(getAuxSDPLine(&m_rtpSink,NULL));
+		m_SDPLines.append(getAuxSDPLine(m_rtpSink,NULL));
 	}
 	return m_SDPLines.c_str();
 }
 
 char const* MulticastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
 {
-	const char* auxLine = NULL;
-	V4L2DeviceSource* source = dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource());
-	if (source)
-	{
-		auxLine = getAuxLine(source, rtpSink->rtpPayloadType());
-	} 
-	return auxLine;
+	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
 		
 // -----------------------------------------
@@ -445,18 +437,12 @@ FramedSource* UnicastServerMediaSubsession::createNewStreamSource(unsigned clien
 		
 RTPSink* UnicastServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource)
 {
-	return createSink(envir(), rtpGroupsock,rtpPayloadTypeIfDynamic, m_format);
+	return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format);
 }
 		
 char const* UnicastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
 {
-	const char* auxLine = NULL;
-	V4L2DeviceSource* source = dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource());
-	if (source)
-	{
-		auxLine = getAuxLine(source, rtpSink->rtpPayloadType());
-	} 
-	return auxLine;
+	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
 
 // -----------------------------------------
@@ -512,9 +498,11 @@ int main(int argc, char** argv)
 				std::cout << "\t -v       : Verbose " << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")" << std::endl;
 				std::cout << "\t -O file  : Dump capture to a file" << std::endl;
+				std::cout << "\t RTSP options :" << std::endl;
 				std::cout << "\t -m       : Enable multicast output" << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")" << std::endl;
 				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")" << std::endl;
+				std::cout << "\t V4L2 options :" << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")" << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")" << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")" << std::endl;

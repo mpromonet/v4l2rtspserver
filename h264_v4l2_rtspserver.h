@@ -152,7 +152,11 @@ class BaseServerMediaSubsession
 			const char* auxLine = NULL;
 			if (source)
 			{
-				auxLine = strdup(source->getAuxLine().c_str());
+				std::ostringstream os; 
+				os << "a=fmtp:" << rtpPayloadType << " ";				
+				os << source->getAuxLine();				
+				os << "\r\n";				
+				auxLine = strdup(os.str().c_str());
 			} 
 			return auxLine;
 		}
@@ -173,15 +177,15 @@ class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , pub
 								, int format);
 		
 	protected:
-		MulticastServerMediaSubsession(StreamReplicator* replicator, RTPSink& rtpSink, RTCPInstance* rtcpInstance) 
-				: PassiveServerMediaSubsession(rtpSink, rtcpInstance), m_replicator(replicator), m_rtpSink(rtpSink) {};			
+		MulticastServerMediaSubsession(StreamReplicator* replicator, RTPSink* rtpSink, RTCPInstance* rtcpInstance) 
+				: PassiveServerMediaSubsession(*rtpSink, rtcpInstance), m_replicator(replicator), m_rtpSink(rtpSink) {};			
 
 		virtual char const* sdpLines() ;
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
 		
 	protected:
 		StreamReplicator* m_replicator;
-		RTPSink& m_rtpSink;
+		RTPSink* m_rtpSink;
 		std::string m_SDPLines;
 };
 
