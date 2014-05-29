@@ -153,7 +153,7 @@ class BaseServerMediaSubsession
 			if (source)
 			{
 				std::ostringstream os; 
-				os << "a=fmtp:" << rtpPayloadType << " ";				
+				os << "a=fmtp:" << int(rtpPayloadType) << " ";				
 				os << source->getAuxLine();				
 				os << "\r\n";				
 				auxLine = strdup(os.str().c_str());
