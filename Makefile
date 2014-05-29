@@ -13,11 +13,11 @@ all: /usr/include/libv4l2.h /usr/include/liveMedia/liveMedia.hh $(TARGETS)
 	$(info Cannot find /usr/include/liveMedia/liveMedia.hh)
 	sudo apt-get install liblivemedia-dev
 
-%: %.cpp
+%: %.cpp %.h
 	$(info $(OS))
 	g++ -g -o $@ $< $(LIVE555_CFLAGS) $(LIVE555_FDFLAGS) -lv4l2 
 
 
 clean:
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) 
 
