@@ -127,6 +127,9 @@ class V4L2DeviceSource: public FramedSource
 class BaseServerMediaSubsession
 {
 	public:
+		BaseServerMediaSubsession(StreamReplicator* replicator): m_replicator(replicator) {};
+	
+	public:
 		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, int format)
 		{
 			FramedSource* source = NULL;
@@ -160,6 +163,9 @@ class BaseServerMediaSubsession
 			} 
 			return auxLine;
 		}
+		
+	protected:
+		StreamReplicator* m_replicator;
 };
 
 // -----------------------------------------
@@ -178,13 +184,12 @@ class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , pub
 		
 	protected:
 		MulticastServerMediaSubsession(StreamReplicator* replicator, RTPSink* rtpSink, RTCPInstance* rtcpInstance) 
-				: PassiveServerMediaSubsession(*rtpSink, rtcpInstance), m_replicator(replicator), m_rtpSink(rtpSink) {};			
+				: PassiveServerMediaSubsession(*rtpSink, rtcpInstance), BaseServerMediaSubsession(replicator), m_rtpSink(rtpSink) {};			
 
 		virtual char const* sdpLines() ;
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
 		
 	protected:
-		StreamReplicator* m_replicator;
 		RTPSink* m_rtpSink;
 		std::string m_SDPLines;
 };
@@ -199,14 +204,13 @@ class UnicastServerMediaSubsession : public OnDemandServerMediaSubsession , publ
 		
 	protected:
 		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, int format) 
-				: OnDemandServerMediaSubsession(env, False), m_replicator(replicator), m_format(format) {};
+				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator), m_format(format) {};
 			
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
 		virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);		
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
 					
 	protected:
-		StreamReplicator* m_replicator;
 		int m_format;
 };
 

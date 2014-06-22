@@ -390,7 +390,7 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 	Groupsock* rtcpGroupsock = new Groupsock(env, destinationAddress, rtcpPortNum, ttl);
 
 	// Create a RTP sink
-	RTPSink* videoSink = createSink(env,rtpGroupsock, rtpPayloadType, format);
+	RTPSink* videoSink = createSink(env, rtpGroupsock, rtpPayloadType, format);
 
 	// Create 'RTCP instance'
 	const unsigned maxCNAMElen = 100;
@@ -453,6 +453,21 @@ void sighandler(int n)
 { 
 	printf("SIGINT\n");
 	quit =1;
+}
+
+// -----------------------------------------
+//    signal handler
+// -----------------------------------------
+void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubsession *subSession)
+{
+	UsageEnvironment& env(rtspServer->envir());
+	ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName);
+	sms->addSubsession(subSession);
+	rtspServer->addServerMediaSession(sms);
+
+	char* url = rtspServer->rtspURL(sms);
+	env << "Play this stream using the URL \"" << url << "\"\n";
+	delete[] url;			
 }
 
 // -----------------------------------------
@@ -547,25 +562,11 @@ int main(int argc, char** argv)
 			// Create Server Multicast Session
 			if (multicast)
 			{
-				ServerMediaSession* sms = ServerMediaSession::createNew(*env, "multicast");
-				sms->addSubsession(MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, 96, replicator,format));
-				rtspServer->addServerMediaSession(sms);
-
-				char* url = rtspServer->rtspURL(sms);
-				*env << "Play this stream using the URL \"" << url << "\"\n";
-				delete[] url;			
+				addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, 96, replicator,format));
 			}
 			
 			// Create Server Unicast Session
-			{
-				ServerMediaSession* sms = ServerMediaSession::createNew(*env, "unicast");
-				sms->addSubsession(UnicastServerMediaSubsession::createNew(*env,replicator,format));
-				rtspServer->addServerMediaSession(sms);
-
-				char* url = rtspServer->rtspURL(sms);
-				*env << "Play this stream using the URL \"" << url << "\"\n";
-				delete[] url;			
-			}
+			addSession(rtspServer, "unicast", UnicastServerMediaSubsession::createNew(*env,replicator,format));
 
 			// main loop
 			signal(SIGINT,sighandler);
