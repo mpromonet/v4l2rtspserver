@@ -42,8 +42,11 @@ endforeach (LIBLIVE555_module)
 target_link_libraries(${PROJECT_NAME} ${LIBLIVE555_LIBRARIES})
 
 # package
+install (TARGETS ${PROJECT_NAME} DESTINATION bin)
+
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Michel Promonet") 
 SET(CPACK_PACKAGE_CONTACT "michel.promonet@free.fr") 
+
 INCLUDE(CPack)
 
