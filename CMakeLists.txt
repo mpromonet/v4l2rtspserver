@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 
 # set project name from current directory
-get_filename_component(ProjectId ${CMAKE_SOURCE_DIR} NAME)
-project(${ProjectId})
+get_filename_component(BASENAME ${CMAKE_SOURCE_DIR} NAME)
+project(${BASENAME})
 
 # define executable to build
 include_directories("${PROJECT_BINARY_DIR}/inc")
@@ -40,4 +40,10 @@ foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnviro
 	endif ( ${LIBLIVE555_module}_LIBRARY )
 endforeach (LIBLIVE555_module)
 target_link_libraries(${PROJECT_NAME} ${LIBLIVE555_LIBRARIES})
+
+# package
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Michel Promonet") 
+SET(CPACK_PACKAGE_CONTACT "michel.promonet@free.fr") 
+INCLUDE(CPack)
 
