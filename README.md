@@ -19,10 +19,11 @@ Domain public
 
 Build
 ----- 
-> cmake .
-> make
-If it fails you will need to install libv4l-dev liblivemedia-dev. 
-If it still not work you will need to read Makefile.
+	cmake .
+	make
+
+If it fails you will need to install libv4l-dev liblivemedia-dev.  
+If it still not work you will need to read Makefile.  
 
 Raspberry Pi
 ------------ 
