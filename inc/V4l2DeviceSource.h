@@ -116,9 +116,9 @@ class V4L2DeviceSource: public FramedSource
 		virtual void doStopGettingFrames();
 			
 	protected:
-		virtual void captureStart() {};
+		virtual bool captureStart() { return true; };
 		virtual size_t read(char* buffer, size_t bufferSize);
-		virtual void captureStop() {};
+		virtual bool captureStop() { return true; };
 		
 	protected:
 		V4L2DeviceParameters m_params;
@@ -132,7 +132,7 @@ class V4L2DeviceSource: public FramedSource
 		std::string m_auxLine;
 };
 
-#define V4L2MMAP_NBBUFFER 4
+#define V4L2MMAP_NBBUFFER 10
 class V4L2MMAPDeviceSource : public V4L2DeviceSource
 {
 	public:
@@ -141,9 +141,9 @@ class V4L2MMAPDeviceSource : public V4L2DeviceSource
 	protected:
 		V4L2MMAPDeviceSource(UsageEnvironment& env, V4L2DeviceParameters params) : V4L2DeviceSource(env, params), n_buffers(0) {};
 
-		virtual void captureStart();
+		virtual bool captureStart();
 		virtual size_t read(char* buffer, size_t bufferSize);
-		virtual void captureStop();
+		virtual bool captureStop();
 	
 	protected:
 		int n_buffers;
