@@ -79,10 +79,11 @@ int main(int argc, char** argv)
 	bool multicast = false;
 	bool verbose = false;
 	std::string outputFile;
+	bool useMmap = false;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:vO:mT:")) != -1)
+	while ((c = getopt (argc, argv, "hW:H:Q:P:F:vO:T:mM")) != -1)
 	{
 		switch (c)
 		{
@@ -95,6 +96,7 @@ int main(int argc, char** argv)
 			case 'P':	rtspPort = atoi(optarg); break;
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'F':	fps = atoi(optarg); break;
+			case 'M':	useMmap = true; break;
 			case 'h':
 			{
 				std::cout << argv[0] << " [-v][-m][-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
@@ -106,6 +108,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")" << std::endl;
 				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")" << std::endl;
 				std::cout << "\t V4L2 options :" << std::endl;
+				std::cout << "\t -M       : V4L2 capture using memory mapped buffers (default use read interface)" << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")" << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")" << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")" << std::endl;
@@ -136,7 +139,15 @@ int main(int argc, char** argv)
 		// Init capture
 		*env << "Create V4L2 Source..." << dev_name << "\n";
 		V4L2DeviceSource::V4L2DeviceParameters param(dev_name,format,queueSize,width,height,fps,verbose,outputFile);
-		V4L2DeviceSource* videoES = V4L2DeviceSource::createNew(*env, param);
+		V4L2DeviceSource* videoES = NULL;
+		if (useMmap)
+		{
+			videoES = V4L2MMAPDeviceSource::createNew(*env, param);
+		}
+		else
+		{
+			videoES = V4L2DeviceSource::createNew(*env, param);
+		}
 		if (videoES == NULL) 
 		{
 			*env << "Unable to create source for device " << dev_name << "\n";

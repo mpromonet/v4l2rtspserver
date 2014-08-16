@@ -13,6 +13,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <sys/mman.h>
 
 // libv4l2
 #include <linux/videodev2.h>
@@ -34,9 +35,9 @@
 V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params) 
 { 
 	V4L2DeviceSource* device = new V4L2DeviceSource(env, params); 
-	if (device && !device->init())
+	if (device && !device->init(V4L2_CAP_READWRITE))
 	{
-		delete device;
+		Medium::close(device);
 		device=NULL;
 	}
 	return device;
@@ -57,22 +58,23 @@ V4L2DeviceSource::~V4L2DeviceSource()
 }
 
 // intialize the source
-bool V4L2DeviceSource::init()
+bool V4L2DeviceSource::init(unsigned int mandatoryCapabilities)
 {
-	m_fd = initdevice(m_params.m_devName.c_str());
+	m_fd = initdevice(m_params.m_devName.c_str(), mandatoryCapabilities);
 	if (m_fd == -1)
 	{
 		fprintf(stderr, "Init device:%s failure\n", m_params.m_devName.c_str());
 	}
 	else
 	{
-		envir().taskScheduler().turnOnBackgroundReadHandling( m_fd, V4L2DeviceSource::incomingPacketHandlerStub,this);
+		this->captureStart();
+		envir().taskScheduler().turnOnBackgroundReadHandling( m_fd, V4L2DeviceSource::incomingPacketHandlerStub, this);
 	}
 	return (m_fd!=-1);
 }
 		
 // intialize the V4L2 device
-int V4L2DeviceSource::initdevice(const char *dev_name)
+int V4L2DeviceSource::initdevice(const char *dev_name, unsigned int mandatoryCapabilities)
 {
 	int fd = v4l2_open(dev_name, O_RDWR | O_NONBLOCK, 0);
 	if (fd < 0) 
@@ -80,17 +82,14 @@ int V4L2DeviceSource::initdevice(const char *dev_name)
 		perror("Cannot open device");
 		return -1;
 	}
-	
-	if (checkCapabilities(fd) !=0)
+	if (checkCapabilities(fd,mandatoryCapabilities) !=0)
 	{
 		return -1;
-	}
-	
+	}	
 	if (configureFormat(fd) !=0)
 	{
 		return -1;
 	}
-
 	if (configureParam(fd) !=0)
 	{
 		return -1;
@@ -105,7 +104,7 @@ int V4L2DeviceSource::initdevice(const char *dev_name)
 }
 
 // check needed V4L2 capabilities
-int V4L2DeviceSource::checkCapabilities(int fd)
+int V4L2DeviceSource::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
 {
 	struct v4l2_capability cap;
 	memset(&(cap), 0, sizeof(cap));
@@ -125,6 +124,12 @@ int V4L2DeviceSource::checkCapabilities(int fd)
 	if ((cap.capabilities & V4L2_CAP_READWRITE)) fprintf(stderr, "%s support read i/o\n", m_params.m_devName.c_str());
 	if ((cap.capabilities & V4L2_CAP_STREAMING))  fprintf(stderr, "%s support streaming i/o\n", m_params.m_devName.c_str());
 	if ((cap.capabilities & V4L2_CAP_TIMEPERFRAME)) fprintf(stderr, "%s support timeperframe\n", m_params.m_devName.c_str());
+	
+	if ( (cap.capabilities & mandatoryCapabilities) != mandatoryCapabilities )
+	{
+		fprintf(stderr, "%s mandatory capabilities not available\n", m_params.m_devName.c_str());
+		return -1;
+	}
 	
 	return 0;
 }
@@ -150,7 +155,6 @@ int V4L2DeviceSource::configureFormat(int fd)
 		printf("Libv4l didn't accept format (%d). Can't proceed.\n", m_params.m_format);
 		return -1;
 	}
-	
 	if ((fmt.fmt.pix.width != m_params.m_width) || (fmt.fmt.pix.height != m_params.m_height))
 	{
 		printf("Warning: driver is sending image at %dx%d\n", fmt.fmt.pix.width, fmt.fmt.pix.width);
@@ -183,14 +187,13 @@ int V4L2DeviceSource::configureParam(int fd)
 // ioctl encapsulation
 int V4L2DeviceSource::xioctl(int fd, int request, void *arg)
 {
-	int r = -1;
-
+	int ret = -1;
 	do 
 	{
-		r = v4l2_ioctl(fd, request, arg);
-	} while (r == -1 && ((errno == EINTR) || (errno == EAGAIN)));
+		ret = v4l2_ioctl(fd, request, arg);
+	} while (ret == -1 && ((errno == EINTR) || (errno == EAGAIN)));
 
-	return r;
+	return ret;
 }
 				
 // FrameSource callback
@@ -201,7 +204,12 @@ void V4L2DeviceSource::doGetNextFrame()
 		deliverFrame();
 	}
 }
-		
+void V4L2DeviceSource::doStopGettingFrames()
+{
+	envir() << "V4L2DeviceSource::doStopGettingFrames "  << m_params.m_devName.c_str() << "\n";	
+	FramedSource::doStopGettingFrames();
+}
+
 void V4L2DeviceSource::deliverFrame()
 {			
 	if (isCurrentlyAwaitingData()) 
@@ -246,21 +254,30 @@ void V4L2DeviceSource::deliverFrame()
 		FramedSource::afterGetting(this);			
 	}
 }
-			
+
+size_t V4L2DeviceSource::read(char* buffer, size_t bufferSize)
+{
+	return v4l2_read(m_fd, buffer,  bufferSize);
+}
+
 // FrameSource callback on read event
 void V4L2DeviceSource::getNextFrame() 
 {
-	char* buffer = new char[m_bufferSize];
-	
+	char* buffer = new char[m_bufferSize];	
 	timeval ref;
 	gettimeofday(&ref, NULL);											
-	int frameSize = v4l2_read(m_fd, buffer,  m_bufferSize);
+	int frameSize = this->read(buffer,  m_bufferSize);
 	
 	if (frameSize < 0)
 	{
 		envir() << "V4L2DeviceSource::getNextFrame fd:"  << m_fd << " errno:" << errno << " "  << strerror(errno) << "\n";		
 		delete buffer;
 		handleClosure(this);
+	}
+	else if (frameSize == 0)
+	{
+		envir() << "V4L2DeviceSource::getNextFrame no data fd:"  << m_fd << " errno:" << errno << " "  << strerror(errno) << "\n";		
+		delete buffer;
 	}
 	else
 	{
@@ -287,43 +304,65 @@ bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize)
 	
 	// save SPS and PPS
 	u_int8_t nal_unit_type = frame[0]&0x1F;				
+	ssize_t spsSize = -1;
+	ssize_t ppsSize = -1;
 	if (nal_unit_type == 7)
 	{
 		std::cout << "SPS\n";	
-		for (int i=0; i < frameSize; ++i)
+		for (int i=0; i+sizeof(marker) < frameSize; ++i)
 		{
 			if (memcmp(&frame[i],marker,sizeof(marker)) == 0)
 			{
-				size_t spsSize = i ;
-				std::cout << "PPS" << "\n";	
-				char* sps = (char*)memcpy(new char [spsSize], frame, spsSize);
-				size_t ppsSize = frameSize - spsSize - sizeof(marker);
-				char* pps = (char*)memcpy(new char [ppsSize], &frame[spsSize+sizeof(marker)], ppsSize);
-										
-				u_int32_t profile_level_id = 0;
-				if (spsSize >= 4) 
+				spsSize = i ;
+				std::cout << "SPS size:" << spsSize << "\n";					
+	
+				nal_unit_type = frame[spsSize+sizeof(marker)]&0x1F;
+				if (nal_unit_type == 8)
 				{
-					profile_level_id = (sps[1]<<16)|(sps[2]<<8)|sps[3]; 
+					std::cout << "PPS\n";					
+					for (int j=spsSize+sizeof(marker); j+sizeof(marker) < frameSize; ++j)
+					{
+						if (memcmp(&frame[j],marker,sizeof(marker)) == 0)
+						{
+							ppsSize = j;
+							std::cout << "PPS size:" << ppsSize << "\n";					
+							break;
+						}
+					}
 				}
-				
-				char* sps_base64 = base64Encode(sps, spsSize);
-				char* pps_base64 = base64Encode(pps, ppsSize);		
-
-				std::ostringstream os; 
-				os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
-				os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
-				m_auxLine.assign(os.str());
-				
-				free(sps);
-				free(pps);
-				free(sps_base64);
-				free(pps_base64);
-				
-				std::cout << "AuxLine:"  << m_auxLine << " \n";		
-				ret = true;
-				break;
-			}						
+			}
 		}
+		if (spsSize > 0)
+		{
+			char sps[spsSize];
+			memcpy(&sps, frame, spsSize);
+			if (ppsSize <0)
+			{
+				ppsSize = frameSize - spsSize - sizeof(marker);
+				std::cout << "PPS size:" << ppsSize  << "\n";					
+			}
+			char pps[ppsSize];
+			memcpy(&pps, &frame[spsSize+sizeof(marker)], ppsSize);									
+			u_int32_t profile_level_id = 0;
+			if (spsSize >= 4) 
+			{
+				profile_level_id = (sps[1]<<16)|(sps[2]<<8)|sps[3]; 
+			}
+			
+			char* sps_base64 = base64Encode(sps, spsSize);
+			char* pps_base64 = base64Encode(pps, ppsSize);		
+
+			std::ostringstream os; 
+			os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
+			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
+			m_auxLine.assign(os.str());
+			
+			free(sps_base64);
+			free(pps_base64);
+			
+			std::cout << "AuxLine:"  << m_auxLine << " \n";		
+		}						
+		ret = true;
 		delete [] frame;
 	}
 	return ret;
@@ -367,3 +406,149 @@ void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv
 	envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
 }	
 
+
+V4L2MMAPDeviceSource* V4L2MMAPDeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params) 
+{ 
+	V4L2MMAPDeviceSource* device = new V4L2MMAPDeviceSource(env, params); 
+	if (device && !device->init(V4L2_CAP_STREAMING))
+	{
+		Medium::close(device);
+		device=NULL;
+	}
+	return device;
+}
+
+void V4L2MMAPDeviceSource::captureStart() 
+{
+	struct v4l2_requestbuffers req;
+	memset (&req, 0, sizeof(req));
+	req.count               = V4L2MMAP_NBBUFFER;
+	req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	req.memory              = V4L2_MEMORY_MMAP;
+
+	if (-1 == xioctl(m_fd, VIDIOC_REQBUFS, &req)) 
+	{
+		if (EINVAL == errno) 
+		{
+			fprintf(stderr, "%s does not support memory mapping\n", m_params.m_devName.c_str());
+		} 
+		else 
+		{
+			perror("VIDIOC_REQBUFS");
+		}
+	}
+
+	if (req.count < 2) 
+	{
+		fprintf(stderr, "Insufficient buffer memory on %s\n", m_params.m_devName.c_str());
+	}
+	fprintf(stderr, "%s memory mapping nb buffer:%d\n", m_params.m_devName.c_str(),  req.count);
+	
+	// allocate buffers
+	memset(&m_buffer,0, sizeof(m_buffer));
+	for (n_buffers = 0; n_buffers < req.count; ++n_buffers) 
+	{
+		struct v4l2_buffer buf;
+		memset (&buf, 0, sizeof(buf));
+		buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory      = V4L2_MEMORY_MMAP;
+		buf.index       = n_buffers;
+
+		if (-1 == xioctl(m_fd, VIDIOC_QUERYBUF, &buf))
+		{
+			perror("VIDIOC_QUERYBUF");
+		}
+
+		fprintf(stderr, "%s memory mapping buffer:%d size:%d\n", m_params.m_devName.c_str(), n_buffers,  buf.length);
+		m_buffer[n_buffers].length = buf.length;
+		m_buffer[n_buffers].start = mmap (   NULL /* start anywhere */, 
+									buf.length, 
+									PROT_READ | PROT_WRITE /* required */, 
+									MAP_SHARED /* recommended */, 
+									m_fd, 
+									buf.m.offset);
+
+		if (MAP_FAILED == m_buffer[n_buffers].start)
+		{
+			perror("mmap");
+		}
+	}
+
+	// queue buffers
+	for (int i = 0; i < n_buffers; ++i) 
+	{
+		struct v4l2_buffer buf;
+		memset (&buf, 0, sizeof(buf));
+		buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory      = V4L2_MEMORY_MMAP;
+		buf.index       = i;
+
+		if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
+		{
+			perror("VIDIOC_QBUF");
+		}
+	}
+
+	// start stream
+	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (-1 == xioctl(m_fd, VIDIOC_STREAMON, &type))
+	{
+		perror("VIDIOC_STREAMON");
+	}
+}
+
+size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
+{
+	size_t size = 0;
+	struct v4l2_buffer buf;	
+	memset (&buf, 0, sizeof(buf));
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+
+	if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &buf)) 
+	{
+		switch (errno) 
+		{
+			case EAGAIN:
+				envir() << "EAGAIN\n";				
+				return 0;
+
+			case EIO:
+			default:
+				perror("VIDIOC_DQBUF");
+		}
+	}
+	if (buf.index < n_buffers)
+	{
+		size = buf.bytesused;
+		if (size > bufferSize)
+		{
+			size = bufferSize;
+			envir() << "buffer truncated : " << m_buffer[buf.index].length << " " << bufferSize << "\n";
+		}
+		memcpy(buffer, m_buffer[buf.index].start, size);
+
+		if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
+		{
+			perror("VIDIOC_QBUF");
+		}
+	}
+	return size;
+}
+
+void V4L2MMAPDeviceSource::captureStop() 
+{
+	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (-1 == xioctl(m_fd, VIDIOC_STREAMOFF, &type))
+	{
+		perror("VIDIOC_STREAMOFF");      
+	}
+
+	for (int i = 0; i < n_buffers; ++i)
+	{
+		if (-1 == munmap (m_buffer[i].start, m_buffer[i].length))
+		{
+			perror("munmap");
+		}
+	}
+}

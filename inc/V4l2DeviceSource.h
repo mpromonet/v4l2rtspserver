@@ -96,14 +96,13 @@ class V4L2DeviceSource: public FramedSource
 		virtual ~V4L2DeviceSource();
 
 	protected:
-		bool init();
-		int initdevice(const char *dev_name);
-		int checkCapabilities(int fd);
+		bool init(unsigned int mandatoryCapabilities);
+		int initdevice(const char *dev_name, unsigned int mandatoryCapabilities);
+		int checkCapabilities(int fd, unsigned int mandatoryCapabilities);
 		int configureFormat(int fd);
 		int configureParam(int fd);		
 		int xioctl(int fd, int request, void *arg);
 	
-		virtual void doGetNextFrame();				
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
 		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->getNextFrame(); };
@@ -111,8 +110,17 @@ class V4L2DeviceSource: public FramedSource
 		bool processConfigrationFrame(char * frame, int frameSize);
 		void processFrame(char * frame, int &frameSize, const timeval &ref);
 		void queueFrame(char * frame, int frameSize, const timeval &tv);
-	
-	private:
+
+		// overide FramedSource
+		virtual void doGetNextFrame();	
+		virtual void doStopGettingFrames();
+			
+	protected:
+		virtual void captureStart() {};
+		virtual size_t read(char* buffer, size_t bufferSize);
+		virtual void captureStop() {};
+		
+	protected:
 		V4L2DeviceParameters m_params;
 		int m_fd;
 		int m_bufferSize;
@@ -122,6 +130,30 @@ class V4L2DeviceSource: public FramedSource
 		EventTriggerId m_eventTriggerId;
 		FILE* m_outfile;
 		std::string m_auxLine;
+};
+
+#define V4L2MMAP_NBBUFFER 4
+class V4L2MMAPDeviceSource : public V4L2DeviceSource
+{
+	public:
+		static V4L2MMAPDeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params);
+	
+	protected:
+		V4L2MMAPDeviceSource(UsageEnvironment& env, V4L2DeviceParameters params) : V4L2DeviceSource(env, params), n_buffers(0) {};
+
+		virtual void captureStart();
+		virtual size_t read(char* buffer, size_t bufferSize);
+		virtual void captureStop();
+	
+	protected:
+		int n_buffers;
+	
+		struct buffer 
+		{
+			void *                  start;
+			size_t                  length;
+		};
+		buffer m_buffer[V4L2MMAP_NBBUFFER];
 };
 
 #endif
