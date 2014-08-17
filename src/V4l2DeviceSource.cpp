@@ -226,11 +226,10 @@ void V4L2DeviceSource::deliverFrame()
 		else
 		{				
 			gettimeofday(&fPresentationTime, NULL);			
-			m_out.notify(fPresentationTime.tv_sec);
-			
 			Frame * frame = m_captureQueue.front();
 			m_captureQueue.pop_front();
-											
+			
+			m_out.notify(fPresentationTime.tv_sec, frame->m_size);
 			if (frame->m_size > fMaxSize) 
 			{
 				fFrameSize = fMaxSize;
@@ -293,7 +292,7 @@ void V4L2DeviceSource::getNextFrame()
 		gettimeofday(&tv, NULL);												
 		timeval diff;
 		timersub(&tv,&ref,&diff);
-		int fps = m_in.notify(tv.tv_sec);
+		m_in.notify(tv.tv_sec, frameSize);
 		if (m_params.m_verbose) 
 		{
 			printf ("getNextFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size());

@@ -62,20 +62,22 @@ class V4L2DeviceSource: public FramedSource
 		// ---------------------------------
 		// compute FPS
 		// ---------------------------------
-		class Fps
+		class Stats
 		{
 			public:
-				Fps(const std::string & msg) : m_fps(0), m_fps_sec(0), m_msg(msg) {};
+				Stats(const std::string & msg) : m_fps(0), m_fps_sec(0), m_size(0), m_msg(msg) {};
 				
 			public:
-				int notify(int tv_sec)
+				int notify(int tv_sec, int framesize)
 				{
 					m_fps++;
+					m_size+=framesize;
 					if (tv_sec != m_fps_sec)
 					{
-						std::cout << m_msg  << "tv_sec:" <<   tv_sec << " fps:" << m_fps <<"\n";		
+						std::cout << m_msg  << "tv_sec:" <<   tv_sec << " fps:" << m_fps << " bandwidth:"<< (m_size/128) << "kbps\n";		
 						m_fps_sec = tv_sec;
 						m_fps = 0;
+						m_size = 0;
 					}
 					return m_fps;
 				}
@@ -83,6 +85,7 @@ class V4L2DeviceSource: public FramedSource
 			protected:
 				int m_fps;
 				int m_fps_sec;
+				int m_size;
 				const std::string m_msg;
 		};
 		
@@ -125,8 +128,8 @@ class V4L2DeviceSource: public FramedSource
 		int m_fd;
 		int m_bufferSize;
 		std::list<Frame*> m_captureQueue;
-		Fps m_in;
-		Fps m_out;
+		Stats m_in;
+		Stats m_out;
 		EventTriggerId m_eventTriggerId;
 		FILE* m_outfile;
 		std::string m_auxLine;
