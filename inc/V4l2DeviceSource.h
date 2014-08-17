@@ -32,7 +32,7 @@ class V4L2DeviceSource: public FramedSource
 		// ---------------------------------
 		struct V4L2DeviceParameters 
 		{
-			V4L2DeviceParameters(const char* devname, int format, int queueSize, int width, int height, int fps, bool verbose,const std::string & outputFile) : 
+			V4L2DeviceParameters(const char* devname, int format, int queueSize, int width, int height, int fps, int verbose,const std::string & outputFile) : 
 				m_devName(devname), m_format(format), m_queueSize(queueSize), m_width(width), m_height(height), m_fps(fps), m_verbose(verbose), m_outputFIle(outputFile) {};
 				
 			std::string m_devName;
@@ -41,7 +41,7 @@ class V4L2DeviceSource: public FramedSource
 			int m_format;
 			int m_queueSize;
 			int m_fps;			
-			bool m_verbose;
+			int m_verbose;
 			std::string m_outputFIle;
 		};
 
@@ -67,7 +67,7 @@ class V4L2DeviceSource: public FramedSource
 				Stats(const std::string & msg) : m_fps(0), m_fps_sec(0), m_size(0), m_msg(msg) {};
 				
 			public:
-				int notify(int tv_sec, int framesize);
+				int notify(int tv_sec, int framesize, int verbose);
 			
 			protected:
 				int m_fps;

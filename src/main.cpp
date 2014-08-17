@@ -79,18 +79,18 @@ int main(int argc, char** argv)
 	unsigned short rtspPort = 8554;
 	unsigned short rtspOverHTTPPort = 8080;
 	bool multicast = false;
-	bool verbose = false;
+	int verbose = 0;
 	std::string outputFile;
 	bool useMmap = false;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:vO:T:mM")) != -1)
+	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:mM")) != -1)
 	{
 		switch (c)
 		{
 			case 'O':	outputFile = optarg; break;
-			case 'v':	verbose = true; break;
+			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
 			case 'm':	multicast = true; break;
 			case 'W':	width = atoi(optarg); break;
 			case 'H':	height = atoi(optarg); break;
@@ -101,8 +101,9 @@ int main(int argc, char** argv)
 			case 'M':	useMmap = true; break;
 			case 'h':
 			{
-				std::cout << argv[0] << " [-v][-m][-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
-				std::cout << "\t -v       : Verbose " << std::endl;
+				std::cout << argv[0] << " [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
+				std::cout << "\t -v       : verbose " << std::endl;
+				std::cout << "\t -v v     : very verbose " << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")" << std::endl;
 				std::cout << "\t -O file  : Dump capture to a file" << std::endl;
 				std::cout << "\t RTSP options :" << std::endl;

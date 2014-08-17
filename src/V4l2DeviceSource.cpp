@@ -28,13 +28,16 @@
 // ---------------------------------
 // V4L2 FramedSource Stats
 // ---------------------------------
-int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize)
+int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 {
 	m_fps++;
 	m_size+=framesize;
 	if (tv_sec != m_fps_sec)
 	{
-		std::cout << m_msg  << "tv_sec:" <<   tv_sec << " fps:" << m_fps << " bandwidth:"<< (m_size/128) << "kbps\n";		
+		if (verbose >= 1)
+		{
+			std::cout << m_msg  << "tv_sec:" <<   tv_sec << " fps:" << m_fps << " bandwidth:"<< (m_size/128) << "kbps\n";		
+		}
 		m_fps_sec = tv_sec;
 		m_fps = 0;
 		m_size = 0;
@@ -227,15 +230,15 @@ void V4L2DeviceSource::deliverFrame()
 		
 		if (m_captureQueue.empty())
 		{
-			if ( m_params.m_verbose) envir() << "Queue is empty \n";		
+			if (m_params.m_verbose >= 2) envir() << "Queue is empty \n";		
 		}
 		else
 		{				
 			gettimeofday(&fPresentationTime, NULL);			
 			Frame * frame = m_captureQueue.front();
 			m_captureQueue.pop_front();
-			
-			m_out.notify(fPresentationTime.tv_sec, frame->m_size);
+	
+			m_out.notify(fPresentationTime.tv_sec, frame->m_size, m_params.m_verbose);
 			if (frame->m_size > fMaxSize) 
 			{
 				fFrameSize = fMaxSize;
@@ -248,7 +251,7 @@ void V4L2DeviceSource::deliverFrame()
 			timeval diff;
 			timersub(&fPresentationTime,&(frame->m_timestamp),&diff);
 			
-			if (m_params.m_verbose) 
+			if (m_params.m_verbose >= 2) 
 			{
 				printf ("deliverFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
 			}
@@ -293,8 +296,8 @@ void V4L2DeviceSource::getNextFrame()
 		gettimeofday(&tv, NULL);												
 		timeval diff;
 		timersub(&tv,&ref,&diff);
-		m_in.notify(tv.tv_sec, frameSize);
-		if (m_params.m_verbose) 
+		m_in.notify(tv.tv_sec, frameSize, m_params.m_verbose);
+		if (m_params.m_verbose >=2) 
 		{
 			printf ("getNextFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size());
 		}
@@ -389,7 +392,7 @@ void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval 
 	timeval diff;
 	timersub(&tv,&ref,&diff);
 	
-	if (m_params.m_verbose) 
+	if (m_params.m_verbose >=2) 		
 	{
 		printf ("queueFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
 	}
@@ -400,7 +403,7 @@ void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv
 {
 	while (m_captureQueue.size() >= m_params.m_queueSize)
 	{
-		if (m_params.m_verbose) 
+		if (m_params.m_verbose >=2) 
 		{
 			envir() << "Queue full size drop frame size:"  << (int)m_captureQueue.size() << " \n";		
 		}
