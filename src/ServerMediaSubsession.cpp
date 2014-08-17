@@ -7,6 +7,11 @@
 ** 
 ** -------------------------------------------------------------------------*/
 
+#include <sstream>
+
+// libv4l2
+#include <linux/videodev2.h>
+
 // live555
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -14,6 +19,44 @@
 
 // project
 #include "ServerMediaSubsession.h"
+#include "V4l2DeviceSource.h"
+
+// ---------------------------------
+//   BaseServerMediaSubsession
+// ---------------------------------
+ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, FramedSource * videoES, int format)
+{
+	FramedSource* source = NULL;
+	switch (format)
+	{
+		case V4L2_PIX_FMT_H264 : source = H264VideoStreamDiscreteFramer::createNew(env, videoES); break;
+	}
+	return source;
+}
+
+RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, int format)
+{
+	RTPSink* videoSink = NULL;
+	switch (format)
+	{
+		case V4L2_PIX_FMT_H264 : videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
+	}
+	return videoSink;
+}
+
+char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType)
+{
+	const char* auxLine = NULL;
+	if (source)
+	{
+		std::ostringstream os; 
+		os << "a=fmtp:" << int(rtpPayloadType) << " ";				
+		os << source->getAuxLine();				
+		os << "\r\n";				
+		auxLine = strdup(os.str().c_str());
+	} 
+	return auxLine;
+}
 
 // -----------------------------------------
 //    ServerMediaSubsession for Multicast

@@ -17,7 +17,6 @@
 #include <list> 
 #include <iostream>
 
-
 // live555
 #include <liveMedia.hh>
 
@@ -60,7 +59,7 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 		// ---------------------------------
-		// compute FPS
+		// Compute simple stats
 		// ---------------------------------
 		class Stats
 		{
@@ -68,19 +67,7 @@ class V4L2DeviceSource: public FramedSource
 				Stats(const std::string & msg) : m_fps(0), m_fps_sec(0), m_size(0), m_msg(msg) {};
 				
 			public:
-				int notify(int tv_sec, int framesize)
-				{
-					m_fps++;
-					m_size+=framesize;
-					if (tv_sec != m_fps_sec)
-					{
-						std::cout << m_msg  << "tv_sec:" <<   tv_sec << " fps:" << m_fps << " bandwidth:"<< (m_size/128) << "kbps\n";		
-						m_fps_sec = tv_sec;
-						m_fps = 0;
-						m_size = 0;
-					}
-					return m_fps;
-				}
+				int notify(int tv_sec, int framesize);
 			
 			protected:
 				int m_fps;
@@ -90,7 +77,6 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params);
 		int getBufferSize() { return m_bufferSize; };
 		std::string getAuxLine() { return m_auxLine; };
 
@@ -119,9 +105,9 @@ class V4L2DeviceSource: public FramedSource
 		virtual void doStopGettingFrames();
 			
 	protected:
-		virtual bool captureStart() { return true; };
-		virtual size_t read(char* buffer, size_t bufferSize);
-		virtual bool captureStop() { return true; };
+		virtual bool captureStart() = 0;
+		virtual size_t read(char* buffer, size_t bufferSize) = 0;
+		virtual bool captureStop() = 0;
 		
 	protected:
 		V4L2DeviceParameters m_params;
@@ -133,30 +119,6 @@ class V4L2DeviceSource: public FramedSource
 		EventTriggerId m_eventTriggerId;
 		FILE* m_outfile;
 		std::string m_auxLine;
-};
-
-#define V4L2MMAP_NBBUFFER 10
-class V4L2MMAPDeviceSource : public V4L2DeviceSource
-{
-	public:
-		static V4L2MMAPDeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params);
-	
-	protected:
-		V4L2MMAPDeviceSource(UsageEnvironment& env, V4L2DeviceParameters params) : V4L2DeviceSource(env, params), n_buffers(0) {};
-
-		virtual bool captureStart();
-		virtual size_t read(char* buffer, size_t bufferSize);
-		virtual bool captureStop();
-	
-	protected:
-		int n_buffers;
-	
-		struct buffer 
-		{
-			void *                  start;
-			size_t                  length;
-		};
-		buffer m_buffer[V4L2MMAP_NBBUFFER];
 };
 
 #endif

@@ -31,6 +31,8 @@
 #include <Base64.hh>
 
 // project
+#include "V4l2READDeviceSource.h"
+#include "V4l2MMAPDeviceSource.h"
 #include "ServerMediaSubsession.h"
 
 // -----------------------------------------
@@ -146,7 +148,7 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			videoES = V4L2DeviceSource::createNew(*env, param);
+			videoES = V4L2READDeviceSource::createNew(*env, param);
 		}
 		if (videoES == NULL) 
 		{

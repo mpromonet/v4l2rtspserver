@@ -11,16 +11,12 @@
 #define SERVER_MEDIA_SUBSESSION
 
 #include <string>
-#include <sstream>
-
-// V4L2
-#include <linux/videodev2.h>
 
 // live555
 #include <liveMedia.hh>
 
-// project
-#include "V4l2DeviceSource.h"
+//forward declarations
+class V4L2DeviceSource;
 
 // ---------------------------------
 //   BaseServerMediaSubsession
@@ -31,39 +27,9 @@ class BaseServerMediaSubsession
 		BaseServerMediaSubsession(StreamReplicator* replicator): m_replicator(replicator) {};
 	
 	public:
-		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, int format)
-		{
-			FramedSource* source = NULL;
-			switch (format)
-			{
-				case V4L2_PIX_FMT_H264 : source = H264VideoStreamDiscreteFramer::createNew(env, videoES); break;
-			}
-			return source;
-		}
-
-		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, int format)
-		{
-			RTPSink* videoSink = NULL;
-			switch (format)
-			{
-				case V4L2_PIX_FMT_H264 : videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
-			}
-			return videoSink;
-		}
-
-		char const* getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType)
-		{
-			const char* auxLine = NULL;
-			if (source)
-			{
-				std::ostringstream os; 
-				os << "a=fmtp:" << int(rtpPayloadType) << " ";				
-				os << source->getAuxLine();				
-				os << "\r\n";				
-				auxLine = strdup(os.str().c_str());
-			} 
-			return auxLine;
-		}
+		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, int format);
+		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, int format);
+		char const* getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType);
 		
 	protected:
 		StreamReplicator* m_replicator;
