@@ -20,6 +20,9 @@
 // live555
 #include <liveMedia.hh>
 
+// project
+#include "V4l2Device.h"
+
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
@@ -27,24 +30,6 @@ const char marker[] = {0,0,0,1};
 class V4L2DeviceSource: public FramedSource 
 {
 	public:
-		// ---------------------------------
-		// V4L2 Capture parameters
-		// ---------------------------------
-		struct V4L2DeviceParameters 
-		{
-			V4L2DeviceParameters(const char* devname, int format, int queueSize, int width, int height, int fps, int verbose,const std::string & outputFile) : 
-				m_devName(devname), m_format(format), m_queueSize(queueSize), m_width(width), m_height(height), m_fps(fps), m_verbose(verbose), m_outputFIle(outputFile) {};
-				
-			std::string m_devName;
-			int m_width;
-			int m_height;
-			int m_format;
-			int m_queueSize;
-			int m_fps;			
-			int m_verbose;
-			std::string m_outputFIle;
-		};
-
 		// ---------------------------------
 		// Captured frame
 		// ---------------------------------
@@ -77,21 +62,14 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		int getBufferSize() { return m_bufferSize; };
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, int queueSize, int verbose) ;
 		std::string getAuxLine() { return m_auxLine; };
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params);
+		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, int queueSize, int verbose);
 		virtual ~V4L2DeviceSource();
 
-	protected:
-		bool init(unsigned int mandatoryCapabilities);
-		int initdevice(const char *dev_name, unsigned int mandatoryCapabilities);
-		int checkCapabilities(int fd, unsigned int mandatoryCapabilities);
-		int configureFormat(int fd);
-		int configureParam(int fd);		
-		int xioctl(int fd, int request, void *arg);
-	
+	protected:	
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
 		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->getNextFrame(); };
@@ -103,22 +81,19 @@ class V4L2DeviceSource: public FramedSource
 		// overide FramedSource
 		virtual void doGetNextFrame();	
 		virtual void doStopGettingFrames();
-			
-	protected:
-		virtual bool captureStart() = 0;
-		virtual size_t read(char* buffer, size_t bufferSize) = 0;
-		virtual bool captureStop() = 0;
-		
+					
 	protected:
 		V4L2DeviceParameters m_params;
-		int m_fd;
-		int m_bufferSize;
 		std::list<Frame*> m_captureQueue;
 		Stats m_in;
 		Stats m_out;
 		EventTriggerId m_eventTriggerId;
 		FILE* m_outfile;
 		std::string m_auxLine;
+		V4L2Device * m_device;
+		std::string m_outputFIle;
+		int m_verbose;
+		int m_queueSize;
 };
 
 #endif

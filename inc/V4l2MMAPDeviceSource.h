@@ -14,18 +14,18 @@
 #define V4L2_MMAP_DEVICE_SOURCE
 
 // project
-#include "V4l2DeviceSource.h"
+#include "V4l2Device.h"
 
 #define V4L2MMAP_NBBUFFER 10
-class V4L2MMAPDeviceSource : public V4L2DeviceSource
+class V4L2MMAPDeviceSource : public V4L2Device
 {
 	public:
-		static V4L2MMAPDeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params);
+		static V4L2MMAPDeviceSource* createNew(V4L2DeviceParameters params);
 	
 	protected:
-		V4L2MMAPDeviceSource(UsageEnvironment& env, V4L2DeviceParameters params) : V4L2DeviceSource(env, params), n_buffers(0) {};
+		V4L2MMAPDeviceSource(V4L2DeviceParameters params) : V4L2Device(params), n_buffers(0) {};
 			
-	protected:
+	public:
 		virtual bool captureStart();
 		virtual size_t read(char* buffer, size_t bufferSize);
 		virtual bool captureStop();

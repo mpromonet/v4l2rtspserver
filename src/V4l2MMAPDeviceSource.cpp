@@ -9,7 +9,9 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/mman.h>
 
 // libv4l2
@@ -19,12 +21,12 @@
 // project
 #include "V4l2MMAPDeviceSource.h"
 
-V4L2MMAPDeviceSource* V4L2MMAPDeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params) 
+V4L2MMAPDeviceSource* V4L2MMAPDeviceSource::createNew(V4L2DeviceParameters params) 
 { 
-	V4L2MMAPDeviceSource* device = new V4L2MMAPDeviceSource(env, params); 
+	V4L2MMAPDeviceSource* device = new V4L2MMAPDeviceSource(params); 
 	if (device && !device->init(V4L2_CAP_STREAMING))
 	{
-		Medium::close(device);
+		delete device;
 		device=NULL;
 	}
 	return device;
@@ -130,7 +132,6 @@ size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
 		switch (errno) 
 		{
 			case EAGAIN:
-				envir() << "EAGAIN\n";				
 				return 0;
 
 			case EIO:
@@ -145,7 +146,7 @@ size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
 		if (size > bufferSize)
 		{
 			size = bufferSize;
-			envir() << "buffer truncated : " << m_buffer[buf.index].length << " " << bufferSize << "\n";
+			fprintf(stderr, "%s buffer truncated:%d size:%d\n", m_params.m_devName.c_str(), m_buffer[buf.index].length,  bufferSize);
 		}
 		memcpy(buffer, m_buffer[buf.index].start, size);
 

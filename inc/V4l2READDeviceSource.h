@@ -14,20 +14,17 @@
 #define V4L2_READ_DEVICE_SOURCE
 
 // project
-#include "V4l2DeviceSource.h"
+#include "V4l2Device.h"
 
-// ---------------------------------
-// V4L2 FramedSource
-// ---------------------------------
-class V4L2READDeviceSource : public V4L2DeviceSource 
+class V4L2READDeviceSource : public V4L2Device
 {
 	public:
-		static V4L2READDeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params);
+		static V4L2READDeviceSource* createNew(V4L2DeviceParameters params);
 	
 	protected:
-		V4L2READDeviceSource(UsageEnvironment& env, V4L2DeviceParameters params) : V4L2DeviceSource(env, params) {};
+		V4L2READDeviceSource(V4L2DeviceParameters params) : V4L2Device(params) {};
 			
-	protected:
+	public:
 		virtual bool captureStart() { return true; };
 		virtual size_t read(char* buffer, size_t bufferSize);
 		virtual bool captureStop() { return true; };

@@ -33,6 +33,8 @@
 // project
 #include "V4l2READDeviceSource.h"
 #include "V4l2MMAPDeviceSource.h"
+
+#include "V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
 
 // -----------------------------------------
@@ -77,7 +79,7 @@ int main(int argc, char** argv)
 	unsigned char ttl = 5;
 	struct in_addr destinationAddress;
 	unsigned short rtspPort = 8554;
-	unsigned short rtspOverHTTPPort = 8080;
+	unsigned short rtspOverHTTPPort = 0;
 	bool multicast = false;
 	int verbose = 0;
 	std::string outputFile;
@@ -125,10 +127,11 @@ int main(int argc, char** argv)
 		dev_name = argv[optind];
 	}
      
-	// 
+	// create live555 environment
 	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
 	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
 	
+	// create RTSP server
 	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort);
 	if (rtspServer == NULL) 
 	{
@@ -137,20 +140,24 @@ int main(int argc, char** argv)
 	else
 	{
 		// set http tunneling
-		rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
+		if (rtspOverHTTPPort)
+		{
+			rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
+		}
 		
 		// Init capture
 		*env << "Create V4L2 Source..." << dev_name << "\n";
-		V4L2DeviceSource::V4L2DeviceParameters param(dev_name,format,queueSize,width,height,fps,verbose,outputFile);
-		V4L2DeviceSource* videoES = NULL;
+		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
+		V4L2Device* videoCapture = NULL;
 		if (useMmap)
 		{
-			videoES = V4L2MMAPDeviceSource::createNew(*env, param);
+			videoCapture = V4L2MMAPDeviceSource::createNew(param);
 		}
 		else
 		{
-			videoES = V4L2READDeviceSource::createNew(*env, param);
+			videoCapture = V4L2READDeviceSource::createNew(param);
 		}
+		V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFile, queueSize, verbose);
 		if (videoES == NULL) 
 		{
 			*env << "Unable to create source for device " << dev_name << "\n";
@@ -158,7 +165,7 @@ int main(int argc, char** argv)
 		else
 		{
 			destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
-			OutPacketBuffer::maxSize = videoES->getBufferSize();
+			OutPacketBuffer::maxSize = videoCapture->getBufferSize();
 			StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
 
 			// Create Server Multicast Session
@@ -177,12 +184,12 @@ int main(int argc, char** argv)
 		}
 		
 		Medium::close(videoES);
+		delete videoCapture;
 		Medium::close(rtspServer);
 	}
 	
 	env->reclaim();
-	delete scheduler;
-	
+	delete scheduler;	
 	
 	return 0;
 }

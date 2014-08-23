@@ -18,12 +18,12 @@
 #include "V4l2READDeviceSource.h"
 
 // Creator
-V4L2READDeviceSource* V4L2READDeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params) 
+V4L2READDeviceSource* V4L2READDeviceSource::createNew(V4L2DeviceParameters params) 
 { 
-	V4L2READDeviceSource* device = new V4L2READDeviceSource(env, params); 
+	V4L2READDeviceSource* device = new V4L2READDeviceSource(params); 
 	if (device && !device->init(V4L2_CAP_READWRITE))
 	{
-		Medium::close(device);
+		delete device;
 		device=NULL;
 	}
 	return device;
