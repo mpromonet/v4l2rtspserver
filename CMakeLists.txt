@@ -4,6 +4,10 @@ cmake_minimum_required(VERSION 2.6)
 get_filename_component(BASENAME ${CMAKE_SOURCE_DIR} NAME)
 project(${BASENAME})
 
+set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_C_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall")
+
 # define executable to build
 include_directories("${PROJECT_BINARY_DIR}/inc")
 aux_source_directory(src SRC_FILES)
