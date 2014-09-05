@@ -50,6 +50,8 @@ class V4L2Device
 
 	protected:
 		bool init(unsigned int mandatoryCapabilities);
+		void close();
+	
 		int initdevice(const char *dev_name, unsigned int mandatoryCapabilities);
 		int checkCapabilities(int fd, unsigned int mandatoryCapabilities);
 		int configureFormat(int fd);

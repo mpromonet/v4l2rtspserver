@@ -122,38 +122,33 @@ bool V4L2MMAPDeviceSource::captureStart()
 size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
 {
 	size_t size = 0;
-	struct v4l2_buffer buf;	
-	memset (&buf, 0, sizeof(buf));
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_MMAP;
-
-	if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &buf)) 
+	if (n_buffers > 0)
 	{
-		switch (errno) 
-		{
-			case EAGAIN:
-				return 0;
+		struct v4l2_buffer buf;	
+		memset (&buf, 0, sizeof(buf));
+		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory = V4L2_MEMORY_MMAP;
 
-			case EIO:
-			default:
-				perror("VIDIOC_DQBUF");
-				size = -1;
-		}
-	}
-	else if (buf.index < n_buffers)
-	{
-		size = buf.bytesused;
-		if (size > bufferSize)
+		if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
-			size = bufferSize;
-			fprintf(stderr, "%s buffer truncated:%d size:%d\n", m_params.m_devName.c_str(), m_buffer[buf.index].length,  bufferSize);
-		}
-		memcpy(buffer, m_buffer[buf.index].start, size);
-
-		if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
-		{
-			perror("VIDIOC_QBUF");
+			perror("VIDIOC_DQBUF");
 			size = -1;
+		}
+		else if (buf.index < n_buffers)
+		{
+			size = buf.bytesused;
+			if (size > bufferSize)
+			{
+				size = bufferSize;
+				fprintf(stderr, "%s buffer truncated:%d size:%d\n", m_params.m_devName.c_str(), m_buffer[buf.index].length,  bufferSize);
+			}
+			memcpy(buffer, m_buffer[buf.index].start, size);
+
+			if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
+			{
+				perror("VIDIOC_QBUF");
+				size = -1;
+			}
 		}
 	}
 	return size;
@@ -176,6 +171,7 @@ bool V4L2MMAPDeviceSource::captureStop()
 			success = false;
 		}
 	}
+	n_buffers = 0;
 	return success; 
 }
 

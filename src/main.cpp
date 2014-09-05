@@ -157,34 +157,39 @@ int main(int argc, char** argv)
 		{
 			videoCapture = V4L2READDeviceSource::createNew(param);
 		}
-		V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFile, queueSize, verbose);
-		if (videoES == NULL) 
+		if (videoCapture)
 		{
-			*env << "Unable to create source for device " << dev_name << "\n";
-		}
-		else
-		{
-			destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
-			OutPacketBuffer::maxSize = videoCapture->getBufferSize();
-			StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
-
-			// Create Server Multicast Session
-			if (multicast)
+			*env << "Start V4L2 Capture..." << dev_name << "\n";
+			videoCapture->captureStart();
+			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFile, queueSize, verbose);
+			if (videoES == NULL) 
 			{
-				addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, 96, replicator,format));
+				*env << "Unable to create source for device " << dev_name << "\n";
 			}
-			
-			// Create Server Unicast Session
-			addSession(rtspServer, "unicast", UnicastServerMediaSubsession::createNew(*env,replicator,format));
+			else
+			{
+				destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
+				OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+				StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
 
-			// main loop
-			signal(SIGINT,sighandler);
-			env->taskScheduler().doEventLoop(&quit); 
-			*env << "Exiting..\n";			
+				// Create Server Multicast Session
+				if (multicast)
+				{
+					addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, 96, replicator,format));
+				}
+				
+				// Create Server Unicast Session
+				addSession(rtspServer, "unicast", UnicastServerMediaSubsession::createNew(*env,replicator,format));
+
+				// main loop
+				signal(SIGINT,sighandler);
+				env->taskScheduler().doEventLoop(&quit); 
+				*env << "Exiting..\n";			
+				Medium::close(videoES);
+			}			
+			videoCapture->captureStop();
+			delete videoCapture;
 		}
-		
-		Medium::close(videoES);
-		delete videoCapture;
 		Medium::close(rtspServer);
 	}
 	
@@ -193,4 +198,6 @@ int main(int argc, char** argv)
 	
 	return 0;
 }
+
+
 

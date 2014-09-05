@@ -39,10 +39,17 @@ bool V4L2Device::init(unsigned int mandatoryCapabilities)
 	if (initdevice(m_params.m_devName.c_str(), mandatoryCapabilities) == -1)
 	{
 		fprintf(stderr, "Init device:%s failure\n", m_params.m_devName.c_str());
+
 	}
 	return (m_fd!=-1);
 }
-		
+
+void V4L2Device::close()
+{
+	if (m_fd !=-1) v4l2_close(m_fd);
+	m_fd = -1;
+}
+
 // intialize the V4L2 device
 int V4L2Device::initdevice(const char *dev_name, unsigned int mandatoryCapabilities)
 {
@@ -50,22 +57,22 @@ int V4L2Device::initdevice(const char *dev_name, unsigned int mandatoryCapabilit
 	if (m_fd < 0) 
 	{
 		perror("Cannot open device");
+		this->close();
 		return -1;
 	}
 	if (checkCapabilities(m_fd,mandatoryCapabilities) !=0)
 	{
+		this->close();
 		return -1;
 	}	
 	if (configureFormat(m_fd) !=0)
 	{
+		this->close();
 		return -1;
 	}
 	if (configureParam(m_fd) !=0)
 	{
-		return -1;
-	}
-	if (!this->captureStart())
-	{
+		this->close();
 		return -1;
 	}
 	
