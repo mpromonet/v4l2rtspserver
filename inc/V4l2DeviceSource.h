@@ -92,8 +92,8 @@ class V4L2DeviceSource: public FramedSource
 		std::string m_auxLine;
 		V4L2Device * m_device;
 		std::string m_outputFIle;
-		int m_verbose;
 		int m_queueSize;
+		int m_verbose;
 };
 
 #endif
