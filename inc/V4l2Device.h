@@ -62,6 +62,7 @@ class V4L2Device
 		virtual bool captureStart() = 0;
 		virtual size_t read(char* buffer, size_t bufferSize) = 0;
 		virtual bool captureStop() = 0;
+		virtual bool isReady() = 0;
 		
 	protected:
 		V4L2DeviceParameters m_params;

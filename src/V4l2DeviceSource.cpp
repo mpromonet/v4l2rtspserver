@@ -272,7 +272,6 @@ bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize)
 		
 void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval &ref) 
 {
-	int offset = 0;
 	timeval tv;
 	gettimeofday(&tv, NULL);												
 	timeval diff;
