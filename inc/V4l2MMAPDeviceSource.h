@@ -31,7 +31,7 @@ class V4L2MMAPDeviceSource : public V4L2Device
 		virtual bool captureStop();
 	
 	protected:
-		int n_buffers;
+		unsigned int n_buffers;
 	
 		struct buffer 
 		{
@@ -42,3 +42,4 @@ class V4L2MMAPDeviceSource : public V4L2Device
 };
 
 #endif
+
