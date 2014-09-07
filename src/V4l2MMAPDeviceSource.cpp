@@ -93,7 +93,7 @@ bool V4L2MMAPDeviceSource::captureStart()
 		}
 
 		// queue buffers
-		for (int i = 0; i < n_buffers; ++i) 
+		for (unsigned int i = 0; i < n_buffers; ++i) 
 		{
 			struct v4l2_buffer buf;
 			memset (&buf, 0, sizeof(buf));
@@ -163,7 +163,7 @@ bool V4L2MMAPDeviceSource::captureStop()
 		perror("VIDIOC_STREAMOFF");      
 		success = false;
 	}
-	for (int i = 0; i < n_buffers; ++i)
+	for (unsigned int i = 0; i < n_buffers; ++i)
 	{
 		if (-1 == munmap (m_buffer[i].start, m_buffer[i].length))
 		{
