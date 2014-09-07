@@ -28,6 +28,7 @@ class V4L2READDeviceSource : public V4L2Device
 		virtual bool captureStart() { return true; };
 		virtual size_t read(char* buffer, size_t bufferSize);
 		virtual bool captureStop() { return true; };
+		virtual bool isReady() { return m_fd != -1; };
 };
 
 #endif
