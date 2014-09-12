@@ -1,6 +1,7 @@
 before_install: 
 - sudo apt-get update
-- sudo apt-get install cmake liblivemedia-dev libv4l-dev
+- sudo apt-get install cmake libv4l-dev
+- sudo dpkg -i http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/livemedia-utils_2014.01.13-1_amd64.deb
 language: cpp
 compiler:
 - gcc
