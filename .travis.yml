@@ -3,6 +3,7 @@ language: cpp
 compiler:
 - gcc
 script: 
+- ls -l /usr/include/liveMedia
 - cmake . 
 - make
 - cpack .
