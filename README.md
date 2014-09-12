@@ -1,6 +1,8 @@
 h264_v4l2_rtspserver
 ====================
 
+[![Travis build status](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver/h264_v4l2_rtspserver.png?branch=master)](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver)
+
 This provide an RTSP server feed from an Video4Linux device that support H264 format.
 
 It involves :
