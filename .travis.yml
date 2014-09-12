@@ -2,7 +2,11 @@ before_install:
 - sudo apt-get update
 - sudo apt-get install cmake libv4l-dev
 - wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/liblivemedia-dev_2014.01.13-1_amd64.deb
-- sudo dpkg -i liblivemedia-dev_2014.01.13-1_amd64.deb
+- wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/libbasicusageenvironment0_2014.01.13-1_amd64.deb
+- wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/libgroupsock1_2014.01.13-1_amd64.deb
+- wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/liblivemedia23_2014.01.13-1_amd64.deb
+- wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/libusageenvironment1_2014.01.13-1_amd64.deb
+- sudo dpkg -i liblivemedia-dev_2014.01.13-1_amd64.deb libbasicusageenvironment0_2014.01.13-1_amd64.deb libgroupsock1_2014.01.13-1_amd64.deb liblivemedia23_2014.01.13-1_amd64.deb libusageenvironment1_2014.01.13-1_amd64.deb
 language: cpp
 compiler:
 - gcc
