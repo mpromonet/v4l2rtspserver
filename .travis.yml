@@ -2,5 +2,7 @@ before_install: sudo apt-get install cmake liblivemedia-dev libv4l-dev
 language: cpp
 compiler:
 - gcc
-- clang
-script: cmake . && make
+script: 
+- cmake . 
+- make
+- cpack .
