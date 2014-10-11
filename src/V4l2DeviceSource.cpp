@@ -48,7 +48,7 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, int queueSize, int verbose) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
@@ -59,7 +59,7 @@ V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceP
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, int queueSize, int verbose) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
 	: FramedSource(env), 
 	m_params(params), 
 	m_in("in"), 
@@ -139,7 +139,7 @@ void V4L2DeviceSource::deliverFrame()
 			
 			if (m_verbose >= 2) 
 			{
-				printf ("deliverFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
+				printf ("deliverFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
 			}
 			
 			int offset = 0;
@@ -185,7 +185,7 @@ void V4L2DeviceSource::getNextFrame()
 		m_in.notify(tv.tv_sec, frameSize, m_verbose);
 		if (m_verbose >=2) 
 		{
-			printf ("getNextFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size());
+			printf ("getNextFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size());
 		}
 		processFrame(buffer,frameSize,ref);
 		if (!processConfigrationFrame(buffer,frameSize))
@@ -279,7 +279,7 @@ void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval 
 	
 	if (m_verbose >=2) 		
 	{
-		printf ("queueFrame\ttimestamp:%d.%06d\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
+		printf ("queueFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
 	}
 	if (m_outfile) fwrite(frame, frameSize,1, m_outfile);
 }	
