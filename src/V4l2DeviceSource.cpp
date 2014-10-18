@@ -149,7 +149,7 @@ void V4L2DeviceSource::deliverFrame()
 			}
 			fFrameSize -= offset;
 			memcpy(fTo, frame->m_buffer+offset, fFrameSize);
-			delete [] frame;
+			delete frame;
 		}
 		
 		// send Frame to the consumer
