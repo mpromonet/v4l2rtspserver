@@ -149,7 +149,7 @@ void V4L2DeviceSource::deliverFrame()
 			}
 			fFrameSize -= offset;
 			memcpy(fTo, frame->m_buffer+offset, fFrameSize);
-			delete frame;
+			delete [] frame;
 		}
 		
 		// send Frame to the consumer
@@ -168,13 +168,13 @@ void V4L2DeviceSource::getNextFrame()
 	if (frameSize < 0)
 	{
 		envir() << "V4L2DeviceSource::getNextFrame errno:" << errno << " "  << strerror(errno) << "\n";		
-		delete buffer;
+		delete [] buffer;
 		handleClosure(this);
 	}
 	else if (frameSize == 0)
 	{
 		envir() << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno) << "\n";		
-		delete buffer;
+		delete [] buffer;
 	}
 	else
 	{
@@ -191,6 +191,10 @@ void V4L2DeviceSource::getNextFrame()
 		if (!processConfigrationFrame(buffer,frameSize))
 		{
 			queueFrame(buffer,frameSize,ref);
+		}
+		else
+		{
+			delete [] buffer;
 		}
 	}			
 }	
@@ -263,7 +267,6 @@ bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize)
 				std::cout << "AuxLine:"  << m_auxLine << " \n";		
 			}						
 			ret = true;
-			delete [] frame;
 		}
 	}
 
