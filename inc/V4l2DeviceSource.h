@@ -3,9 +3,9 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** v4l2DeviceSource.h
+** V4l2DeviceSource.h
 ** 
-** V4L2 source 
+** V4L2 live555 source 
 **
 ** -------------------------------------------------------------------------*/
 
@@ -21,7 +21,7 @@
 #include <liveMedia.hh>
 
 // project
-#include "V4l2Device.h"
+#include "V4l2Capture.h"
 
 // ---------------------------------
 // V4L2 FramedSource
@@ -64,11 +64,11 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose) ;
 		std::string getAuxLine() { return m_auxLine; };
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose);
+		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose);
 		virtual ~V4L2DeviceSource();
 
 	protected:	
@@ -92,7 +92,7 @@ class V4L2DeviceSource: public FramedSource
 		EventTriggerId m_eventTriggerId;
 		FILE* m_outfile;
 		std::string m_auxLine;
-		V4L2Device * m_device;
+		V4l2Capture * m_device;
 		std::string m_outputFIle;
 		unsigned int m_queueSize;
 		int m_verbose;

@@ -3,7 +3,7 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** v4l2Device.cpp
+** V4l2Capture.cpp
 ** 
 ** V4L2 wrapper 
 **
@@ -20,21 +20,21 @@
 #include <libv4l2.h>
 
 // project
-#include "V4l2Device.h"
+#include "V4l2Capture.h"
 
 // Constructor
-V4L2Device::V4L2Device(V4L2DeviceParameters params) : m_params(params), m_fd(-1), m_bufferSize(0)
+V4l2Capture::V4l2Capture(V4L2DeviceParameters params) : m_params(params), m_fd(-1), m_bufferSize(0)
 {
 }
 
 // Destructor
-V4L2Device::~V4L2Device()
+V4l2Capture::~V4l2Capture()
 {
 	if (m_fd !=-1) v4l2_close(m_fd);
 }
 
 // intialize the source
-bool V4L2Device::init(unsigned int mandatoryCapabilities)
+bool V4l2Capture::init(unsigned int mandatoryCapabilities)
 {
 	if (initdevice(m_params.m_devName.c_str(), mandatoryCapabilities) == -1)
 	{
@@ -44,14 +44,14 @@ bool V4L2Device::init(unsigned int mandatoryCapabilities)
 	return (m_fd!=-1);
 }
 
-void V4L2Device::close()
+void V4l2Capture::close()
 {
 	if (m_fd !=-1) v4l2_close(m_fd);
 	m_fd = -1;
 }
 
 // intialize the V4L2 device
-int V4L2Device::initdevice(const char *dev_name, unsigned int mandatoryCapabilities)
+int V4l2Capture::initdevice(const char *dev_name, unsigned int mandatoryCapabilities)
 {
 	m_fd = v4l2_open(dev_name, O_RDWR | O_NONBLOCK, 0);
 	if (m_fd < 0) 
@@ -80,7 +80,7 @@ int V4L2Device::initdevice(const char *dev_name, unsigned int mandatoryCapabilit
 }
 
 // check needed V4L2 capabilities
-int V4L2Device::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
+int V4l2Capture::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
 {
 	struct v4l2_capability cap;
 	memset(&(cap), 0, sizeof(cap));
@@ -111,7 +111,7 @@ int V4L2Device::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
 }
 
 // configure capture format 
-int V4L2Device::configureFormat(int fd)
+int V4l2Capture::configureFormat(int fd)
 {
 	struct v4l2_format   fmt;			
 	memset(&(fmt), 0, sizeof(fmt));
@@ -141,7 +141,7 @@ int V4L2Device::configureFormat(int fd)
 }
 
 // configure capture FPS 
-int V4L2Device::configureParam(int fd)
+int V4l2Capture::configureParam(int fd)
 {
 	struct v4l2_streamparm   param;			
 	memset(&(param), 0, sizeof(param));
@@ -161,7 +161,7 @@ int V4L2Device::configureParam(int fd)
 }
 
 // ioctl encapsulation
-int V4L2Device::xioctl(int fd, int request, void *arg)
+int V4l2Capture::xioctl(int fd, int request, void *arg)
 {
 	int ret = -1;
 	do 

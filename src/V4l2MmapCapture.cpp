@@ -3,7 +3,7 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** V4l2MMAPDeviceSource.cpp
+** V4l2MmapCapture.cpp
 ** 
 ** V4L2 source using mmap API
 **
@@ -19,11 +19,11 @@
 #include <libv4l2.h>
 
 // project
-#include "V4l2MMAPDeviceSource.h"
+#include "V4l2MmapCapture.h"
 
-V4L2MMAPDeviceSource* V4L2MMAPDeviceSource::createNew(V4L2DeviceParameters params) 
+V4l2MmapCapture* V4l2MmapCapture::createNew(V4L2DeviceParameters params) 
 { 
-	V4L2MMAPDeviceSource* device = new V4L2MMAPDeviceSource(params); 
+	V4l2MmapCapture* device = new V4l2MmapCapture(params); 
 	if (device && !device->init(V4L2_CAP_STREAMING))
 	{
 		delete device;
@@ -32,7 +32,7 @@ V4L2MMAPDeviceSource* V4L2MMAPDeviceSource::createNew(V4L2DeviceParameters param
 	return device;
 }
 
-bool V4L2MMAPDeviceSource::captureStart() 
+bool V4l2MmapCapture::captureStart() 
 {
 	bool success = true;
 	struct v4l2_requestbuffers req;
@@ -119,7 +119,7 @@ bool V4L2MMAPDeviceSource::captureStart()
 	return success; 
 }
 
-size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
+size_t V4l2MmapCapture::read(char* buffer, size_t bufferSize)
 {
 	size_t size = 0;
 	if (n_buffers > 0)
@@ -154,7 +154,7 @@ size_t V4L2MMAPDeviceSource::read(char* buffer, size_t bufferSize)
 	return size;
 }
 
-bool V4L2MMAPDeviceSource::captureStop() 
+bool V4l2MmapCapture::captureStop() 
 {
 	bool success = true;
 	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

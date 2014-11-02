@@ -3,26 +3,26 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** V4l2READDeviceSource.h
+** V4l2ReadCapture.h
 ** 
 ** V4L2 source using read API
 **
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef V4L2_READ_DEVICE_SOURCE
-#define V4L2_READ_DEVICE_SOURCE
+#ifndef V4L2_READ_CAPTURE
+#define V4L2_READ_CAPTURE
 
 // project
-#include "V4l2Device.h"
+#include "V4l2Capture.h"
 
-class V4L2READDeviceSource : public V4L2Device
+class V4l2ReadCapture : public V4l2Capture
 {
 	public:
-		static V4L2READDeviceSource* createNew(V4L2DeviceParameters params);
+		static V4l2ReadCapture* createNew(V4L2DeviceParameters params);
 	
 	protected:
-		V4L2READDeviceSource(V4L2DeviceParameters params) : V4L2Device(params) {};
+		V4l2ReadCapture(V4L2DeviceParameters params) : V4l2Capture(params) {};
 			
 	public:
 		virtual bool captureStart() { return true; };

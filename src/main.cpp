@@ -31,8 +31,8 @@
 #include <Base64.hh>
 
 // project
-#include "V4l2READDeviceSource.h"
-#include "V4l2MMAPDeviceSource.h"
+#include "V4l2ReadCapture.h"
+#include "V4l2MmapCapture.h"
 
 #include "V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
@@ -148,14 +148,14 @@ int main(int argc, char** argv)
 		// Init capture
 		*env << "Create V4L2 Source..." << dev_name << "\n";
 		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
-		V4L2Device* videoCapture = NULL;
+		V4l2Capture* videoCapture = NULL;
 		if (useMmap)
 		{
-			videoCapture = V4L2MMAPDeviceSource::createNew(param);
+			videoCapture = V4l2MmapCapture::createNew(param);
 		}
 		else
 		{
-			videoCapture = V4L2READDeviceSource::createNew(param);
+			videoCapture = V4l2ReadCapture::createNew(param);
 		}
 		if (videoCapture)
 		{

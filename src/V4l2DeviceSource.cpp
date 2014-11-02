@@ -5,7 +5,7 @@
 **
 ** v4l2DeviceSource.cpp
 ** 
-** V4L2 source 
+** V4L2 Live555 source 
 **
 ** -------------------------------------------------------------------------*/
 
@@ -48,7 +48,7 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
@@ -59,7 +59,7 @@ V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceP
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4L2Device * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
 	: FramedSource(env), 
 	m_params(params), 
 	m_in("in"), 

@@ -3,7 +3,7 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** V4l2READDeviceSource.cpp
+** V4l2ReadCapture.cpp
 ** 
 ** V4L2 source using read API
 **
@@ -15,12 +15,12 @@
 #include <libv4l2.h>
 
 // project
-#include "V4l2READDeviceSource.h"
+#include "V4l2ReadCapture.h"
 
 // Creator
-V4L2READDeviceSource* V4L2READDeviceSource::createNew(V4L2DeviceParameters params) 
+V4l2ReadCapture* V4l2ReadCapture::createNew(V4L2DeviceParameters params) 
 { 
-	V4L2READDeviceSource* device = new V4L2READDeviceSource(params); 
+	V4l2ReadCapture* device = new V4l2ReadCapture(params); 
 	if (device && !device->init(V4L2_CAP_READWRITE))
 	{
 		delete device;
@@ -29,7 +29,7 @@ V4L2READDeviceSource* V4L2READDeviceSource::createNew(V4L2DeviceParameters param
 	return device;
 }
 
-size_t V4L2READDeviceSource::read(char* buffer, size_t bufferSize)
+size_t V4l2ReadCapture::read(char* buffer, size_t bufferSize)
 {
 	return v4l2_read(m_fd, buffer,  bufferSize);
 }

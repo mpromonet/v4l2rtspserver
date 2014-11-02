@@ -3,15 +3,15 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** v4l2Device.h
+** V4l2Capture.h
 ** 
 ** V4L2 wrapper 
 **
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef V4L2_DEVICE
-#define V4L2_DEVICE
+#ifndef V4L2_CAPTURE
+#define V4L2_CAPTURE
 
 #include <string>
 #include <list> 
@@ -36,13 +36,13 @@ struct V4L2DeviceParameters
 // ---------------------------------
 // V4L2 Capture
 // ---------------------------------
-class V4L2Device
+class V4l2Capture
 {		
 	protected:
-		V4L2Device(V4L2DeviceParameters params);
+		V4l2Capture(V4L2DeviceParameters params);
 	
 	public:
-		virtual ~V4L2Device();
+		virtual ~V4l2Capture();
 	
 	public:
 		int getBufferSize() { return m_bufferSize; };

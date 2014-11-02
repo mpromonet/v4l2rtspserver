@@ -3,27 +3,27 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** V4L2MMAPDeviceSource.h
+** V4l2MmapCapture.h
 ** 
 ** V4L2 source using mmap API
 **
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef V4L2_MMAP_DEVICE_SOURCE
-#define V4L2_MMAP_DEVICE_SOURCE
+#ifndef V4L2_MMAP_CAPTURE
+#define V4L2_MMAP_CAPTURE
 
 // project
-#include "V4l2Device.h"
+#include "V4l2Capture.h"
 
 #define V4L2MMAP_NBBUFFER 10
-class V4L2MMAPDeviceSource : public V4L2Device
+class V4l2MmapCapture : public V4l2Capture
 {
 	public:
-		static V4L2MMAPDeviceSource* createNew(V4L2DeviceParameters params);
+		static V4l2MmapCapture* createNew(V4L2DeviceParameters params);
 	
 	protected:
-		V4L2MMAPDeviceSource(V4L2DeviceParameters params) : V4L2Device(params), n_buffers(0) {};
+		V4l2MmapCapture(V4L2DeviceParameters params) : V4l2Capture(params), n_buffers(0) {};
 			
 	public:
 		virtual bool captureStart();
