@@ -157,12 +157,14 @@ size_t V4l2MmapCapture::read(char* buffer, size_t bufferSize)
 bool V4l2MmapCapture::captureStop() 
 {
 	bool success = true;
+	
 	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (-1 == xioctl(m_fd, VIDIOC_STREAMOFF, &type))
 	{
 		perror("VIDIOC_STREAMOFF");      
 		success = false;
 	}
+
 	for (unsigned int i = 0; i < n_buffers; ++i)
 	{
 		if (-1 == munmap (m_buffer[i].start, m_buffer[i].length))
@@ -171,6 +173,19 @@ bool V4l2MmapCapture::captureStop()
 			success = false;
 		}
 	}
+	
+	// free buffers
+	struct v4l2_requestbuffers req;
+	memset (&req, 0, sizeof(req));
+	req.count               = 0;
+	req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	req.memory              = V4L2_MEMORY_MMAP;
+	if (-1 == xioctl(m_fd, VIDIOC_REQBUFS, &req)) 
+	{
+		perror("VIDIOC_REQBUFS");
+		success = false;
+	}
+	
 	n_buffers = 0;
 	return success; 
 }
