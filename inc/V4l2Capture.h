@@ -45,8 +45,10 @@ class V4l2Capture
 		virtual ~V4l2Capture();
 	
 	public:
-		int getBufferSize() { return m_bufferSize; };
 		int getFd() { return m_fd; };		
+		int getBufferSize() { return m_bufferSize; };
+		int getFormat() { return m_format; } ;
+		void queryFormat();
 
 	protected:
 		bool init(unsigned int mandatoryCapabilities);
@@ -68,6 +70,7 @@ class V4l2Capture
 		V4L2DeviceParameters m_params;
 		int m_fd;
 		int m_bufferSize;
+		int m_format;
 };
 
 #endif

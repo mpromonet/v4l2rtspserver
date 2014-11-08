@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>
+#include <sys/ioctl.h>
 
 // libv4l2
 #include <linux/videodev2.h>
@@ -23,7 +24,7 @@
 #include "V4l2Capture.h"
 
 // Constructor
-V4l2Capture::V4l2Capture(V4L2DeviceParameters params) : m_params(params), m_fd(-1), m_bufferSize(0)
+V4l2Capture::V4l2Capture(V4L2DeviceParameters params) : m_params(params), m_fd(-1), m_bufferSize(0), m_format(0)
 {
 }
 
@@ -33,20 +34,21 @@ V4l2Capture::~V4l2Capture()
 	if (m_fd !=-1) v4l2_close(m_fd);
 }
 
-// intialize the source
+// intialize the V4L2 connection
 bool V4l2Capture::init(unsigned int mandatoryCapabilities)
 {
 	if (initdevice(m_params.m_devName.c_str(), mandatoryCapabilities) == -1)
 	{
-		fprintf(stderr, "Init device:%s failure\n", m_params.m_devName.c_str());
+		fprintf(stderr, "[%s] Init device:%s failure\n", __FILE__, m_params.m_devName.c_str());
 
 	}
 	return (m_fd!=-1);
 }
 
+// close the V4L2 connection
 void V4l2Capture::close()
 {
-	if (m_fd !=-1) v4l2_close(m_fd);
+	if (m_fd != -1) v4l2_close(m_fd);
 	m_fd = -1;
 }
 
@@ -86,14 +88,14 @@ int V4l2Capture::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
 	memset(&(cap), 0, sizeof(cap));
 	if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &cap)) 
 	{
-		fprintf(stderr, "xioctl cannot get capabilities error %d, %s\n", errno, strerror(errno));
+		fprintf(stderr, "[%s] xioctl cannot get capabilities error %d, %s\n", __FILE__, errno, strerror(errno));
 		return -1;
 	}
 	fprintf(stderr, "driver:%s capabilities;%X\n", cap.driver, cap.capabilities);
 
 	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) 
 	{
-		fprintf(stderr, "%s is no video capture device\n", m_params.m_devName.c_str());
+		fprintf(stderr, "[%s] the device '%s' doesnot support capture\n", __FILE__, m_params.m_devName.c_str());
 		return -1;
 	}
 	
@@ -115,7 +117,7 @@ int V4l2Capture::configureFormat(int fd)
 {
 	struct v4l2_format   fmt;			
 	memset(&(fmt), 0, sizeof(fmt));
-	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt.fmt.pix.width       = m_params.m_width;
 	fmt.fmt.pix.height      = m_params.m_height;
 	fmt.fmt.pix.pixelformat = m_params.m_format;
@@ -123,12 +125,12 @@ int V4l2Capture::configureFormat(int fd)
 	
 	if (xioctl(fd, VIDIOC_S_FMT, &fmt) == -1)
 	{
-		fprintf(stderr, "xioctl cannot set format error %d, %s\n", errno, strerror(errno));
+		fprintf(stderr, "Cannot set format error %d, %s\n", errno, strerror(errno));
 		return -1;
 	}			
 	if (fmt.fmt.pix.pixelformat != m_params.m_format) 
 	{
-		printf("Libv4l didn't accept format (%d). Can't proceed.\n", m_params.m_format);
+		printf("Error: format (%d) refused.\n", m_params.m_format);
 		return -1;
 	}
 	if ((fmt.fmt.pix.width != m_params.m_width) || (fmt.fmt.pix.height != m_params.m_height))
@@ -136,7 +138,11 @@ int V4l2Capture::configureFormat(int fd)
 		printf("Warning: driver is sending image at %dx%d\n", fmt.fmt.pix.width, fmt.fmt.pix.width);
 	}
 	
-	m_bufferSize =  fmt.fmt.pix.sizeimage;
+	m_format     = fmt.fmt.pix.pixelformat;
+	m_bufferSize = fmt.fmt.pix.sizeimage;
+	
+	fprintf(stderr, "[%s] bufferSize:%d\n", __FILE__, m_bufferSize);
+	
 	return 0;
 }
 
@@ -160,14 +166,29 @@ int V4l2Capture::configureParam(int fd)
 	return 0;
 }
 
+
+// query current format
+void V4l2Capture::queryFormat()
+{
+	struct v4l2_format     fmt;
+	memset(&fmt,0,sizeof(fmt));
+	fmt.type  = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (0 == ioctl(m_fd,VIDIOC_G_FMT,&fmt)) // don't understand why xioctl give a different result
+	{
+		m_format     = fmt.fmt.pix.pixelformat;
+		m_bufferSize = fmt.fmt.pix.sizeimage;
+	}
+}
+
 // ioctl encapsulation
 int V4l2Capture::xioctl(int fd, int request, void *arg)
 {
 	int ret = -1;
+	errno=0;
 	do 
 	{
 		ret = v4l2_ioctl(fd, request, arg);
-	} while (ret == -1 && ((errno == EINTR) || (errno == EAGAIN)));
+	} while ((ret == -1) && ((errno == EINTR) || (errno == EAGAIN)));
 
 	return ret;
 }
