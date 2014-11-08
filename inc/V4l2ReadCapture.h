@@ -22,13 +22,16 @@ class V4l2ReadCapture : public V4l2Capture
 		static V4l2ReadCapture* createNew(V4L2DeviceParameters params);
 	
 	protected:
-		V4l2ReadCapture(V4L2DeviceParameters params) : V4l2Capture(params) {};
+		V4l2ReadCapture(V4L2DeviceParameters params) : V4l2Capture(params), m_counter(0) {};
 			
 	public:
-		virtual bool captureStart() { return true; };
+		virtual bool captureStart() { m_counter=1; return true; };
 		virtual size_t read(char* buffer, size_t bufferSize);
-		virtual bool captureStop() { return true; };
-		virtual bool isReady() { return m_fd != -1; };
+		virtual bool captureStop() { m_counter=0; return true; };
+		virtual bool isReady() { return ((m_fd != -1) && (m_counter>0)); };
+	
+	protected:
+		int m_counter;
 };
 
 #endif
