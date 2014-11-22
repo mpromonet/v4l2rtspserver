@@ -31,6 +31,8 @@
 #include <Base64.hh>
 
 // project
+#include "logger.h"
+
 #include "V4l2ReadCapture.h"
 #include "V4l2MmapCapture.h"
 
@@ -58,7 +60,7 @@ void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubs
 	rtspServer->addServerMediaSession(sms);
 
 	char* url = rtspServer->rtspURL(sms);
-	env << "Play this stream using the URL \"" << url << "\"\n";
+	LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"\n";
 	delete[] url;			
 }
 
@@ -126,6 +128,8 @@ int main(int argc, char** argv)
 	{
 		dev_name = argv[optind];
 	}
+	// init logger
+	initLogger(verbose);
      
 	// create live555 environment
 	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
@@ -135,7 +139,7 @@ int main(int argc, char** argv)
 	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort);
 	if (rtspServer == NULL) 
 	{
-		*env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
 	}
 	else
 	{
@@ -146,7 +150,7 @@ int main(int argc, char** argv)
 		}
 		
 		// Init capture
-		*env << "Create V4L2 Source..." << dev_name << "\n";
+		LOG(NOTICE) << "Create V4L2 Source..." << dev_name << "\n";
 		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
 		V4l2Capture* videoCapture = NULL;
 		if (useMmap)
@@ -159,12 +163,12 @@ int main(int argc, char** argv)
 		}
 		if (videoCapture)
 		{
-			*env << "Start V4L2 Capture..." << dev_name << "\n";
+			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name << "\n";
 			videoCapture->captureStart();
 			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFile, queueSize, verbose);
 			if (videoES == NULL) 
 			{
-				*env << "Unable to create source for device " << dev_name << "\n";
+				LOG(FATAL) << "Unable to create source for device " << dev_name << "\n";
 			}
 			else
 			{
@@ -184,7 +188,7 @@ int main(int argc, char** argv)
 				// main loop
 				signal(SIGINT,sighandler);
 				env->taskScheduler().doEventLoop(&quit); 
-				*env << "Exiting..\n";			
+				LOG(NOTICE) << "Exiting..\n";			
 				Medium::close(videoES);
 			}			
 			videoCapture->captureStop();

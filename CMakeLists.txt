@@ -13,6 +13,18 @@ include_directories("${PROJECT_BINARY_DIR}/inc")
 aux_source_directory(src SRC_FILES)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
+# LOG4CPP
+find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
+if (NOT LOG4CPP_INCLUDE_DIR)
+        message(STATUS "Could not find the liblog4cpp5-dev.")
+        EXEC_PROGRAM("sudo apt-get install liblog4cpp5-dev")
+        find_path(V4L2_INCLUDE_DIR log4cpp/Category.hh)
+endif (NOT LOG4CPP_INCLUDE_DIR)
+include_directories(${LOG4CPP_INCLUDE_DIR}) 
+
+find_library(LOG4CPP_LIBRARY log4cpp)
+target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
+
 # V4L2
 find_path(V4L2_INCLUDE_DIR libv4l2.h)
 if (NOT V4L2_INCLUDE_DIR)

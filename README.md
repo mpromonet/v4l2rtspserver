@@ -19,17 +19,18 @@ License
 ------------
 Domain public 
 
-Requirements
+Dependencies
 ------------
  - liblivemedia-dev > live.2012.01.07 (need StreamReplicator)
  - libv4l-dev
+ - liblog4cpp5-dev
  
 Build
 ------- 
 	cmake .
 	make
 
-If it fails you will need to install libv4l-dev liblivemedia-dev.  
+If it fails you will need to install libv4l-dev liblivemedia-dev liblog4cpp5-dev.  
 If it still not work you will need to read Makefile.  
 
 Install
