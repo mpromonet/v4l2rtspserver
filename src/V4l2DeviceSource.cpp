@@ -48,25 +48,24 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new V4L2DeviceSource(env, params, device, outputFIle, queueSize, verbose);
+		source = new V4L2DeviceSource(env, params, device, outputFd, queueSize, verbose);
 	}
 	return source;
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, const std::string &outputFIle, unsigned int queueSize, int verbose) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose) 
 	: FramedSource(env), 
 	m_params(params), 
 	m_in("in"), 
 	m_out("out") , 
-	m_outfile(NULL), 
+	m_outfd(outputFd),
 	m_device(device),
-	m_outputFIle(outputFIle),
 	m_queueSize(queueSize),
 	m_verbose(verbose)
 {
@@ -75,18 +74,12 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters p
 	{
 		envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
 	}
-	if (!m_outputFIle.empty())
-	{
-		fprintf(stderr, "OutputFile:%s\n", m_outputFIle.c_str());
-		m_outfile = fopen(m_outputFIle.c_str(),"w");
-	}
 }
 
 // Destructor
 V4L2DeviceSource::~V4L2DeviceSource()
 {
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
-	if (m_outfile) fclose(m_outfile);
 	m_device->captureStop();
 }
 				
@@ -284,7 +277,7 @@ void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval 
 	{
 		printf ("queueFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
 	}
-	if (m_outfile) fwrite(frame, frameSize,1, m_outfile);
+	if (m_outfd != -1) write(m_outfd, frame, frameSize);
 }	
 		
 void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv) 

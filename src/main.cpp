@@ -18,6 +18,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 
 #include <sstream>
 
@@ -50,7 +51,7 @@ void sighandler(int n)
 }
 
 // -----------------------------------------
-//    signal handler
+//    add an RTSP session
 // -----------------------------------------
 void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubsession *subSession)
 {
@@ -63,6 +64,47 @@ void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubs
 	LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"\n";
 	delete[] url;			
 }
+
+// -----------------------------------------
+//    create video capture interface
+// -----------------------------------------
+V4l2Capture* createVideoCapure(const V4L2DeviceParameters & param, bool useMmap)
+{
+	V4l2Capture* videoCapture = NULL;
+	if (useMmap)
+	{
+		videoCapture = V4l2MmapCapture::createNew(param);
+	}
+	else
+	{
+		videoCapture = V4l2ReadCapture::createNew(param);
+	}
+	return videoCapture;
+}
+
+// -----------------------------------------
+//    create output
+// -----------------------------------------
+int createOutput(const std::string & outputFile)
+{
+	int outputFd = -1;
+	if (!outputFile.empty())
+	{
+		outputFd = open(outputFile.c_str(), O_WRONLY | O_CREAT);
+		
+		struct v4l2_capability cap;
+		memset(&(cap), 0, sizeof(cap));
+		if (0 == ioctl(outputFd, VIDIOC_QUERYCAP, &cap)) 
+		{			
+			LOG(INFO) << "Output device " << cap.driver << std::hex << cap.capabilities << "\n";
+			if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) 
+			{
+				LOG(INFO) << "Output device support OUTPUT\n";
+			}	
+		}
+	}
+	return outputFd;
+}	
 
 // -----------------------------------------
 //    entry point
@@ -152,20 +194,13 @@ int main(int argc, char** argv)
 		// Init capture
 		LOG(NOTICE) << "Create V4L2 Source..." << dev_name << "\n";
 		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
-		V4l2Capture* videoCapture = NULL;
-		if (useMmap)
-		{
-			videoCapture = V4l2MmapCapture::createNew(param);
-		}
-		else
-		{
-			videoCapture = V4l2ReadCapture::createNew(param);
-		}
+		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name << "\n";
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFile, queueSize, verbose);
+			int outputFd = createOutput(outputFile);
+			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name << "\n";
@@ -193,6 +228,10 @@ int main(int argc, char** argv)
 			}			
 			videoCapture->captureStop();
 			delete videoCapture;
+			if (outputFd != -1)
+			{
+				close(outputFd);
+			}
 		}
 		Medium::close(rtspServer);
 	}
