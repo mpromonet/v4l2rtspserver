@@ -45,7 +45,6 @@ class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , pub
 								, struct in_addr destinationAddress
 								, Port rtpPortNum, Port rtcpPortNum
 								, int ttl
-								, unsigned char rtpPayloadType
 								, StreamReplicator* replicator
 								, int format);
 		

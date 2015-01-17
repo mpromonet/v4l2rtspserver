@@ -61,7 +61,7 @@ void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubs
 	rtspServer->addServerMediaSession(sms);
 
 	char* url = rtspServer->rtspURL(sms);
-	LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"\n";
+	LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
 	delete[] url;			
 }
 
@@ -85,23 +85,58 @@ V4l2Capture* createVideoCapure(const V4L2DeviceParameters & param, bool useMmap)
 // -----------------------------------------
 //    create output
 // -----------------------------------------
-int createOutput(const std::string & outputFile)
+int createOutput(const std::string & outputFile, int inputFd)
 {
 	int outputFd = -1;
 	if (!outputFile.empty())
 	{
-		outputFd = open(outputFile.c_str(), O_WRONLY | O_CREAT);
-		
-		struct v4l2_capability cap;
-		memset(&(cap), 0, sizeof(cap));
-		if (0 == ioctl(outputFd, VIDIOC_QUERYCAP, &cap)) 
-		{			
-			LOG(INFO) << "Output device " << cap.driver << std::hex << cap.capabilities << "\n";
-			if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) 
+		struct stat sb;		
+		if ( (stat(outputFile.c_str(), &sb)==0) && ((sb.st_mode & S_IFMT) == S_IFCHR) ) 
+		{
+			// open & initialize a V4L2 output
+			outputFd = open(outputFile.c_str(), O_WRONLY);
+			if (outputFd != -1)
 			{
-				LOG(INFO) << "Output device support OUTPUT\n";
-			}	
+				struct v4l2_capability cap;
+				memset(&(cap), 0, sizeof(cap));
+				if (0 == ioctl(outputFd, VIDIOC_QUERYCAP, &cap)) 
+				{			
+					LOG(NOTICE) << "Output device name:" << cap.driver << " cap:" <<  std::hex << cap.capabilities;
+					if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) 
+					{				
+						struct v4l2_format   fmt;			
+						memset(&(fmt), 0, sizeof(fmt));
+						fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+						if (ioctl(inputFd, VIDIOC_G_FMT, &fmt) == -1)
+						{
+							LOG(ERROR) << "Cannot get input format "<< strerror(errno);
+						}		
+						else 
+						{
+							fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+							if (ioctl(outputFd, VIDIOC_S_FMT, &fmt) == -1)
+							{
+								LOG(ERROR) << "Cannot set output format "<< strerror(errno);
+							}		
+						}
+					}			
+				}
+			}
+			else
+			{
+				LOG(ERROR) << "Cannot open " << outputFile << " " << strerror(errno);
+			}
 		}
+		else
+		{		
+			outputFd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+		}
+		
+		if (outputFd == -1)		
+		{
+			LOG(NOTICE) << "Error openning " << outputFile << " " << strerror(errno);
+		}
+		
 	}
 	return outputFd;
 }	
@@ -151,7 +186,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -v       : verbose " << std::endl;
 				std::cout << "\t -v v     : very verbose " << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")" << std::endl;
-				std::cout << "\t -O file  : Dump capture to a file" << std::endl;
+				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device" << std::endl;
 				std::cout << "\t RTSP options :" << std::endl;
 				std::cout << "\t -m       : Enable multicast output" << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")" << std::endl;
@@ -181,7 +216,7 @@ int main(int argc, char** argv)
 	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort);
 	if (rtspServer == NULL) 
 	{
-		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
 	}
 	else
 	{
@@ -192,18 +227,18 @@ int main(int argc, char** argv)
 		}
 		
 		// Init capture
-		LOG(NOTICE) << "Create V4L2 Source..." << dev_name << "\n";
+		LOG(NOTICE) << "Create V4L2 Source..." << dev_name;
 		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
 		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
-			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name << "\n";
+			int outputFd = createOutput(outputFile, videoCapture->getFd());			
+			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			int outputFd = createOutput(outputFile);
 			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose);
 			if (videoES == NULL) 
 			{
-				LOG(FATAL) << "Unable to create source for device " << dev_name << "\n";
+				LOG(FATAL) << "Unable to create source for device " << dev_name;
 			}
 			else
 			{
@@ -214,7 +249,7 @@ int main(int argc, char** argv)
 				// Create Server Multicast Session
 				if (multicast)
 				{
-					addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, 96, replicator,format));
+					addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				}
 				
 				// Create Server Unicast Session
@@ -223,10 +258,11 @@ int main(int argc, char** argv)
 				// main loop
 				signal(SIGINT,sighandler);
 				env->taskScheduler().doEventLoop(&quit); 
-				LOG(NOTICE) << "Exiting..\n";			
+				LOG(NOTICE) << "Exiting....";			
 				Medium::close(videoES);
 			}			
 			videoCapture->captureStop();
+			
 			delete videoCapture;
 			if (outputFd != -1)
 			{

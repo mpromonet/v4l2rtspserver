@@ -24,7 +24,7 @@
 // ---------------------------------
 //   BaseServerMediaSubsession
 // ---------------------------------
- FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, FramedSource * videoES, int format)
+FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, FramedSource * videoES, int format)
 {
 	FramedSource* source = NULL;
 	switch (format)
@@ -65,7 +65,6 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 									, struct in_addr destinationAddress
 									, Port rtpPortNum, Port rtcpPortNum
 									, int ttl
-									, unsigned char rtpPayloadType
 									, StreamReplicator* replicator
 									, int format) 
 { 
@@ -78,7 +77,7 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 	Groupsock* rtcpGroupsock = new Groupsock(env, destinationAddress, rtcpPortNum, ttl);
 
 	// Create a RTP sink
-	RTPSink* videoSink = createSink(env, rtpGroupsock, rtpPayloadType, format);
+	RTPSink* videoSink = createSink(env, rtpGroupsock, 96, format);
 
 	// Create 'RTCP instance'
 	const unsigned maxCNAMElen = 100;
