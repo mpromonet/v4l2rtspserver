@@ -163,16 +163,18 @@ int main(int argc, char** argv)
 	int verbose = 0;
 	std::string outputFile;
 	bool useMmap = false;
+	std::string url = "unicast";
+	std::string murl = "multicast";
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:mM")) != -1)
+	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:M")) != -1)
 	{
 		switch (c)
 		{
 			case 'O':	outputFile = optarg; break;
 			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
-			case 'm':	multicast = true; break;
+			case 'm':	multicast = true; murl = optarg; break;
 			case 'W':	width = atoi(optarg); break;
 			case 'H':	height = atoi(optarg); break;
 			case 'Q':	queueSize = atoi(optarg); break;
@@ -180,23 +182,27 @@ int main(int argc, char** argv)
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'F':	fps = atoi(optarg); break;
 			case 'M':	useMmap = true; break;
+			case 'u':	url = optarg; break;
+
 			case 'h':
+			default:
 			{
 				std::cout << argv[0] << " [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
-				std::cout << "\t -v       : verbose " << std::endl;
-				std::cout << "\t -v v     : very verbose " << std::endl;
-				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")" << std::endl;
-				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device" << std::endl;
-				std::cout << "\t RTSP options :" << std::endl;
-				std::cout << "\t -m       : Enable multicast output" << std::endl;
-				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")" << std::endl;
-				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")" << std::endl;
-				std::cout << "\t V4L2 options :" << std::endl;
+				std::cout << "\t -v       : verbose"                                                               << std::endl;
+				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
+				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
+				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device"                        << std::endl;
+				std::cout << "\t RTSP options :"                                                                   << std::endl;
+				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
+				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
+				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
+				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
+				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -M       : V4L2 capture using memory mapped buffers (default use read interface)" << std::endl;
-				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")" << std::endl;
-				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")" << std::endl;
-				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")" << std::endl;
-				std::cout << "\t device   : V4L2 capture device (default "<< dev_name << ")" << std::endl;
+				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
+				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
+				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
+				std::cout << "\t device   : V4L2 capture device (default "<< dev_name << ")"                       << std::endl;
 				exit(0);
 			}
 		}
@@ -249,11 +255,11 @@ int main(int argc, char** argv)
 				// Create Server Multicast Session
 				if (multicast)
 				{
-					addSession(rtspServer, "multicast", MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
-				}
+					addSession(rtspServer, murl.c_str(), MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				
+				}
 				// Create Server Unicast Session
-				addSession(rtspServer, "unicast", UnicastServerMediaSubsession::createNew(*env,replicator,format));
+				addSession(rtspServer, url.c_str(), UnicastServerMediaSubsession::createNew(*env,replicator,format));
 
 				// main loop
 				signal(SIGINT,sighandler);

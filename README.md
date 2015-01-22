@@ -27,6 +27,8 @@ Dependencies
  
 Build
 ------- 
+	git submodule init
+	git submodule update
 	cmake .
 	make
 
@@ -42,23 +44,25 @@ Raspberry Pi
 ------------ 
 This RTSP server works on Raspberry Pi using :
 - the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
+	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
 - the official V4L2 driver bcm2835-v4l2
+	sudo modprobe -v bcm2835-v4l2
 
 Usage
 -----
 	./h264_v4l2_rtspserver [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-W width] [-H height] [-F fps] [-O file] [device]
-		 -v       : verbose 
-		 -v v     : very verbose 
+		 -v       : verbose
+		 -vv      : very verbose
 		 -Q length: Number of frame queue  (default 10)
-		 -O file  : Dump capture to a file
+		 -O output: Copy captured frame to a file or a V4L2 device
 		 RTSP options :
-		 -m       : Enable multicast output
+		 -u url   : unicast url (default unicast)
+		 -m url   : multicast url (default multicast)
 		 -P port  : RTSP port (default 8554)
-		 -H port  : RTSP over HTTP port (default 8080)
+		 -H port  : RTSP over HTTP port (default 0)
 		 V4L2 options :
 		 -M       : V4L2 capture using memory mapped buffers (default use read interface)
 		 -F fps   : V4L2 capture framerate (default 25)
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 device   : V4L2 capture device (default /dev/video0)
-
