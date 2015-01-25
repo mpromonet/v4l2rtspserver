@@ -15,6 +15,10 @@ include_directories("${PROJECT_BINARY_DIR}/v4l2wrapper/inc")
 aux_source_directory(v4l2wrapper/src SRC_FILES)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
+#pthread
+find_package (Threads)
+target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}) 
+
 # LOG4CPP
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
 if (NOT LOG4CPP_INCLUDE_DIR)

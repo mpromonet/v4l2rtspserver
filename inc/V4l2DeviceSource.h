@@ -64,18 +64,20 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose);
+		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread);
 		virtual ~V4L2DeviceSource();
 
 	protected:	
+		static void* threadStub(void* clientData) { return ((V4L2DeviceSource*) clientData)->thread();};
+		void* thread();
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
 		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->getNextFrame(); };
-		void getNextFrame();
+		int getNextFrame();
 		bool processConfigrationFrame(char * frame, int frameSize);
 		void processFrame(char * frame, int &frameSize, const timeval &ref);
 		void queueFrame(char * frame, int frameSize, const timeval &tv);
@@ -95,6 +97,7 @@ class V4L2DeviceSource: public FramedSource
 		V4l2Capture * m_device;
 		unsigned int m_queueSize;
 		int m_verbose;
+		pthread_t m_thid;
 };
 
 #endif

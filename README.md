@@ -52,7 +52,7 @@ This RTSP server works on Raspberry Pi using :
 
 Usage
 -----
-	./h264_v4l2_rtspserver [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-W width] [-H height] [-F fps] [-O file] [device]
+	./h264_v4l2_rtspserver [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-t] [-W width] [-H height] [-F fps] [-O file] [device]
 		 -v       : verbose
 		 -vv      : very verbose
 		 -Q length: Number of frame queue  (default 10)
@@ -63,8 +63,10 @@ Usage
 		 -P port  : RTSP port (default 8554)
 		 -H port  : RTSP over HTTP port (default 0)
 		 V4L2 options :
-		 -M       : V4L2 capture using memory mapped buffers (default use read interface)
+		 -M 0/1   : V4L2 capture 0:read interface /1:memory mapped buffers (default is 1)
+		 -t 0/1   : V4L2 capture 0:read in live555 mainloop /1:in a thread (default is 1)
 		 -F fps   : V4L2 capture framerate (default 25)
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 device   : V4L2 capture device (default /dev/video0)
+
