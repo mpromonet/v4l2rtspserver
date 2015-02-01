@@ -48,18 +48,18 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new V4L2DeviceSource(env, params, device, outputFd, queueSize, verbose);
+		source = new V4L2DeviceSource(env, params, device, outputFd, queueSize, verbose, useThread);
 	}
 	return source;
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) 
 	: FramedSource(env), 
 	m_params(params), 
 	m_in("in"), 
@@ -72,17 +72,61 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters p
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(V4L2DeviceSource::deliverFrameStub);
 	if (m_device)
 	{
-		envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
+		if (useThread)
+		{
+			pthread_create(&m_thid, NULL, threadStub, this);		
+		}
+		else
+		{
+			envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
+		}
 	}
 }
 
 // Destructor
 V4L2DeviceSource::~V4L2DeviceSource()
-{
+{	
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 	m_device->captureStop();
+	pthread_join(m_thid, NULL);	
 }
-				
+
+// thread mainloop
+void* V4L2DeviceSource::thread()
+{
+	int stop=0;
+	fd_set fdset;
+	FD_ZERO(&fdset);
+	timeval tv;
+	
+	envir() << "begin thread\n"; 
+	while (!stop) 
+	{
+		FD_SET(m_device->getFd(), &fdset);
+		tv.tv_sec=1;
+		tv.tv_usec=0;	
+		int ret = select(m_device->getFd()+1, &fdset, NULL, NULL, &tv);
+		if (ret == 1)
+		{
+			if (FD_ISSET(m_device->getFd(), &fdset))
+			{
+				if (this->getNextFrame() <= 0)
+				{
+					envir() << "error:" << strerror(errno) << "\n"; 						
+					stop=1;
+				}
+			}
+		}
+		else if (ret == -1)
+		{
+			envir() << "stop " << strerror(errno) << "\n"; 
+			stop=1;
+		}
+	}
+	envir() << "end thread\n"; 
+	return NULL;
+}
+
 // getting FrameSource callback
 void V4L2DeviceSource::doGetNextFrame()
 {
@@ -149,9 +193,9 @@ void V4L2DeviceSource::deliverFrame()
 		FramedSource::afterGetting(this);			
 	}
 }
-
+	
 // FrameSource callback on read event
-void V4L2DeviceSource::getNextFrame() 
+int V4L2DeviceSource::getNextFrame() 
 {
 	char* buffer = new char[m_device->getBufferSize()];	
 	timeval ref;
@@ -168,6 +212,7 @@ void V4L2DeviceSource::getNextFrame()
 	{
 		envir() << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno) << "\n";		
 		delete [] buffer;
+		handleClosure(this);
 	}
 	else
 	{
@@ -190,6 +235,7 @@ void V4L2DeviceSource::getNextFrame()
 			delete [] buffer;
 		}
 	}			
+	return frameSize;
 }	
 
 bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize) 

@@ -140,7 +140,7 @@ int createOutput(const std::string & outputFile, int inputFd)
 	}
 	return outputFd;
 }	
-
+	
 // -----------------------------------------
 //    entry point
 // -----------------------------------------
@@ -162,13 +162,14 @@ int main(int argc, char** argv)
 	bool multicast = false;
 	int verbose = 0;
 	std::string outputFile;
-	bool useMmap = false;
+	bool useMmap = true;
 	std::string url = "unicast";
 	std::string murl = "multicast";
+	bool useThread = true;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:M")) != -1)
+	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:M:t:")) != -1)
 	{
 		switch (c)
 		{
@@ -181,13 +182,14 @@ int main(int argc, char** argv)
 			case 'P':	rtspPort = atoi(optarg); break;
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'F':	fps = atoi(optarg); break;
-			case 'M':	useMmap = true; break;
+			case 'M':	useMmap =  atoi(optarg); break;
+			case 't':	useThread =  atoi(optarg); break;
 			case 'u':	url = optarg; break;
 
 			case 'h':
 			default:
 			{
-				std::cout << argv[0] << " [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
+				std::cout << argv[0] << " [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-t] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
 				std::cout << "\t -v       : verbose"                                                               << std::endl;
 				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
@@ -198,7 +200,8 @@ int main(int argc, char** argv)
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
 				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
-				std::cout << "\t -M       : V4L2 capture using memory mapped buffers (default use read interface)" << std::endl;
+				std::cout << "\t -M 0/1   : V4L2 capture 0:read interface /1:memory mapped buffers (default is 1)" << std::endl;
+				std::cout << "\t -t 0/1   : V4L2 capture 0:read in live555 mainloop /1:in a thread (default is 1)" << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
@@ -241,7 +244,7 @@ int main(int argc, char** argv)
 			int outputFd = createOutput(outputFile, videoCapture->getFd());			
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose);
+			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose, useThread);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;
