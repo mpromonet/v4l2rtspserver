@@ -1,0 +1,12 @@
+# cmake
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+Makefile
+# build
+libv4l2wrapper.a
+h264_v4l2_rtspserver
+# cpack
+_CPack_Packages
+install_manifest.txt
+*.deb
