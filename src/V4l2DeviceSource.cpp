@@ -229,13 +229,7 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 	gettimeofday(&tv, NULL);												
 	timeval diff;
 	timersub(&tv,&ref,&diff);
-	
-	if (m_verbose >=2) 		
-	{
-		printf ("queueFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
-	}
-	if (m_outfd != -1) write(m_outfd, frame, frameSize);
-	
+		
 	std::list< std::pair<unsigned char*,size_t> > frameList = this->splitFrames((unsigned char*)frame, frameSize);
 	while (!frameList.empty())
 	{
@@ -244,6 +238,13 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 		char* buf = new char[size];
 		memcpy(buf, frame.first, size);
 		queueFrame(buf,size,ref);
+		
+		if (m_verbose >=2) 		
+		{
+			printf ("queueFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, size, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), buf[0], buf[1], buf[2], buf[3], buf[4]);
+		}
+		if (m_outfd != -1) write(m_outfd, buf, size);
+		
 
 		frameList.pop_front();
 	}			
