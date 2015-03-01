@@ -44,7 +44,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	return videoSink;
 }
 
-char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType)
+char const* BaseServerMediaSubsession::getAuxLine(H264Filter* source,unsigned char rtpPayloadType)
 {
 	const char* auxLine = NULL;
 	if (source)
@@ -105,7 +105,7 @@ char const* MulticastServerMediaSubsession::sdpLines()
 
 char const* MulticastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
 {
-	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
+	return this->getAuxLine(dynamic_cast<H264Filter*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
 		
 // -----------------------------------------
@@ -129,5 +129,5 @@ RTPSink* UnicastServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
 		
 char const* UnicastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
 {
-	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
+	return this->getAuxLine(dynamic_cast<H264Filter*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }

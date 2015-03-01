@@ -179,13 +179,7 @@ void V4L2DeviceSource::deliverFrame()
 				printf ("deliverFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d\n",fPresentationTime.tv_sec, fPresentationTime.tv_usec, fFrameSize,  (int)(diff.tv_sec*1000+diff.tv_usec/1000),  m_captureQueue.size());
 			}
 			
-			int offset = 0;
-			if ( (fFrameSize>sizeof(marker)) && (memcmp(frame->m_buffer,marker,sizeof(marker)) == 0) )
-			{
-				offset = sizeof(marker);
-			}
-			fFrameSize -= offset;
-			memcpy(fTo, frame->m_buffer+offset, fFrameSize);
+			memcpy(fTo, frame->m_buffer, fFrameSize);
 			delete frame;
 		}
 		
@@ -197,7 +191,7 @@ void V4L2DeviceSource::deliverFrame()
 // FrameSource callback on read event
 int V4L2DeviceSource::getNextFrame() 
 {
-	char* buffer = new char[m_device->getBufferSize()];	
+	char buffer[m_device->getBufferSize()];	
 	timeval ref;
 	gettimeofday(&ref, NULL);											
 	int frameSize = m_device->read(buffer,  m_device->getBufferSize());
@@ -205,13 +199,11 @@ int V4L2DeviceSource::getNextFrame()
 	if (frameSize < 0)
 	{
 		envir() << "V4L2DeviceSource::getNextFrame errno:" << errno << " "  << strerror(errno) << "\n";		
-		delete [] buffer;
 		handleClosure(this);
 	}
 	else if (frameSize == 0)
 	{
 		envir() << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno) << "\n";		
-		delete [] buffer;
 		handleClosure(this);
 	}
 	else
@@ -226,93 +218,12 @@ int V4L2DeviceSource::getNextFrame()
 			printf ("getNextFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size());
 		}
 		processFrame(buffer,frameSize,ref);
-		if (!processConfigrationFrame(buffer,frameSize))
-		{
-			queueFrame(buffer,frameSize,ref);
-		}
-		else
-		{
-			delete [] buffer;
-		}
 	}			
 	return frameSize;
 }	
 
-bool V4L2DeviceSource::processConfigrationFrame(char * frame, int frameSize) 
-{
-	bool ret = false;
-	
-	if (memcmp(frame,marker,sizeof(marker)) == 0)
-	{
-		// save SPS and PPS
-		ssize_t spsSize = -1;
-		ssize_t ppsSize = -1;
 		
-		u_int8_t nal_unit_type = frame[sizeof(marker)]&0x1F;					
-		if (nal_unit_type == 7)
-		{
-			std::cout << "SPS\n";	
-			for (int i=sizeof(marker); i+sizeof(marker) < frameSize; ++i)
-			{
-				if (memcmp(&frame[i],marker,sizeof(marker)) == 0)
-				{
-					spsSize = i-sizeof(marker) ;
-					std::cout << "SPS size:" << spsSize << "\n";					
-		
-					nal_unit_type = frame[i+sizeof(marker)]&0x1F;
-					if (nal_unit_type == 8)
-					{
-						std::cout << "PPS\n";					
-						for (int j=i+sizeof(marker); j+sizeof(marker) < frameSize; ++j)
-						{
-							if (memcmp(&frame[j],marker,sizeof(marker)) == 0)
-							{
-								ppsSize = j-sizeof(marker);
-								std::cout << "PPS size:" << ppsSize << "\n";					
-								break;
-							}
-						}
-						if (ppsSize <0)
-						{
-							ppsSize = frameSize - spsSize - 2*sizeof(marker);
-							std::cout << "PPS size:" << ppsSize  << "\n";					
-						}
-					}
-				}
-			}
-			if ( (spsSize > 0) && (ppsSize > 0) )
-			{
-				char sps[spsSize];
-				memcpy(&sps, frame+sizeof(marker), spsSize);
-				char pps[ppsSize];
-				memcpy(&pps, &frame[spsSize+2*sizeof(marker)], ppsSize);									
-				u_int32_t profile_level_id = 0;
-				if (spsSize >= 4) 
-				{
-					profile_level_id = (sps[1]<<16)|(sps[2]<<8)|sps[3]; 
-				}
-				
-				char* sps_base64 = base64Encode(sps, spsSize);
-				char* pps_base64 = base64Encode(pps, ppsSize);		
-
-				std::ostringstream os; 
-				os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
-				os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
-				m_auxLine.assign(os.str());
-				
-				free(sps_base64);
-				free(pps_base64);
-				
-				std::cout << "AuxLine:"  << m_auxLine << " \n";		
-			}						
-			ret = true;
-		}
-	}
-
-	return ret;
-}
-		
-void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval &ref) 
+void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &ref) 
 {
 	timeval tv;
 	gettimeofday(&tv, NULL);												
@@ -324,6 +235,18 @@ void V4L2DeviceSource::processFrame(char * frame, int &frameSize, const timeval 
 		printf ("queueFrame\ttimestamp:%ld.%06ld\tsize:%d diff:%d ms queue:%d data:%02X%02X%02X%02X%02X...\n", ref.tv_sec, ref.tv_usec, frameSize, (int)(diff.tv_sec*1000+diff.tv_usec/1000), m_captureQueue.size(), frame[0], frame[1], frame[2], frame[3], frame[4]);
 	}
 	if (m_outfd != -1) write(m_outfd, frame, frameSize);
+	
+	std::list< std::pair<unsigned char*,size_t> > frameList = this->splitFrames((unsigned char*)frame, frameSize);
+	while (!frameList.empty())
+	{
+		std::pair<unsigned char*,size_t> & frame = frameList.front();
+		size_t size = frame.second;
+		char* buf = new char[size];
+		memcpy(buf, frame.first, size);
+		queueFrame(buf,size,ref);
+
+		frameList.pop_front();
+	}			
 }	
 		
 void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv) 

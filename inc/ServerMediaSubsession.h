@@ -11,12 +11,12 @@
 #define SERVER_MEDIA_SUBSESSION
 
 #include <string>
+#include <iomanip>
 
 // live555
 #include <liveMedia.hh>
 
-//forward declarations
-class V4L2DeviceSource;
+class H264Filter;
 
 // ---------------------------------
 //   BaseServerMediaSubsession
@@ -29,7 +29,7 @@ class BaseServerMediaSubsession
 	public:
 		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, int format);
 		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, int format);
-		char const* getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType);
+		char const* getAuxLine(H264Filter* source,unsigned char rtpPayloadType);
 		
 	protected:
 		StreamReplicator* m_replicator;
