@@ -15,6 +15,7 @@
 #include <Base64.hh>
 
 // project
+#include "logger.h"
 #include "H264_V4l2DeviceSource.h"
 
 // ---------------------------------
@@ -53,8 +54,8 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
 		switch (buffer[0]&0x1F)					
 		{
-			case 7: std::cout << "SPS\n"; m_sps.assign((char*)buffer,size); break;
-			case 8: std::cout << "PPS\n"; m_pps.assign((char*)buffer,size); break;
+			case 7: LOG(INFO) << "SPS"; m_sps.assign((char*)buffer,size); break;
+			case 8: LOG(INFO) << "PPS"; m_pps.assign((char*)buffer,size); break;
 			default: break;
 		}
 		
@@ -73,7 +74,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			
 			free(sps_base64);
 			free(pps_base64);
-			std::cout << m_auxLine.c_str() << "\n";
+			LOG(NOTICE) << m_auxLine;
 		}
 		
 		frameSize -= size;				

@@ -30,7 +30,9 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 	switch (format)
 	{
 		case V4L2_PIX_FMT_H264 : source = H264VideoStreamDiscreteFramer::createNew(env, videoES); break;
+#ifdef 	V4L2_PIX_FMT_VP8	
 		case V4L2_PIX_FMT_VP8  : source = videoES; break;
+#endif
 	}
 	return source;
 }
@@ -41,7 +43,9 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	switch (format)
 	{
 		case V4L2_PIX_FMT_H264 : videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
+#ifdef 	V4L2_PIX_FMT_VP8	
 		case V4L2_PIX_FMT_VP8  : videoSink = VP8VideoRTPSink::createNew(env, videoES); break;
+#endif
 	}
 	return videoSink;
 }
