@@ -17,11 +17,6 @@
 #include <linux/videodev2.h>
 #include <libv4l2.h>
 
-// live555
-#include <BasicUsageEnvironment.hh>
-#include <GroupsockHelper.hh>
-#include <Base64.hh>
-
 // project
 #include "V4l2DeviceSource.h"
 
@@ -249,7 +244,8 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 		frameList.pop_front();
 	}			
 }	
-		
+
+// post a frame to fifo
 void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv) 
 {
 	while (m_captureQueue.size() >= m_queueSize)
@@ -267,4 +263,16 @@ void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv
 	envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
 }	
 
+// split packet in frames					
+std::list< std::pair<unsigned char*,size_t> > V4L2DeviceSource::splitFrames(unsigned char* frame, unsigned frameSize) 
+{				
+	std::list< std::pair<unsigned char*,size_t> > frameList;
+	if (frame != NULL)
+	{
+		frameList.push_back(std::make_pair<unsigned char*,size_t>(frame, frameSize));
+	}
+	return frameList;
+}
 
+
+	

@@ -37,7 +37,7 @@
 #include "V4l2ReadCapture.h"
 #include "V4l2MmapCapture.h"
 
-#include "V4l2DeviceSource.h"
+#include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
 
 // -----------------------------------------
@@ -244,20 +244,21 @@ int main(int argc, char** argv)
 			int outputFd = createOutput(outputFile, videoCapture->getFd());			
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose, useThread);
+			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose, useThread);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;
 			}
 			else
 			{
-				destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
 				OutPacketBuffer::maxSize = videoCapture->getBufferSize();
 				StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
 
 				// Create Server Multicast Session
 				if (multicast)
 				{
+					destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
+					LOG(NOTICE) << "Mutlicast address " << inet_ntoa(destinationAddress);
 					addSession(rtspServer, murl.c_str(), MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				
 				}

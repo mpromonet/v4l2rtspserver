@@ -25,89 +25,9 @@
 #include "V4l2Capture.h"
 
 // ---------------------------------
-// H264 parsing
-// ---------------------------------
-const char H264marker[] = {0,0,0,1};
-class H264Filter
-{
-	public:				
-		H264Filter() {};
-		virtual ~H264Filter() {};
-			
-		std::string getAuxLine() { return m_auxLine; };
-		
-		std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize) 
-		{				
-			std::list< std::pair<unsigned char*,size_t> > frameList;
-			
-			size_t size = 0;
-			unsigned char* buffer = this->extractFrame(frame, frameSize, size);
-			while (buffer != NULL)				
-			{
-				frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
-				switch (buffer[0]&0x1F)					
-				{
-					case 7: std::cout << "SPS\n"; m_sps.assign((char*)buffer,size); break;
-					case 8: std::cout << "PPS\n"; m_pps.assign((char*)buffer,size); break;
-					default: break;
-				}
-				
-				if (m_auxLine.empty() && !m_sps.empty() && !m_pps.empty())
-				{
-					u_int32_t profile_level_id = 0;					
-					if (m_sps.size() >= 4) profile_level_id = (m_sps[1]<<16)|(m_sps[2]<<8)|m_sps[3]; 
-				
-					char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
-					char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());		
-
-					std::ostringstream os; 
-					os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
-					os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
-					m_auxLine.assign(os.str());
-					
-					free(sps_base64);
-					free(pps_base64);
-					std::cout << m_auxLine.c_str() << "\n";
-				}
-				
-				frameSize -= size;				
-				buffer = this->extractFrame(&buffer[size], frameSize, size);
-			}
-			return frameList;
-		}
-		
-	private:		
-		unsigned char* extractFrame(unsigned char* frame, size_t size, size_t& outsize)
-		{			
-			unsigned char * outFrame = NULL;
-			outsize = 0;
-			if ( (size>= sizeof(H264marker)) && (memcmp(frame,H264marker,sizeof(H264marker)) == 0) )
-			{
-				outFrame = &frame[sizeof(H264marker)];
-				outsize = size - sizeof(H264marker);
-				for (int i=0; i+sizeof(H264marker) < size; ++i)
-				{
-					if (memcmp(&outFrame[i],H264marker,sizeof(H264marker)) == 0)
-					{
-						outsize = i;
-						break;
-					}
-				}
-			}
-			return outFrame;
-		}
-		
-	private:
-		std::string m_auxLine;
-		std::string m_sps;
-		std::string m_pps;
-};
-
-
-// ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-class V4L2DeviceSource: public FramedSource, public H264Filter
+class V4L2DeviceSource: public FramedSource
 {
 	public:
 		// ---------------------------------
@@ -145,6 +65,7 @@ class V4L2DeviceSource: public FramedSource, public H264Filter
 		
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) ;
+		std::string getAuxLine() { return m_auxLine; };	
 
 	protected:
 		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread);
@@ -160,6 +81,9 @@ class V4L2DeviceSource: public FramedSource, public H264Filter
 		void processFrame(char * frame, int frameSize, const timeval &ref);
 		void queueFrame(char * frame, int frameSize, const timeval &tv);
 
+		// split packet in frames
+		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);
+		
 		// overide FramedSource
 		virtual void doGetNextFrame();	
 		virtual void doStopGettingFrames();
@@ -175,6 +99,7 @@ class V4L2DeviceSource: public FramedSource, public H264Filter
 		unsigned int m_queueSize;
 		int m_verbose;
 		pthread_t m_thid;
+		std::string m_auxLine;
 };
 
 #endif
