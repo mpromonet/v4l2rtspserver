@@ -29,7 +29,6 @@
 // live555
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
-#include <Base64.hh>
 
 // project
 #include "logger.h"
