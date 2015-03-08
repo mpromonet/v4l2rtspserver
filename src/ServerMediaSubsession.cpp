@@ -44,7 +44,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{
 		case V4L2_PIX_FMT_H264 : videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
 #ifdef 	V4L2_PIX_FMT_VP8	
-		case V4L2_PIX_FMT_VP8  : videoSink = VP8VideoRTPSink::createNew(env, videoES); break;
+		case V4L2_PIX_FMT_VP8  : videoSink = VP8VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
 #endif
 	}
 	return videoSink;
