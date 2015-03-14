@@ -10,7 +10,6 @@
 ** H264 capture using V4L2                                                            
 ** RTSP using live555                                                                 
 **                                                                                    
-** NOTE : Configuration SPS/PPS need to be captured in one single frame               
 ** -------------------------------------------------------------------------*/
 
 #include <stdio.h>
