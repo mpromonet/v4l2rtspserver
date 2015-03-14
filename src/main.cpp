@@ -238,7 +238,7 @@ int main(int argc, char** argv)
 		
 		// Init capture
 		LOG(NOTICE) << "Create V4L2 Source..." << dev_name;
-		V4L2DeviceParameters param(dev_name,format,width,height,fps);
+		V4L2DeviceParameters param(dev_name,format,width,height,fps, verbose);
 		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
