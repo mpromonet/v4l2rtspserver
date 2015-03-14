@@ -165,24 +165,26 @@ int main(int argc, char** argv)
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	bool useThread = true;
+	in_addr_t maddr = INADDR_NONE;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:M:t:")) != -1)
+	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:rsM:")) != -1)
 	{
 		switch (c)
 		{
 			case 'O':	outputFile = optarg; break;
 			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
 			case 'm':	multicast = true; murl = optarg; break;
+			case 'M':	maddr = inet_addr(optarg); break;
 			case 'W':	width = atoi(optarg); break;
 			case 'H':	height = atoi(optarg); break;
 			case 'Q':	queueSize = atoi(optarg); break;
 			case 'P':	rtspPort = atoi(optarg); break;
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'F':	fps = atoi(optarg); break;
-			case 'M':	useMmap =  atoi(optarg); break;
-			case 't':	useThread =  atoi(optarg); break;
+			case 'r':	useMmap =  false; break;
+			case 's':	useThread =  false; break;
 			case 'u':	url = optarg; break;
 
 			case 'h':
@@ -196,11 +198,12 @@ int main(int argc, char** argv)
 				std::cout << "\t RTSP options :"                                                                   << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
+				std::cout << "\t -M addr  : multicast group   (default is a random address)"                                << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
 				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
-				std::cout << "\t -M 0/1   : V4L2 capture 0:read interface /1:memory mapped buffers (default is 1)" << std::endl;
-				std::cout << "\t -t 0/1   : V4L2 capture 0:read in live555 mainloop /1:in a thread (default is 1)" << std::endl;
+				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
+				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)" << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
@@ -256,7 +259,8 @@ int main(int argc, char** argv)
 				// Create Server Multicast Session
 				if (multicast)
 				{
-					destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);	
+					if (maddr == INADDR_NONE) maddr = chooseRandomIPv4SSMAddress(*env);	
+					destinationAddress.s_addr = maddr;
 					LOG(NOTICE) << "Mutlicast address " << inet_ntoa(destinationAddress);
 					addSession(rtspServer, murl.c_str(), MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				
