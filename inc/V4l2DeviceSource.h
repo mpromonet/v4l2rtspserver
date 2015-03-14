@@ -54,7 +54,7 @@ class V4L2DeviceSource: public FramedSource
 				Stats(const std::string & msg) : m_fps(0), m_fps_sec(0), m_size(0), m_msg(msg) {};
 				
 			public:
-				int notify(int tv_sec, int framesize, int verbose);
+				int notify(int tv_sec, int framesize);
 			
 			protected:
 				int m_fps;
@@ -64,11 +64,11 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };	
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread);
+		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread);
 		virtual ~V4L2DeviceSource();
 
 	protected:	
@@ -97,7 +97,6 @@ class V4L2DeviceSource: public FramedSource
 		int m_outfd;
 		V4l2Capture * m_device;
 		unsigned int m_queueSize;
-		int m_verbose;
 		pthread_t m_thid;
 		std::string m_auxLine;
 };

@@ -239,14 +239,14 @@ int main(int argc, char** argv)
 		
 		// Init capture
 		LOG(NOTICE) << "Create V4L2 Source..." << dev_name;
-		V4L2DeviceParameters param(dev_name,format,width,height,fps,verbose);
+		V4L2DeviceParameters param(dev_name,format,width,height,fps);
 		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
 			int outputFd = createOutput(outputFile, videoCapture->getFd());			
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, verbose, useThread);
+			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, useThread);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;

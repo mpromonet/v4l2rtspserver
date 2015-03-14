@@ -24,7 +24,7 @@
 // ---------------------------------
 // V4L2 FramedSource Stats
 // ---------------------------------
-int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
+int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize)
 {
 	m_fps++;
 	m_size+=framesize;
@@ -41,26 +41,25 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize, int verbose)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new V4L2DeviceSource(env, params, device, outputFd, queueSize, verbose, useThread);
+		source = new V4L2DeviceSource(env, params, device, outputFd, queueSize, useThread);
 	}
 	return source;
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, int verbose, bool useThread) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
 	: FramedSource(env), 
 	m_params(params), 
 	m_in("in"), 
 	m_out("out") , 
 	m_outfd(outputFd),
 	m_device(device),
-	m_queueSize(queueSize),
-	m_verbose(verbose)
+	m_queueSize(queueSize)
 {
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(V4L2DeviceSource::deliverFrameStub);
 	if (m_device)
@@ -154,7 +153,7 @@ void V4L2DeviceSource::deliverFrame()
 			Frame * frame = m_captureQueue.front();
 			m_captureQueue.pop_front();
 	
-			m_out.notify(fPresentationTime.tv_sec, frame->m_size, m_verbose);
+			m_out.notify(fPresentationTime.tv_sec, frame->m_size);
 			if (frame->m_size > fMaxSize) 
 			{
 				fFrameSize = fMaxSize;
@@ -202,7 +201,7 @@ int V4L2DeviceSource::getNextFrame()
 		gettimeofday(&tv, NULL);												
 		timeval diff;
 		timersub(&tv,&ref,&diff);
-		m_in.notify(tv.tv_sec, frameSize, m_verbose);
+		m_in.notify(tv.tv_sec, frameSize);
 		LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms\tqueue:" << m_captureQueue.size();
 		processFrame(buffer,frameSize,ref);
 	}			
