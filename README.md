@@ -1,4 +1,5 @@
 [![Build status](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver.png)](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
 
 h264_v4l2_rtspserver
 ====================
