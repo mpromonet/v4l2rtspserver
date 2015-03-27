@@ -54,8 +54,8 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
 		switch (buffer[0]&0x1F)					
 		{
-			case 7: LOG(INFO) << "SPS"; m_sps.assign((char*)buffer,size); break;
-			case 8: LOG(INFO) << "PPS"; m_pps.assign((char*)buffer,size); break;
+			case 7: LOG(INFO) << "SPS size:" << size; m_sps.assign((char*)buffer,size); break;
+			case 8: LOG(INFO) << "PPS size:" << size; m_pps.assign((char*)buffer,size); break;
 			default: break;
 		}
 		
@@ -77,7 +77,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			LOG(NOTICE) << m_auxLine;
 		}
 		
-		frameSize -= size;				
+		frameSize -= size+sizeof(H264marker);				
 		buffer = this->extractFrame(&buffer[size], frameSize, size);
 	}
 	return frameList;
