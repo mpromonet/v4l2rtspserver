@@ -62,6 +62,7 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters p
 	m_queueSize(queueSize)
 {
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(V4L2DeviceSource::deliverFrameStub);
+	memset(&m_thid, 0, sizeof(m_thid));
 	if (m_device)
 	{
 		if (useThread)

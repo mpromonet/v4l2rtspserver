@@ -174,8 +174,8 @@ int main(int argc, char** argv)
 		{
 			case 'O':	outputFile = optarg; break;
 			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
-			case 'm':	multicast = true; murl = optarg; break;
-			case 'M':	maddr = inet_addr(optarg); break;
+			case 'm':	multicast = true; if (optarg) murl = optarg; break;
+			case 'M':	multicast = true; if (optarg) maddr = inet_addr(optarg); break;
 			case 'W':	width = atoi(optarg); break;
 			case 'H':	height = atoi(optarg); break;
 			case 'Q':	queueSize = atoi(optarg); break;
@@ -197,12 +197,12 @@ int main(int argc, char** argv)
 				std::cout << "\t RTSP options :"                                                                   << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
-				std::cout << "\t -M addr  : multicast group   (default is a random address)"                                << std::endl;
+				std::cout << "\t -M addr  : multicast group  (default is a random address)"                        << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
 				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
-				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)" << std::endl;
+				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
@@ -260,7 +260,8 @@ int main(int argc, char** argv)
 				{
 					if (maddr == INADDR_NONE) maddr = chooseRandomIPv4SSMAddress(*env);	
 					destinationAddress.s_addr = maddr;
-					LOG(NOTICE) << "Mutlicast address " << inet_ntoa(destinationAddress);
+					LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
+					LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
 					addSession(rtspServer, murl.c_str(), MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				
 				}
