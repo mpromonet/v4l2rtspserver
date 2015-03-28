@@ -24,9 +24,7 @@ env:
 addons:
   coverity_scan:
     project:
-      name: "mpromonet/h264_v4l2_rtspserver"
       description: "Build submitted via Travis CI"
-    notification_email: michel.promonet@free.fr
     build_command_prepend: "cmake ."
     build_command:   "make"
     branch_pattern: master
