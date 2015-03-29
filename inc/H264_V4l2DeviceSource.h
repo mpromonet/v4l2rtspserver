@@ -29,7 +29,7 @@ class H264_V4L2DeviceSource : public V4L2DeviceSource
 		H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread);
 		virtual ~H264_V4L2DeviceSource();
 
-		unsigned char* extractFrame(unsigned char* frame, size_t size, size_t& outsize);
+		unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
 	
 		// overide V4L2DeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);

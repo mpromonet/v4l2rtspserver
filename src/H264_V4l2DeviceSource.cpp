@@ -77,21 +77,21 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			LOG(NOTICE) << m_auxLine;
 		}
 		
-		frameSize -= size+sizeof(H264marker);				
 		buffer = this->extractFrame(&buffer[size], frameSize, size);
 	}
 	return frameList;
 }
 
 // extract a frame
-unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t size, size_t& outsize)
+unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize)
 {			
 	unsigned char * outFrame = NULL;
 	outsize = 0;
 	if ( (size>= sizeof(H264marker)) && (memcmp(frame,H264marker,sizeof(H264marker)) == 0) )
 	{
+		size -=  sizeof(H264marker);
 		outFrame = &frame[sizeof(H264marker)];
-		outsize = size - sizeof(H264marker);
+		outsize = size;
 		for (int i=0; i+sizeof(H264marker) < size; ++i)
 		{
 			if (memcmp(&outFrame[i],H264marker,sizeof(H264marker)) == 0)
@@ -100,6 +100,7 @@ unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 				break;
 			}
 		}
+		size -=  outsize;
 	}
 	return outFrame;
 }
