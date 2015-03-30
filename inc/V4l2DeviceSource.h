@@ -98,6 +98,7 @@ class V4L2DeviceSource: public FramedSource
 		V4l2Capture * m_device;
 		unsigned int m_queueSize;
 		pthread_t m_thid;
+		pthread_mutex_t m_mutex;
 		std::string m_auxLine;
 };
 
