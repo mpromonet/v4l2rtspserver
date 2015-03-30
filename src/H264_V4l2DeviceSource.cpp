@@ -47,8 +47,9 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 {				
 	std::list< std::pair<unsigned char*,size_t> > frameList;
 	
+	size_t bufSize = frameSize;
 	size_t size = 0;
-	unsigned char* buffer = this->extractFrame(frame, frameSize, size);
+	unsigned char* buffer = this->extractFrame(frame, bufSize, size);
 	while (buffer != NULL)				
 	{
 		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
@@ -77,7 +78,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			LOG(NOTICE) << m_auxLine;
 		}
 		
-		buffer = this->extractFrame(&buffer[size], frameSize, size);
+		buffer = this->extractFrame(&buffer[size], bufSize, size);
 	}
 	return frameList;
 }
