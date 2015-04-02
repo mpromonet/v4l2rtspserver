@@ -175,12 +175,24 @@ void V4L2DeviceSource::deliverFrame()
 		}
 		pthread_mutex_unlock (&m_mutex);
 		
-		// send Frame to the consumer
-		FramedSource::afterGetting(this);			
+		if (fFrameSize > 0)
+		{
+			// send Frame to the consumer
+			FramedSource::afterGetting(this);			
+		}
 	}
 }
 	
 // FrameSource callback on read event
+void V4L2DeviceSource::incomingPacketHandler()
+{
+	if (this->getNextFrame() <= 0)
+	{
+		handleClosure(this);
+	}
+}
+
+// read from device
 int V4L2DeviceSource::getNextFrame() 
 {
 	char buffer[m_device->getBufferSize()];	
@@ -191,12 +203,10 @@ int V4L2DeviceSource::getNextFrame()
 	if (frameSize < 0)
 	{
 		LOG(NOTICE) << "V4L2DeviceSource::getNextFrame errno:" << errno << " "  << strerror(errno);		
-		handleClosure(this);
 	}
 	else if (frameSize == 0)
 	{
 		LOG(NOTICE) << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno);		
-		handleClosure(this);
 	}
 	else
 	{

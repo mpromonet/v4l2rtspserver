@@ -76,7 +76,8 @@ class V4L2DeviceSource: public FramedSource
 		void* thread();
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
-		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->getNextFrame(); };
+		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->incomingPacketHandler(); };
+		void incomingPacketHandler();
 		int getNextFrame();
 		void processFrame(char * frame, int frameSize, const timeval &ref);
 		void queueFrame(char * frame, int frameSize, const timeval &tv);
