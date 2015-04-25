@@ -165,26 +165,30 @@ int main(int argc, char** argv)
 	std::string murl = "multicast";
 	bool useThread = true;
 	in_addr_t maddr = INADDR_NONE;
+	bool repeatConfig = true;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "hW:H:Q:P:F:v::O:T:m:u:rsM:")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "P:T:m:u:M:c" "rsF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
-			case 'O':	outputFile = optarg; break;
 			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
-			case 'm':	multicast = true; if (optarg) murl = optarg; break;
-			case 'M':	multicast = true; if (optarg) maddr = inet_addr(optarg); break;
-			case 'W':	width = atoi(optarg); break;
-			case 'H':	height = atoi(optarg); break;
 			case 'Q':	queueSize = atoi(optarg); break;
+			case 'O':	outputFile = optarg; break;
+			// RTSP/RTP
 			case 'P':	rtspPort = atoi(optarg); break;
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
-			case 'F':	fps = atoi(optarg); break;
+			case 'u':	url = optarg; break;
+			case 'm':	multicast = true; murl = optarg; break;
+			case 'M':	multicast = true; maddr = inet_addr(optarg); break;
+			case 'c':	repeatConfig = false; break;
+			// V4L2
 			case 'r':	useMmap =  false; break;
 			case 's':	useThread =  false; break;
-			case 'u':	url = optarg; break;
+			case 'F':	fps = atoi(optarg); break;
+			case 'W':	width = atoi(optarg); break;
+			case 'H':	height = atoi(optarg); break;
 
 			case 'h':
 			default:
@@ -195,11 +199,12 @@ int main(int argc, char** argv)
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
 				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device"                        << std::endl;
 				std::cout << "\t RTSP options :"                                                                   << std::endl;
+				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
+				std::cout << "\t -T port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
 				std::cout << "\t -M addr  : multicast group  (default is a random address)"                        << std::endl;
-				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
-				std::cout << "\t -H port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
+				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
@@ -245,7 +250,7 @@ int main(int argc, char** argv)
 			int outputFd = createOutput(outputFile, videoCapture->getFd());			
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, useThread);
+			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, useThread, repeatConfig);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;

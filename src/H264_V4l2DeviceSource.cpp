@@ -21,19 +21,19 @@
 // ---------------------------------
 // H264 V4L2 FramedSource
 // ---------------------------------
-H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
+H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig) 
 { 	
 	H264_V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new H264_V4L2DeviceSource(env, params, device, outputFd, queueSize, useThread);
+		source = new H264_V4L2DeviceSource(env, params, device, outputFd, queueSize, useThread, repeatConfig);
 	}
 	return source;
 }
 
 // Constructor
-H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
-	: V4L2DeviceSource(env, params, device, outputFd, queueSize,useThread)
+H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig) 
+	: V4L2DeviceSource(env, params, device, outputFd, queueSize,useThread), m_repeatConfig(repeatConfig)
 {
 }
 
@@ -52,11 +52,17 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	unsigned char* buffer = this->extractFrame(frame, bufSize, size);
 	while (buffer != NULL)				
 	{
-		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
 		switch (buffer[0]&0x1F)					
 		{
 			case 7: LOG(INFO) << "SPS size:" << size; m_sps.assign((char*)buffer,size); break;
 			case 8: LOG(INFO) << "PPS size:" << size; m_pps.assign((char*)buffer,size); break;
+			case 5: LOG(INFO) << "IDR size:" << size; 
+				if (m_repeatConfig && !m_sps.empty() && !m_pps.empty())
+				{
+					frameList.push_back(std::make_pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
+					frameList.push_back(std::make_pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
+				}
+			break;
 			default: break;
 		}
 		
@@ -77,6 +83,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			free(pps_base64);
 			LOG(NOTICE) << m_auxLine;
 		}
+		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
 		
 		buffer = this->extractFrame(&buffer[size], bufSize, size);
 	}

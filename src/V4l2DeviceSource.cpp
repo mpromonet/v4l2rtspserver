@@ -151,11 +151,12 @@ void V4L2DeviceSource::deliverFrame()
 		}
 		else
 		{				
-			gettimeofday(&fPresentationTime, NULL);			
+			timeval curTime;
+			gettimeofday(&curTime, NULL);			
 			Frame * frame = m_captureQueue.front();
 			m_captureQueue.pop_front();
 	
-			m_out.notify(fPresentationTime.tv_sec, frame->m_size);
+			m_out.notify(curTime.tv_sec, frame->m_size);
 			if (frame->m_size > fMaxSize) 
 			{
 				fFrameSize = fMaxSize;
@@ -166,10 +167,11 @@ void V4L2DeviceSource::deliverFrame()
 				fFrameSize = frame->m_size;
 			}
 			timeval diff;
-			timersub(&fPresentationTime,&(frame->m_timestamp),&diff);
+			timersub(&curTime,&(frame->m_timestamp),&diff);
 
-			LOG(DEBUG) << "deliverFrame\ttimestamp:" << fPresentationTime.tv_sec << "." << fPresentationTime.tv_usec << "\tsize:" << fFrameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms\tqueue:" << m_captureQueue.size();		
+			LOG(DEBUG) << "deliverFrame\ttimestamp:" << curTime.tv_sec << "." << curTime.tv_usec << "\tsize:" << fFrameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms\tqueue:" << m_captureQueue.size();		
 			
+			fPresentationTime = frame->m_timestamp;
 			memcpy(fTo, frame->m_buffer, fFrameSize);
 			delete frame;
 		}
