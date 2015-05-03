@@ -166,10 +166,11 @@ int main(int argc, char** argv)
 	bool useThread = true;
 	in_addr_t maddr = INADDR_NONE;
 	bool repeatConfig = true;
+	int timeout = 65;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "P:T:m:u:M:c" "rsF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "P:T:m:u:M:ct:" "rsF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -183,6 +184,7 @@ int main(int argc, char** argv)
 			case 'm':	multicast = true; murl = optarg; break;
 			case 'M':	multicast = true; maddr = inet_addr(optarg); break;
 			case 'c':	repeatConfig = false; break;
+			case 't':	timeout = atoi(optarg); break;
 			// V4L2
 			case 'r':	useMmap =  false; break;
 			case 's':	useThread =  false; break;
@@ -203,8 +205,9 @@ int main(int argc, char** argv)
 				std::cout << "\t -T port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
-				std::cout << "\t -M addr  : multicast group  (default is a random address)"                        << std::endl;
+				std::cout << "\t -M addr  : multicast group (default is a random address)"                         << std::endl;
 				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
+				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
@@ -228,7 +231,8 @@ int main(int argc, char** argv)
 	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
 	
 	// create RTSP server
-	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort);
+	UserAuthenticationDatabase* authDB = NULL;
+	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort, authDB, timeout);
 	if (rtspServer == NULL) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();

@@ -63,6 +63,7 @@ Usage
 	         -m url   : multicast url (default multicast)
 	         -M addr  : multicast group  (default is a random address)
 	         -c       : don't repeat config (default repeat config before IDR frame)
+		 -t secs  : RTCP expiration timeout (default 65)
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
 		 -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)
