@@ -27,3 +27,4 @@ addons:
     build_command_prepend: "cmake ."
     build_command:   "make"
     branch_pattern: master
+    notification_email: scan_notifications@example.com
