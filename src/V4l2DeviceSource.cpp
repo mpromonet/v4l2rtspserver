@@ -219,6 +219,10 @@ int V4L2DeviceSource::getNextFrame()
 		m_in.notify(tv.tv_sec, frameSize);
 		LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
 		processFrame(buffer,frameSize,ref);
+		if (m_outfd != -1) 
+		{
+			write(m_outfd, buffer, frameSize);
+		}		
 	}			
 	return frameSize;
 }	
@@ -241,8 +245,6 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 		queueFrame(buf,size,ref);
 
 		LOG(DEBUG) << "queueFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << size <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";		
-		if (m_outfd != -1) write(m_outfd, buf, size);
-
 		frameList.pop_front();
 	}			
 }	
