@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "P:T:m:u:M:ct:" "rsF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:T:m:u:M:ct:" "rsF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -178,6 +178,7 @@ int main(int argc, char** argv)
 			case 'Q':	queueSize = atoi(optarg); break;
 			case 'O':	outputFile = optarg; break;
 			// RTSP/RTP
+			case 'I':       ReceivingInterfaceAddr = inet_addr(optarg); break;
 			case 'P':	rtspPort = atoi(optarg); break;
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'u':	url = optarg; break;
@@ -201,6 +202,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
 				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device"                        << std::endl;
 				std::cout << "\t RTSP options :"                                                                   << std::endl;
+				std::cout << "\t -I addr  : RTSP interface (default autodetect)"                                   << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
 				std::cout << "\t -T port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;

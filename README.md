@@ -57,6 +57,7 @@ Usage
 		 -Q length: Number of frame queue  (default 10)
 		 -O output: Copy captured frame to a file or a V4L2 device
 		 RTSP options :
+		 -I addr  : RTSP interface (default autodetect)
 		 -P port  : RTSP port (default 8554)
 	         -T port  : RTSP over HTTP port (default 0)
 	         -u url   : unicast url (default unicast)
