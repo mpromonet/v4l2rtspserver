@@ -79,65 +79,6 @@ V4l2Capture* createVideoCapure(const V4L2DeviceParameters & param, bool useMmap)
 	}
 	return videoCapture;
 }
-
-// -----------------------------------------
-//    create output
-// -----------------------------------------
-int createOutput(const std::string & outputFile, int inputFd)
-{
-	int outputFd = -1;
-	if (!outputFile.empty())
-	{
-		struct stat sb;		
-		if ( (stat(outputFile.c_str(), &sb)==0) && ((sb.st_mode & S_IFMT) == S_IFCHR) ) 
-		{
-			// open & initialize a V4L2 output
-			outputFd = open(outputFile.c_str(), O_WRONLY);
-			if (outputFd != -1)
-			{
-				struct v4l2_capability cap;
-				memset(&(cap), 0, sizeof(cap));
-				if (0 == ioctl(outputFd, VIDIOC_QUERYCAP, &cap)) 
-				{			
-					LOG(NOTICE) << "Output device name:" << cap.driver << " cap:" <<  std::hex << cap.capabilities;
-					if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) 
-					{				
-						struct v4l2_format   fmt;			
-						memset(&(fmt), 0, sizeof(fmt));
-						fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-						if (ioctl(inputFd, VIDIOC_G_FMT, &fmt) == -1)
-						{
-							LOG(ERROR) << "Cannot get input format "<< strerror(errno);
-						}		
-						else 
-						{
-							fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
-							if (ioctl(outputFd, VIDIOC_S_FMT, &fmt) == -1)
-							{
-								LOG(ERROR) << "Cannot set output format "<< strerror(errno);
-							}		
-						}
-					}			
-				}
-			}
-			else
-			{
-				LOG(ERROR) << "Cannot open " << outputFile << " " << strerror(errno);
-			}
-		}
-		else
-		{		
-			outputFd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
-		}
-		
-		if (outputFd == -1)		
-		{
-			LOG(NOTICE) << "Error openning " << outputFile << " " << strerror(errno);
-		}
-		
-	}
-	return outputFd;
-}	
 	
 // -----------------------------------------
 //    entry point
@@ -253,10 +194,12 @@ int main(int argc, char** argv)
 		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
-			int outputFd = createOutput(outputFile, videoCapture->getFd());			
+			V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
+			V4l2Output out(outparam);
+			
 			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
 			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outputFd, queueSize, useThread, repeatConfig);
+			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;
@@ -285,13 +228,8 @@ int main(int argc, char** argv)
 				LOG(NOTICE) << "Exiting....";			
 				Medium::close(videoES);
 			}			
-			videoCapture->captureStop();
-			
+			videoCapture->captureStop();			
 			delete videoCapture;
-			if (outputFd != -1)
-			{
-				close(outputFd);
-			}
 		}
 		Medium::close(rtspServer);
 	}
