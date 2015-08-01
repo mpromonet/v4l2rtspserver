@@ -203,6 +203,7 @@ int main(int argc, char** argv)
 			if (videoES == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << dev_name;
+				delete videoCapture;
 			}
 			else
 			{
@@ -228,8 +229,6 @@ int main(int argc, char** argv)
 				LOG(NOTICE) << "Exiting....";			
 				Medium::close(videoES);
 			}			
-			videoCapture->captureStop();			
-			delete videoCapture;
 		}
 		Medium::close(rtspServer);
 	}

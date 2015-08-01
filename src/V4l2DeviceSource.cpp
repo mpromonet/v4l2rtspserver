@@ -85,6 +85,7 @@ V4L2DeviceSource::~V4L2DeviceSource()
 	m_device->captureStop();
 	pthread_join(m_thid, NULL);	
 	pthread_mutex_destroy(&m_mutex);
+	delete m_device;
 }
 
 // thread mainloop
