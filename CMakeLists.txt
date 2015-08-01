@@ -22,12 +22,16 @@ add_dependencies(${PROJECT_NAME} git_update)
 
 # v4l2wrapper
 include_directories("${PROJECT_BINARY_DIR}/v4l2wrapper/inc")
+set_source_files_properties(${PROJECT_BINARY_DIR}/v4l2wrapper/src/V4l2Device.cpp PROPERTIES GENERATED 1)
+set_source_files_properties(${PROJECT_BINARY_DIR}/v4l2wrapper/src/V4l2Output.cpp PROPERTIES GENERATED 1)
 set_source_files_properties(${PROJECT_BINARY_DIR}/v4l2wrapper/src/V4l2Capture.cpp PROPERTIES GENERATED 1)
 set_source_files_properties(${PROJECT_BINARY_DIR}/v4l2wrapper/src/V4l2MmapCapture.cpp PROPERTIES GENERATED 1)
 set_source_files_properties(${PROJECT_BINARY_DIR}/v4l2wrapper/src/V4l2ReadCapture.cpp PROPERTIES GENERATED 1)
 
 add_library(v4l2wrapper
     STATIC
+    v4l2wrapper/src/V4l2Device.cpp
+    v4l2wrapper/src/V4l2Output.cpp
     v4l2wrapper/src/V4l2Capture.cpp
     v4l2wrapper/src/V4l2MmapCapture.cpp
     v4l2wrapper/src/V4l2ReadCapture.cpp

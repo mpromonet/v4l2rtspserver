@@ -32,8 +32,9 @@
 // project
 #include "logger.h"
 
-#include "V4l2ReadCapture.h"
-#include "V4l2MmapCapture.h"
+#include "V4l2Device.h"
+#include "V4l2Capture.h"
+#include "V4l2Output.h"
 
 #include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
@@ -63,23 +64,6 @@ void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubs
 	delete[] url;			
 }
 
-// -----------------------------------------
-//    create video capture interface
-// -----------------------------------------
-V4l2Capture* createVideoCapure(const V4L2DeviceParameters & param, bool useMmap)
-{
-	V4l2Capture* videoCapture = NULL;
-	if (useMmap)
-	{
-		videoCapture = V4l2MmapCapture::createNew(param);
-	}
-	else
-	{
-		videoCapture = V4l2ReadCapture::createNew(param);
-	}
-	return videoCapture;
-}
-	
 // -----------------------------------------
 //    entry point
 // -----------------------------------------
@@ -191,7 +175,7 @@ int main(int argc, char** argv)
 		// Init capture
 		LOG(NOTICE) << "Create V4L2 Source..." << dev_name;
 		V4L2DeviceParameters param(dev_name,format,width,height,fps, verbose);
-		V4l2Capture* videoCapture = createVideoCapure(param, useMmap);
+		V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
 		if (videoCapture)
 		{
 			V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
