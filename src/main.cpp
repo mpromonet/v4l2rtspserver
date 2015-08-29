@@ -82,10 +82,6 @@ int main(int argc, char** argv)
 	int height = 480;
 	int queueSize = 10;
 	int fps = 25;
-	unsigned short rtpPortNum = 20000;
-	unsigned short rtcpPortNum = rtpPortNum+1;
-	unsigned char ttl = 5;
-	struct in_addr destinationAddress;
 	unsigned short rtspPort = 8554;
 	unsigned short rtspOverHTTPPort = 0;
 	bool multicast = false;
@@ -95,7 +91,7 @@ int main(int argc, char** argv)
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	bool useThread = true;
-	in_addr_t maddr = INADDR_NONE;
+	std::string maddr;
 	bool repeatConfig = true;
 	int timeout = 65;
 
@@ -114,7 +110,7 @@ int main(int argc, char** argv)
 			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
 			case 'u':	url = optarg; break;
 			case 'm':	multicast = true; murl = optarg; break;
-			case 'M':	multicast = true; maddr = inet_addr(optarg); break;
+			case 'M':	multicast = true; maddr = optarg; break;
 			case 'c':	repeatConfig = false; break;
 			case 't':	timeout = atoi(optarg); break;
 			// V4L2
@@ -162,7 +158,22 @@ int main(int argc, char** argv)
 	{
 		devList.push_back(dev_name);
 	}
+
+	// split multicast info
+	std::istringstream is(maddr);
+	std::string ip;
+	getline(is, ip, ':');						
 	
+	std::string port;
+	getline(is, port, ':');						
+	unsigned short rtpPortNum = 20000;
+	if (!port.empty())
+	{
+		rtpPortNum = atoi(port.c_str());
+	}	
+	unsigned short rtcpPortNum = rtpPortNum+1;
+	unsigned char ttl = 5;
+
 	// init logger
 	initLogger(verbose);
      
@@ -224,14 +235,25 @@ int main(int argc, char** argv)
 						baseUrl = basename(deviceName.c_str());
 						baseUrl.append("/");
 					}
+					
 					// Create Multicast Session
-					if (multicast)
-					{
-						if (maddr == INADDR_NONE) maddr = chooseRandomIPv4SSMAddress(*env);	
-						destinationAddress.s_addr = maddr;
+					if (multicast)						
+					{		
+						struct in_addr destinationAddress;
+						destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);
+						if (!ip.empty())
+						{
+							destinationAddress.s_addr = inet_addr(ip.c_str());
+						}						
 						LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
 						LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
 						addSession(rtspServer, baseUrl+murl, MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));					
+						if (!ip.empty())
+						{
+							rtpPortNum++;
+							rtcpPortNum++;
+						}						
+						
 					}
 					// Create Unicast Session
 					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,format));
