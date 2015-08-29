@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -T port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
-				std::cout << "\t -M addr  : multicast group (default is a random address)"                         << std::endl;
+				std::cout << "\t -M addr  : multicast group:port (default is random_address:20000)"                << std::endl;
 				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
@@ -159,10 +159,23 @@ int main(int argc, char** argv)
 		devList.push_back(dev_name);
 	}
 
+	// init logger
+	initLogger(verbose);
+     
+	// create live555 environment
+	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
+
 	// split multicast info
 	std::istringstream is(maddr);
 	std::string ip;
 	getline(is, ip, ':');						
+	struct in_addr destinationAddress;
+	destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);
+	if (!ip.empty())
+	{
+		destinationAddress.s_addr = inet_addr(ip.c_str());
+	}						
 	
 	std::string port;
 	getline(is, port, ':');						
@@ -173,13 +186,6 @@ int main(int argc, char** argv)
 	}	
 	unsigned short rtcpPortNum = rtpPortNum+1;
 	unsigned char ttl = 5;
-
-	// init logger
-	initLogger(verbose);
-     
-	// create live555 environment
-	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
 	
 	// create RTSP server
 	UserAuthenticationDatabase* authDB = NULL;
@@ -239,20 +245,13 @@ int main(int argc, char** argv)
 					// Create Multicast Session
 					if (multicast)						
 					{		
-						struct in_addr destinationAddress;
-						destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);
-						if (!ip.empty())
-						{
-							destinationAddress.s_addr = inet_addr(ip.c_str());
-						}						
 						LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
 						LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
 						addSession(rtspServer, baseUrl+murl, MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));					
-						if (!ip.empty())
-						{
-							rtpPortNum++;
-							rtcpPortNum++;
-						}						
+						
+						// increment ports for next sessions
+						rtpPortNum+=2;
+						rtcpPortNum+=2;
 						
 					}
 					// Create Unicast Session
