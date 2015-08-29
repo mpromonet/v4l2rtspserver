@@ -52,16 +52,22 @@ void sighandler(int n)
 // -----------------------------------------
 //    add an RTSP session
 // -----------------------------------------
-void addSession(RTSPServer* rtspServer, const char* sessionName, ServerMediaSubsession *subSession)
+void addSession(RTSPServer* rtspServer, const std::string & sessionName, ServerMediaSubsession *subSession)
 {
 	UsageEnvironment& env(rtspServer->envir());
-	ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName);
-	sms->addSubsession(subSession);
-	rtspServer->addServerMediaSession(sms);
+	ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName.c_str());
+	if (sms != NULL)
+	{
+		sms->addSubsession(subSession);
+		rtspServer->addServerMediaSession(sms);
 
-	char* url = rtspServer->rtspURL(sms);
-	LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
-	delete[] url;			
+		char* url = rtspServer->rtspURL(sms);
+		if (url != NULL)
+		{
+			LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
+			delete[] url;			
+		}
+	}
 }
 
 // -----------------------------------------
@@ -146,10 +152,17 @@ int main(int argc, char** argv)
 			}
 		}
 	}
-	if (optind<argc)
+	std::list<std::string> devList;
+	while (optind<argc)
 	{
-		dev_name = argv[optind];
+		devList.push_back(argv[optind]);
+		optind++;
 	}
+	if (devList.empty())
+	{
+		devList.push_back(dev_name);
+	}
+	
 	// init logger
 	initLogger(verbose);
      
@@ -171,49 +184,66 @@ int main(int argc, char** argv)
 		{
 			rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
 		}
-		
-		// Init capture
-		LOG(NOTICE) << "Create V4L2 Source..." << dev_name;
-		V4L2DeviceParameters param(dev_name,format,width,height,fps, verbose);
-		V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
-		if (videoCapture)
-		{
-			V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-			V4l2Output out(outparam);
-			
-			LOG(NOTICE) << "Start V4L2 Capture..." << dev_name;
-			videoCapture->captureStart();
-			V4L2DeviceSource* videoES =  H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
-			if (videoES == NULL) 
-			{
-				LOG(FATAL) << "Unable to create source for device " << dev_name;
-				delete videoCapture;
-			}
-			else
-			{
-				OutPacketBuffer::maxSize = videoCapture->getBufferSize();
-				StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
 
-				// Create Server Multicast Session
-				if (multicast)
-				{
-					if (maddr == INADDR_NONE) maddr = chooseRandomIPv4SSMAddress(*env);	
-					destinationAddress.s_addr = maddr;
-					LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
-					LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
-					addSession(rtspServer, murl.c_str(), MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));
 				
+		std::list<std::string>::iterator devIt;
+		for ( devIt=devList.begin() ; devIt!=devList.end() ; ++devIt)
+		{
+			std::string deviceName(*devIt);
+			
+			// Init capture
+			LOG(NOTICE) << "Create V4L2 Source..." << deviceName;
+			V4L2DeviceParameters param(deviceName.c_str(),format,width,height,fps, verbose);
+			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
+			if (videoCapture)
+			{
+				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
+				V4l2Output out(outparam);
+				
+				LOG(NOTICE) << "Start V4L2 Capture..." << deviceName;
+				videoCapture->captureStart();
+				V4L2DeviceSource* videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
+				if (videoES == NULL) 
+				{
+					LOG(FATAL) << "Unable to create source for device " << deviceName;
+					delete videoCapture;
 				}
-				// Create Server Unicast Session
-				addSession(rtspServer, url.c_str(), UnicastServerMediaSubsession::createNew(*env,replicator,format));
-
-				// main loop
-				signal(SIGINT,sighandler);
-				env->taskScheduler().doEventLoop(&quit); 
-				LOG(NOTICE) << "Exiting....";			
-				Medium::close(videoES);
-			}			
+				else
+				{	
+					// extend buffer size if needed
+					if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+					{
+						OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+					}
+					
+					StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
+					
+					std::string baseUrl;
+					if (devList.size() > 1)
+					{
+						baseUrl = basename(deviceName.c_str());
+						baseUrl.append("/");
+					}
+					// Create Multicast Session
+					if (multicast)
+					{
+						if (maddr == INADDR_NONE) maddr = chooseRandomIPv4SSMAddress(*env);	
+						destinationAddress.s_addr = maddr;
+						LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
+						LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
+						addSession(rtspServer, baseUrl+murl, MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));					
+					}
+					// Create Unicast Session
+					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,format));
+				}			
+			}
 		}
+
+		// main loop
+		signal(SIGINT,sighandler);
+		env->taskScheduler().doEventLoop(&quit); 
+		LOG(NOTICE) << "Exiting....";			
+		
 		Medium::close(rtspServer);
 	}
 	
