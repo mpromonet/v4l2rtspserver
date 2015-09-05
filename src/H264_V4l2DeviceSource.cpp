@@ -95,20 +95,30 @@ unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 {			
 	unsigned char * outFrame = NULL;
 	outsize = 0;
+	unsigned int markerlength = 0;
 	if ( (size>= sizeof(H264marker)) && (memcmp(frame,H264marker,sizeof(H264marker)) == 0) )
 	{
-		size -=  sizeof(H264marker);
-		outFrame = &frame[sizeof(H264marker)];
+		markerlength = sizeof(H264marker);
+	}
+	else if (memcmp(frame,H264shortmarker,sizeof(H264shortmarker)) == 0)
+	{
+		markerlength = sizeof(H264shortmarker);
+	}
+	
+	if (markerlength != 0)
+	{
+		size -=  markerlength;
+		outFrame = &frame[markerlength];
 		outsize = size;
 		for (int i=0; i+sizeof(H264marker) < size; ++i)
 		{
-			if (memcmp(&outFrame[i],H264marker,sizeof(H264marker)) == 0)
+			if ( (memcmp(&outFrame[i],H264marker,sizeof(H264marker)) == 0) || (memcmp(&outFrame[i],H264shortmarker,sizeof(H264shortmarker)) == 0) )
 			{
 				outsize = i;
 				break;
 			}
 		}
-		size -=  outsize;
+		size -= outsize;
 	}
 	return outFrame;
 }

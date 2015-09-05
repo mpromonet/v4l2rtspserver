@@ -20,6 +20,7 @@
 // H264 V4L2 FramedSource
 // ---------------------------------
 const char H264marker[] = {0,0,0,1};
+const char H264shortmarker[] = {0,0,1};
 class H264_V4L2DeviceSource : public V4L2DeviceSource
 {
 	public:				
