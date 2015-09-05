@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:T:m:u:M:ct:" "rsF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:T:m:u:M:ct:" "rsfF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -116,6 +116,7 @@ int main(int argc, char** argv)
 			// V4L2
 			case 'r':	useMmap =  false; break;
 			case 's':	useThread =  false; break;
+			case 'f':	format = 0; break;
 			case 'F':	fps = atoi(optarg); break;
 			case 'W':	width = atoi(optarg); break;
 			case 'H':	height = atoi(optarg); break;
@@ -142,6 +143,7 @@ int main(int argc, char** argv)
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
+				std::cout << "\t -f       : V4L2 capture using current format (-W,-H,-F are ignore)"               << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
 				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
@@ -220,8 +222,19 @@ int main(int argc, char** argv)
 				V4l2Output out(outparam);
 				
 				LOG(NOTICE) << "Start V4L2 Capture..." << deviceName;
-				videoCapture->captureStart();
-				V4L2DeviceSource* videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
+				if (!videoCapture->captureStart())
+				{
+					LOG(NOTICE) << "Cannot start V4L2 Capture for:" << deviceName;
+				}
+				V4L2DeviceSource* videoES = NULL;
+				if (videoCapture->getFormat() == V4L2_PIX_FMT_H264)
+				{
+					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
+				}
+				else
+				{
+					videoES = V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread);
+				}
 				if (videoES == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << deviceName;
