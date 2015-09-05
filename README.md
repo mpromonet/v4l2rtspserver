@@ -36,6 +36,10 @@ If it still not work you will need to read Makefile.
 
 Install
 --------- 
+	make install
+
+Package
+---------
 	cpack .
 	dpkg -i h264_v4l2_rtspserver*.deb
 
@@ -51,7 +55,9 @@ This RTSP server works on Raspberry Pi using :
 
 Usage
 -----
-	./h264_v4l2_rtspserver [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M mulcast group] [-r] [-s] [-W width] [-H height] [-F fps] [-O file] [device]
+	./h264_v4l2_rtspserver [-v[v]] [-Q queueSize] [-O file] \
+			       [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] \
+			       [-r] [-s] [-W width] [-H height] [-F fps] [device1] [device2]
 		 -v       : verbose
 		 -vv      : very verbose
 		 -Q length: Number of frame queue  (default 10)
@@ -62,14 +68,14 @@ Usage
 		 -T port  : RTSP over HTTP port (default 0)
 		 -u url   : unicast url (default unicast)
 		 -m url   : multicast url (default multicast)
-		 -M addr  : multicast group  (default is a random address)
+                 -M addr  : multicast group:port (default is random_address:20000)
 		 -c       : don't repeat config (default repeat config before IDR frame)
 		 -t secs  : RTCP expiration timeout (default 65)
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
 		 -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)
-		 -F fps   : V4L2 capture framerate (default 25)
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
+		 -F fps   : V4L2 capture framerate (default 25)
 		 device   : V4L2 capture device (default /dev/video0)
 

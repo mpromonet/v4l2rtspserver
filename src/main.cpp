@@ -123,7 +123,9 @@ int main(int argc, char** argv)
 			case 'h':
 			default:
 			{
-				std::cout << argv[0] << " [-v[v]][-m] [-P RTSP port][-P RTSP/HTTP port][-Q queueSize] [-M] [-t] [-W width] [-H height] [-F fps] [-O file] [device]" << std::endl;
+				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
+				std::cout << "\t          [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout]" << std::endl;
+				std::cout << "\t          [-r] [-s] [-W width] [-H height] [-F fps] [device] [device]"           << std::endl;
 				std::cout << "\t -v       : verbose"                                                               << std::endl;
 				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
@@ -140,9 +142,9 @@ int main(int argc, char** argv)
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
-				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
+				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t device   : V4L2 capture device (default "<< dev_name << ")"                       << std::endl;
 				exit(0);
 			}
