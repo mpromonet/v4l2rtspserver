@@ -218,6 +218,7 @@ int main(int argc, char** argv)
 			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
 			if (videoCapture)
 			{
+				format = videoCapture->getFormat();
 				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
 				V4l2Output out(outparam);
 				
@@ -227,7 +228,7 @@ int main(int argc, char** argv)
 					LOG(NOTICE) << "Cannot start V4L2 Capture for:" << deviceName;
 				}
 				V4L2DeviceSource* videoES = NULL;
-				if (videoCapture->getFormat() == V4L2_PIX_FMT_H264)
+				if (format == V4L2_PIX_FMT_H264)
 				{
 					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
 				}
