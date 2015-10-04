@@ -217,7 +217,8 @@ int main(int argc, char** argv)
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
 	}
 	else
-	{				
+	{			
+		int nbSource = 0;
 		std::list<std::string>::iterator devIt;
 		for ( devIt=devList.begin() ; devIt!=devList.end() ; ++devIt)
 		{
@@ -229,9 +230,20 @@ int main(int argc, char** argv)
 			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
 			if (videoCapture)
 			{
-				format = videoCapture->getFormat();
-				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-				V4l2Output out(outparam);
+				nbSource++;
+				format = videoCapture->getFormat();				
+				int outfd = -1;
+				
+				V4l2Output* out = NULL;
+				if (!outputFile.empty())
+				{
+					V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
+					V4l2Output* out = V4l2DeviceFactory::CreateVideoOutput(outparam, useMmap);
+					if (out != NULL)
+					{
+						outfd = out->getFd();
+					}
+				}
 				
 				LOG(NOTICE) << "Start V4L2 Capture..." << deviceName;
 				if (!videoCapture->captureStart())
@@ -241,11 +253,11 @@ int main(int argc, char** argv)
 				V4L2DeviceSource* videoES = NULL;
 				if (format == V4L2_PIX_FMT_H264)
 				{
-					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread, repeatConfig);
+					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig);
 				}
 				else
 				{
-					videoES = V4L2DeviceSource::createNew(*env, param, videoCapture, out.getFd(), queueSize, useThread);
+					videoES = V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread);
 				}
 				if (videoES == NULL) 
 				{
@@ -283,14 +295,21 @@ int main(int argc, char** argv)
 					}
 					// Create Unicast Session
 					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,format));
-				}			
+				}	
+				if (out)
+				{
+					delete out;
+				}
 			}
 		}
 
-		// main loop
-		signal(SIGINT,sighandler);
-		env->taskScheduler().doEventLoop(&quit); 
-		LOG(NOTICE) << "Exiting....";			
+		if (nbSource>0)
+		{
+			// main loop
+			signal(SIGINT,sighandler);
+			env->taskScheduler().doEventLoop(&quit); 
+			LOG(NOTICE) << "Exiting....";			
+		}
 		
 		Medium::close(rtspServer);
 	}
