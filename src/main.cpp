@@ -49,6 +49,25 @@ void sighandler(int n)
 	quit =1;
 }
 
+
+// -----------------------------------------
+//    create RTSP server
+// -----------------------------------------
+RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout)
+{
+	UserAuthenticationDatabase* authDB = NULL;	
+	RTSPServer* rtspServer = RTSPServer::createNew(env, rtspPort, authDB, timeout);
+	if (rtspServer != NULL)
+	{
+		// set http tunneling
+		if (rtspOverHTTPPort)
+		{
+			rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
+		}
+	}
+	return rtspServer;
+}
+
 // -----------------------------------------
 //    add an RTSP session
 // -----------------------------------------
@@ -192,21 +211,13 @@ int main(int argc, char** argv)
 	unsigned char ttl = 5;
 	
 	// create RTSP server
-	UserAuthenticationDatabase* authDB = NULL;
-	RTSPServer* rtspServer = RTSPServer::createNew(*env, rtspPort, authDB, timeout);
+	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout);
 	if (rtspServer == NULL) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
 	}
 	else
-	{
-		// set http tunneling
-		if (rtspOverHTTPPort)
-		{
-			rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
-		}
-
-				
+	{				
 		std::list<std::string>::iterator devIt;
 		for ( devIt=devList.begin() ; devIt!=devList.end() ; ++devIt)
 		{
