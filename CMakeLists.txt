@@ -9,17 +9,17 @@ set(CMAKE_C_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS "-Wall")
 
 # define executable to build
-include_directories("${PROJECT_BINARY_DIR}/inc")
+include_directories("inc")
 aux_source_directory(src SRC_FILES)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # v4l2wrapper
-include_directories("${PROJECT_BINARY_DIR}/v4l2wrapper/inc")
-find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "${PROJECT_BINARY_DIR}/v4l2wrapper")
+include_directories("v4l2wrapper/inc")
+find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "v4l2wrapper")
 if (NOT V4L2WRAPPER_LIBRARY)
         message(STATUS "Could not find v4l2wrapper")
         EXEC_PROGRAM("git submodule init && git submodule update && make -C v4l2wrapper")
-	find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "${PROJECT_BINARY_DIR}/v4l2wrapper")
+	find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "v4l2wrapper")
 endif (NOT V4L2WRAPPER_LIBRARY)
 target_link_libraries(${PROJECT_NAME} ${V4L2WRAPPER_LIBRARY})
 
