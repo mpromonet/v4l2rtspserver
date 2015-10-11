@@ -15,11 +15,11 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # v4l2wrapper
 include_directories("v4l2wrapper/inc")
-find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "v4l2wrapper")
+find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a PATHS "v4l2wrapper")
 if (NOT V4L2WRAPPER_LIBRARY)
         message(STATUS "Could not find v4l2wrapper")
         EXEC_PROGRAM("git submodule init && git submodule update && make -C v4l2wrapper")
-	find_library(V4L2WRAPPER_LIBRARY v4l2wrapper PATHS "v4l2wrapper")
+	find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a PATHS "v4l2wrapper")
         message(STATUS "v4l2wrapper built in V4L2WRAPPER_LIBRARY=${V4L2WRAPPER_LIBRARY}")	
 endif (NOT V4L2WRAPPER_LIBRARY)
 target_link_libraries(${PROJECT_NAME} ${V4L2WRAPPER_LIBRARY})
