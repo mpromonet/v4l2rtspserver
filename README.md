@@ -28,8 +28,7 @@ Dependencies
  
 Build
 ------- 
-	cmake .
-	make
+	cmake . && make
 
 If it fails you will need to install libv4l-dev liblivemedia-dev liblog4cpp5-dev.  
 If it still not work you will need to read Makefile.  
@@ -38,20 +37,32 @@ Install
 --------- 
 	make install
 
-Package
----------
+Build Package
+-------------
 	cpack .
 	dpkg -i h264_v4l2_rtspserver*.deb
 
-Raspberry Pi
------------- 
-This RTSP server works on Raspberry Pi using :
+Using Raspberry Pi Camera
+------------------------- 
+This RTSP server works using Raspberry Pi camera with :
 - the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
 
 	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
 - the official V4L2 driver bcm2835-v4l2
 
 	sudo modprobe -v bcm2835-v4l2
+
+Using with v4l2loopback
+----------------------- 
+For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
+
+	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> h264_v4l2_rtspserver
+
+This workflow could be set using :
+
+	modprobe v4l2loopback video_nr=10
+	v4l2compress_h264 /dev/video0 /dev/video10 &
+	h264_v4l2_rtspserver /dev/video10 &
 
 Usage
 -----
