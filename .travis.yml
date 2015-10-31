@@ -1,4 +1,5 @@
 before_install:
+- sudo apt-get update
 - sudo apt-get install cmake libv4l-dev liblog4cpp5-dev
 - wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/liblivemedia-dev_2014.01.13-1_amd64.deb
 - wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/libbasicusageenvironment0_2014.01.13-1_amd64.deb
