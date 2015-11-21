@@ -8,10 +8,12 @@ before_install:
 - wget http://cz.archive.ubuntu.com/ubuntu/pool/universe/libl/liblivemedia/libusageenvironment1_2014.01.13-1_amd64.deb
 - sudo dpkg -i liblivemedia-dev_2014.01.13-1_amd64.deb libbasicusageenvironment0_2014.01.13-1_amd64.deb libgroupsock1_2014.01.13-1_amd64.deb liblivemedia23_2014.01.13-1_amd64.deb libusageenvironment1_2014.01.13-1_amd64.deb
 - rm *.deb
-- sudo apt-get install qemu-user-static debootstrap g++-arm-linux-gnueabihf
+- sudo apt-get install qemu-user-static debootstrap 
 - sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,libv4l-dev,liblog4cpp5-dev,liblivemedia-dev wheezy rootfs
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
+- git clone https://github.com/raspberrypi/tools.git rpi_tools
+- export PATH=$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH
 language: cpp
 compiler:
 - gcc
@@ -31,13 +33,16 @@ addons:
     branch_pattern: master
     notification_email: scan_notifications@example.com
 before_deploy:
-  - export RELEASE_PKG_FILE=$(ls *.deb)
-  - echo "deploying ${RELEASE_PKG_FILE} to GitHub releases"    
+  - export RELEASE_PKG_FILE_X86=$(ls *-x86_64.deb)
+  - export RELEASE_PKG_FILE_ARM=$(ls *-arm.deb)
+  - echo "deploying ${RELEASE_PKG_FILE_X86} ${RELEASE_PKG_FILE_ARM} to GitHub releases"    
 deploy:
   provider: releases
   api_key:
     secure: HvPy3gyZ1nGPLAMgpRvJO2yFqpYBU7HzPQVr8LkBuOIMfya+08fbrQ9lRmvGI/3R4hwx4aPZug2DEfedP07vFXmbISLy/VTeL9TBg86CKX4vPywaoqiv5mTECUp29pmj9R3aCrIK0ROjuXQJqLN1/+jsAEnvh/gBMplQuM6a3Zc=
-  file: "${RELEASE_PKG_FILE}"
+  file: 
+    - "${RELEASE_PKG_FILE_X86}"
+    - "${RELEASE_PKG_FILE_ARM}"
   skip_cleanup: true
   on:
     repo: mpromonet/h264_v4l2_rtspserver
