@@ -36,7 +36,6 @@ before_deploy:
   - export RELEASE_PKG_FILE_X86=$(ls *-x86_64.deb)
   - export RELEASE_PKG_FILE_ARM=$(ls *-armhf.deb)
   - echo "deploying ${RELEASE_PKG_FILE_X86} ${RELEASE_PKG_FILE_ARM} to GitHub releases"    
-  - gem install mime-types -v 2.6.2
 deploy:
   provider: releases
   api_key:
