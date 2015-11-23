@@ -1,8 +1,8 @@
 dist: trusty
 before_install:
 - sudo apt-get update
-- sudo apt-get install cmake libv4l-dev liblog4cpp5-dev liblivemedia-dev
-- sudo apt-get install qemu-user-static debootstrap 
+- sudo apt-get install -y cmake libv4l-dev liblog4cpp5-dev liblivemedia-dev
+- sudo apt-get install -y qemu-user-static debootstrap 
 - sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,libv4l-dev,liblog4cpp5-dev,liblivemedia-dev wheezy rootfs
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
