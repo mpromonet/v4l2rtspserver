@@ -21,19 +21,19 @@
 // ---------------------------------
 // H264 V4L2 FramedSource
 // ---------------------------------
-H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig) 
+H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
 { 	
 	H264_V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new H264_V4L2DeviceSource(env, params, device, outputFd, queueSize, useThread, repeatConfig);
+		source = new H264_V4L2DeviceSource(env, params, device, outputFd, queueSize, useThread, repeatConfig, keepMarker);
 	}
 	return source;
 }
 
 // Constructor
-H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig) 
-	: V4L2DeviceSource(env, params, device, outputFd, queueSize,useThread), m_repeatConfig(repeatConfig)
+H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
+	: V4L2DeviceSource(env, params, device, outputFd, queueSize,useThread), m_repeatConfig(repeatConfig), m_keepMarker(keepMarker), m_frameType(0)
 {
 }
 
@@ -52,7 +52,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	unsigned char* buffer = this->extractFrame(frame, bufSize, size);
 	while (buffer != NULL)				
 	{
-		switch (buffer[0]&0x1F)					
+		switch (m_frameType)					
 		{
 			case 7: LOG(INFO) << "SPS size:" << size; m_sps.assign((char*)buffer,size); break;
 			case 8: LOG(INFO) << "PPS size:" << size; m_pps.assign((char*)buffer,size); break;
@@ -96,6 +96,7 @@ unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 	unsigned char * outFrame = NULL;
 	outsize = 0;
 	unsigned int markerlength = 0;
+	m_frameType = 0;	
 	if ( (size>= sizeof(H264marker)) && (memcmp(frame,H264marker,sizeof(H264marker)) == 0) )
 	{
 		markerlength = sizeof(H264marker);
@@ -107,16 +108,28 @@ unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 	
 	if (markerlength != 0)
 	{
-		size -=  markerlength;
-		outFrame = &frame[markerlength];
-		outsize = size;
-		for (int i=0; i+sizeof(H264marker) < size; ++i)
+		m_frameType = (frame[markerlength]&0x1F);
+		unsigned char * ptr = (unsigned char*)memmem(&frame[markerlength], size-markerlength, H264marker, sizeof(H264marker));
+		if (ptr == NULL)
 		{
-			if ( (memcmp(&outFrame[i],H264marker,sizeof(H264marker)) == 0) || (memcmp(&outFrame[i],H264shortmarker,sizeof(H264shortmarker)) == 0) )
-			{
-				outsize = i;
-				break;
-			}
+			 ptr = (unsigned char*)memmem(&frame[markerlength], size-markerlength, H264shortmarker, sizeof(H264shortmarker));
+		}
+		if (m_keepMarker)
+		{
+			outFrame = &frame[0];
+		}
+		else
+		{
+			size -=  markerlength;
+			outFrame = &frame[markerlength];
+		}
+		if (ptr != NULL)
+		{
+			outsize = ptr - outFrame;
+		}
+		else
+		{
+			outsize = size;
 		}
 		size -= outsize;
 	}

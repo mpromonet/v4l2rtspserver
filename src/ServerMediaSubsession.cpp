@@ -9,9 +9,6 @@
 
 #include <sstream>
 
-// libv4l2
-#include <linux/videodev2.h>
-
 // live555
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -24,28 +21,38 @@
 // ---------------------------------
 //   BaseServerMediaSubsession
 // ---------------------------------
-FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, FramedSource * videoES, int format)
+FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, FramedSource* videoES, const std::string& format)
 {
 	FramedSource* source = NULL;
-	switch (format)
+	if (format == "video/MP2T")
 	{
-		case V4L2_PIX_FMT_H264 : source = H264VideoStreamDiscreteFramer::createNew(env, videoES); break;
-#ifdef 	V4L2_PIX_FMT_VP8	
-		case V4L2_PIX_FMT_VP8  : source = videoES; break;
-#endif
+		source = MPEG2TransportStreamFramer::createNew(env, videoES); 
+	}
+	else if (format == "video/H264")
+	{
+		source = H264VideoStreamDiscreteFramer::createNew(env, videoES);
+	}
+	else 
+	{
+		source = videoES;
 	}
 	return source;
 }
 
-RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, int format)
+RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format)
 {
 	RTPSink* videoSink = NULL;
-	switch (format)
+	if (format == "video/MP2T")
 	{
-		case V4L2_PIX_FMT_H264 : videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
-#ifdef 	V4L2_PIX_FMT_VP8	
-		case V4L2_PIX_FMT_VP8  : videoSink = VP8VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic); break;
-#endif
+		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, True, False); 
+	}
+	else if (format == "video/H264")
+        {
+		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
+	}
+	else if (format == "video/VP8")
+	{
+		videoSink = VP8VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
 	}
 	return videoSink;
 }
@@ -72,7 +79,7 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 									, Port rtpPortNum, Port rtcpPortNum
 									, int ttl
 									, StreamReplicator* replicator
-									, int format) 
+									, const std::string& format) 
 { 
 	// Create a source
 	FramedSource* source = replicator->createStreamReplica();			
@@ -117,7 +124,7 @@ char const* MulticastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,Frame
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
-UnicastServerMediaSubsession* UnicastServerMediaSubsession::createNew(UsageEnvironment& env, StreamReplicator* replicator, int format) 
+UnicastServerMediaSubsession* UnicastServerMediaSubsession::createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format) 
 { 
 	return new UnicastServerMediaSubsession(env,replicator,format);
 }

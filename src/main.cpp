@@ -56,7 +56,7 @@ void sighandler(int n)
 RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout)
 {
 	UserAuthenticationDatabase* authDB = NULL;	
-	RTSPServer* rtspServer = RTSPServer::createNew(env, rtspPort, authDB, timeout);
+	RTSPServer* rtspServer = RTSPServerSupportingHTTPStreaming::createNew(env, rtspPort, authDB, timeout);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -89,6 +89,19 @@ void addSession(RTSPServer* rtspServer, const std::string & sessionName, ServerM
 	}
 }
 
+std::string getRtpFormat(int format)
+{
+	std::string rtpFormat;
+	switch(format)
+	{	
+		case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
+#ifdef V4L2_PIX_FMT_VP8
+		case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
+#endif
+	}
+	return rtpFormat;
+}
+
 // -----------------------------------------
 //    entry point
 // -----------------------------------------
@@ -113,32 +126,34 @@ int main(int argc, char** argv)
 	std::string maddr;
 	bool repeatConfig = true;
 	int timeout = 65;
+	bool muxTS = false;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:T:m:u:M:ct:" "rsfF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:T" "rsfF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
-			case 'v':	verbose = 1; if (optarg && *optarg=='v') verbose++;  break;
-			case 'Q':	queueSize = atoi(optarg); break;
+			case 'v':	verbose    = 1; if (optarg && *optarg=='v') verbose++;  break;
+			case 'Q':	queueSize  = atoi(optarg); break;
 			case 'O':	outputFile = optarg; break;
 			// RTSP/RTP
-			case 'I':       ReceivingInterfaceAddr = inet_addr(optarg); break;
-			case 'P':	rtspPort = atoi(optarg); break;
-			case 'T':	rtspOverHTTPPort = atoi(optarg); break;
-			case 'u':	url = optarg; break;
-			case 'm':	multicast = true; murl = optarg; break;
+			case 'I':       ReceivingInterfaceAddr  = inet_addr(optarg); break;
+			case 'P':	rtspPort                = atoi(optarg); break;
+			case 'p':	rtspOverHTTPPort        = atoi(optarg); break;
+			case 'u':	url                     = optarg; break;
+			case 'm':	multicast = true; murl  = optarg; break;
 			case 'M':	multicast = true; maddr = optarg; break;
-			case 'c':	repeatConfig = false; break;
-			case 't':	timeout = atoi(optarg); break;
+			case 'c':	repeatConfig            = false; break;
+			case 't':	timeout                 = atoi(optarg); break;
+			case 'T':	muxTS                   = true; break;
 			// V4L2
-			case 'r':	useMmap =  false; break;
+			case 'r':	useMmap   =  false; break;
 			case 's':	useThread =  false; break;
-			case 'f':	format = 0; break;
-			case 'F':	fps = atoi(optarg); break;
-			case 'W':	width = atoi(optarg); break;
-			case 'H':	height = atoi(optarg); break;
+			case 'f':	format    = 0; break;
+			case 'F':	fps       = atoi(optarg); break;
+			case 'W':	width     = atoi(optarg); break;
+			case 'H':	height    = atoi(optarg); break;
 
 			case 'h':
 			default:
@@ -150,15 +165,16 @@ int main(int argc, char** argv)
 				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
 				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device"                        << std::endl;
-				std::cout << "\t RTSP options :"                                                                   << std::endl;
+				std::cout << "\t RTSP/RTP options :"                                                               << std::endl;
 				std::cout << "\t -I addr  : RTSP interface (default autodetect)"                                   << std::endl;
 				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
-				std::cout << "\t -T port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
+				std::cout << "\t -p port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
 				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
 				std::cout << "\t -M addr  : multicast group:port (default is random_address:20000)"                << std::endl;
 				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
+				std::cout << "\t -T       : send Transport Stream instead of elementary Stream"                    << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
@@ -250,10 +266,18 @@ int main(int argc, char** argv)
 				{
 					LOG(NOTICE) << "Cannot start V4L2 Capture for:" << deviceName;
 				}
-				V4L2DeviceSource* videoES = NULL;
+				FramedSource* videoES = NULL;
+				std::string rtpFormat(getRtpFormat(format));
 				if (format == V4L2_PIX_FMT_H264)
 				{
-					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig);
+					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+					if (muxTS)
+					{
+						MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(*env);
+						muxer->addNewVideoSource(videoES, 5);
+						videoES = muxer;
+						rtpFormat = "video/MP2T";
+					}
 				}
 				else
 				{
@@ -286,7 +310,7 @@ int main(int argc, char** argv)
 					{		
 						LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
 						LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
-						addSession(rtspServer, baseUrl+murl, MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,format));					
+						addSession(rtspServer, baseUrl+murl, MulticastServerMediaSubsession::createNew(*env,destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, replicator,rtpFormat));					
 						
 						// increment ports for next sessions
 						rtpPortNum+=2;
@@ -294,7 +318,7 @@ int main(int argc, char** argv)
 						
 					}
 					// Create Unicast Session
-					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,format));
+					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,rtpFormat));
 				}	
 				if (out)
 				{

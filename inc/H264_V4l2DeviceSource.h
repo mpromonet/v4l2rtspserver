@@ -24,10 +24,10 @@ const char H264shortmarker[] = {0,0,1};
 class H264_V4L2DeviceSource : public V4L2DeviceSource
 {
 	public:				
-		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig) ;
+		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) ;
 
 	protected:
-		H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig);
+		H264_V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker);
 		virtual ~H264_V4L2DeviceSource();
 
 		unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
@@ -39,6 +39,8 @@ class H264_V4L2DeviceSource : public V4L2DeviceSource
 		std::string m_sps;
 		std::string m_pps;
 		bool        m_repeatConfig;
+		bool        m_keepMarker;
+		int         m_frameType;
 };
 
 #endif
