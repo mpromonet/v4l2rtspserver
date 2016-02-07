@@ -6,11 +6,7 @@
 h264_v4l2_rtspserver
 ====================
 
-It is an RTSP server feed from an Video4Linux device that support H264 format.
-
-It is based on :
-- libv4l-dev to capture video frames
-- liblivemedia-dev (http://www.live555.com) to implement RTSP server
+This is an RTSP server feed from an Video4Linux device that support H264 capture.
 
 The RTSP server support :
 - RTP/UDP unicast
@@ -24,9 +20,13 @@ Domain public
 
 Dependencies
 ------------
- - liblivemedia-dev > live.2012.01.07 (need StreamReplicator)
- - libv4l-dev
- - liblog4cpp5-dev
+ - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
+ - libv4l-dev       [License LGPL](https://git.linuxtv.org/v4l-utils.git/about)
+ - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license)
+
+Download
+--------
+	[Latest build](https://github.com/mpromonet/h264_v4l2_rtspserver/releases/latest/) 
  
 Build
 ------- 
