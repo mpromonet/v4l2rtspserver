@@ -26,7 +26,7 @@ Dependencies
 
 Download
 --------
-	[Latest build](https://github.com/mpromonet/h264_v4l2_rtspserver/releases/latest/) 
+[Latest build](https://github.com/mpromonet/h264_v4l2_rtspserver/releases/latest/) 
  
 Build
 ------- 
