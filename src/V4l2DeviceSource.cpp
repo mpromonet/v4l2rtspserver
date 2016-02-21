@@ -13,10 +13,6 @@
 #include <iomanip>
 #include <sstream>
 
-// libv4l2
-#include <linux/videodev2.h>
-#include <libv4l2.h>
-
 // project
 #include "logger.h"
 #include "V4l2DeviceSource.h"
