@@ -8,8 +8,8 @@ before_install:
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
 - git clone https://github.com/raspberrypi/tools.git rpi_tools
 - export PATH=$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH
-- sudo apt-get install -y python-yaml
 - pip install --user cpp-coveralls
+- pip install pyYaml
 language: cpp
 compiler:
 - gcc
