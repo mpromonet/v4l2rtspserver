@@ -21,7 +21,6 @@ Domain public
 Dependencies
 ------------
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
- - libv4l-dev       [License LGPL](https://git.linuxtv.org/v4l-utils.git/about)
  - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license)
 
 Download
@@ -32,7 +31,7 @@ Build
 ------- 
 	cmake . && make
 
-If it fails you will need to install libv4l-dev liblivemedia-dev liblog4cpp5-dev.  
+If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
 If it still not work you will need to read Makefile.  
 
 Install

@@ -50,18 +50,6 @@ include_directories(${LOG4CPP_INCLUDE_DIR})
 find_library(LOG4CPP_LIBRARY log4cpp)
 target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 
-# V4L2
-find_path(LIBV4L2_INCLUDE_DIR libv4l2.h)
-if (NOT LIBV4L2_INCLUDE_DIR)
-	message(STATUS "Could not find package V4L2. Try to install it")
-	EXEC_PROGRAM("sudo apt-get install -y libv4l-dev")
-	find_path(LIBV4L2_INCLUDE_DIR libv4l2.h)
-endif (NOT LIBV4L2_INCLUDE_DIR)
-include_directories(${LIBV4L2_INCLUDE_DIR}) 
-
-find_library(LIBV4L2_LIBRARY v4l2)
-target_link_libraries(${PROJECT_NAME} "${LIBV4L2_LIBRARY}")
-
 # live555
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 if (NOT LIBLIVE555_INCLUDE_DIR)
