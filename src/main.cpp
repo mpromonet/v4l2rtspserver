@@ -318,6 +318,11 @@ int main(int argc, char** argv)
 					}
 					// Create Unicast Session
 					addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,rtpFormat));
+					
+					if (muxTS)
+					{
+						addSession(rtspServer, "/hls", HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat));
+					}
 				}	
 				if (out)
 				{
