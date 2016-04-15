@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
 
 // live555
 #include <liveMedia.hh>
@@ -96,7 +97,7 @@ class HLSSink : public MediaSink
 		}
 		
 	protected:
-		HLSSink(UsageEnvironment& env, unsigned bufferSize) : MediaSink(env), m_bufferSize(bufferSize), m_slice(0)
+		HLSSink(UsageEnvironment& env, unsigned bufferSize) : MediaSink(env), m_bufferSize(bufferSize), m_slice(0), m_firstslice(0)
 		{
 			m_buffer = new unsigned char[m_bufferSize];
 		}
@@ -145,6 +146,10 @@ class HLSSink : public MediaSink
 			if (!m_os.is_open())
 			{
 				m_slice = presentationTime.tv_sec/10;
+				if (m_firstslice == 0)
+				{
+					m_firstslice = m_slice;
+				}
 				std::ostringstream os;
 				os << m_slice << ".ts";				
 				m_os.open(os.str().c_str());
@@ -161,7 +166,9 @@ class HLSSink : public MediaSink
 		unsigned char * m_buffer;
 		unsigned int    m_bufferSize;
 		std::ofstream   m_os;
+	public:
 		unsigned int    m_slice;
+		unsigned int    m_firstslice;
 };
 
 class HLSServerMediaSubsession : public OnDemandServerMediaSubsession , public BaseServerMediaSubsession
@@ -181,8 +188,8 @@ class HLSServerMediaSubsession : public OnDemandServerMediaSubsession , public B
 			FramedSource* videoSource = createSource(env, source, format);
 			
 			// Start Playing the Sink
-			HLSSink * videoSink = HLSSink::createNew(env, 65535);
-			videoSink->startPlaying(*videoSource, NULL, NULL);			
+			m_videoSink = HLSSink::createNew(env, 65535);
+			m_videoSink->startPlaying(*videoSource, NULL, NULL);			
 		}
 			
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate)
@@ -197,24 +204,34 @@ class HLSServerMediaSubsession : public OnDemandServerMediaSubsession , public B
 		}
 		
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);	
-		virtual float duration() const { return 20; }
-		
+		virtual float duration() const { 
+			std::cout << "duration " << (m_videoSink->m_slice - m_videoSink->m_firstslice)*10 << std::endl;
+			return (m_videoSink->m_slice - m_videoSink->m_firstslice)*10; 
+		}
 		virtual void seekStream(unsigned clientSessionId, void* streamToken, double& seekNPT, double streamDuration, u_int64_t& numBytes) 
 		{
 			m_slice = seekNPT / 10;
 			seekNPT = m_slice*10;
-			numBytes = 1;
+			std::ostringstream os;
+			os << m_slice+m_videoSink->m_firstslice << ".ts";
+			struct stat sb;
+			int statResult = stat(os.str().c_str(), &sb);
+			if (statResult == 0) 
+			{
+				numBytes = sb.st_size;
+			}			
 		}	
 		virtual FramedSource* getStreamSource(void* streamToken) 
 		{
 			std::ostringstream os;
-			os << m_slice << ".ts";
-			return ByteStreamFileSource::createNew(envir(), os.str().c_str());
+			os << m_slice+m_videoSink->m_firstslice << ".ts";
+			return ByteStreamFileSource::createNew(envir(), os.str().c_str());			
 		}					
 					
 	protected:
 		const std::string m_format;
 		unsigned int      m_slice;
+		HLSSink *         m_videoSink;
 };
 
 #endif

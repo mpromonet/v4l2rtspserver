@@ -12,6 +12,251 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
+
+#include <iostream>
+
+#include "RTSPServer.hh"
+#include "RTSPCommon.hh"
+#include <sys/stat.h>
+#include <time.h>
+#ifndef _BYTE_STREAM_MEMORY_BUFFER_SOURCE_HH
+#include "ByteStreamMemoryBufferSource.hh"
+#endif
+#ifndef _TCP_STREAM_SINK_HH
+#include "TCPStreamSink.hh"
+#endif
+
+
+class HLSServer : public RTSPServer
+{
+
+	class HLSClientConnection : public RTSPServer::RTSPClientConnection
+	{
+	public:
+		HLSClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
+		  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fClientSessionId(0), fStreamSource(NULL), fPlaylistSource(NULL), fTCPSink(NULL) {
+		}
+
+		~HLSClientConnection() {
+			if (fTCPSink != NULL) fTCPSink->stopPlaying();
+		  Medium::close(fPlaylistSource);
+		  Medium::close(fStreamSource);
+		  Medium::close(fTCPSink);
+		}
+
+	private:
+
+		void sendPlayList(char const* urlSuffix)
+		{
+		  // First, make sure that the named file exists, and is streamable:
+		  ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlSuffix);
+		  if (session == NULL) {
+ std::cout << "============no session==============" << std::endl;
+		    handleHTTPCmd_notFound();
+		    return;
+		  }
+
+		  // To be able to construct a playlist for the requested file, we need to know its duration:
+		  float duration = session->duration();
+		  if (duration <= 0.0) {
+ std::cout << "============no duration==============" << std::endl;
+		    handleHTTPCmd_notSupported();
+		    return;
+		  }
+		  
+		  // Now, construct the playlist.  It will consist of a prefix, one or more media file specifications, and a suffix:
+		  unsigned const maxIntLen = 10; // >= the maximum possible strlen() of an integer in the playlist
+		  char const* const playlistPrefixFmt =
+		    "#EXTM3U\r\n"
+		    "#EXT-X-ALLOW-CACHE:YES\r\n"
+		    "#EXT-X-MEDIA-SEQUENCE:%d\r\n"
+		    "#EXT-X-TARGETDURATION:%d\r\n";
+		  unsigned const playlistPrefixFmt_maxLen = strlen(playlistPrefixFmt) + maxIntLen;
+
+		  char const* const playlistMediaFileSpecFmt =
+		    "#EXTINF:%d,\r\n"
+		    "%s?segment=%d,%d\r\n";
+		  unsigned const playlistMediaFileSpecFmt_maxLen = strlen(playlistMediaFileSpecFmt) + maxIntLen + strlen(urlSuffix) + 2*maxIntLen;
+
+		  // Figure out the 'target duration' that will produce a playlist that will fit in our response buffer.  (But make it at least 10s.)
+		  unsigned const playlistMaxSize = 10000;
+		  unsigned const mediaFileSpecsMaxSize = playlistMaxSize - (playlistPrefixFmt_maxLen /*+ playlistSuffixFmt_maxLen*/);
+		  unsigned const maxNumMediaFileSpecs = mediaFileSpecsMaxSize/playlistMediaFileSpecFmt_maxLen;
+
+		  unsigned targetDuration = (unsigned)(duration/maxNumMediaFileSpecs + 1);
+		  if (targetDuration < 10) targetDuration = 10;
+
+		  unsigned int startTime = 0;		  
+		  char* playlist = new char[playlistMaxSize];
+		  char* s = playlist;
+		  sprintf(s, playlistPrefixFmt, startTime,targetDuration);
+		  s += strlen(s);
+
+		  unsigned durSoFar = startTime;
+		  while (1) {
+		    unsigned dur = targetDuration < duration ? targetDuration : (unsigned)duration;
+		    duration -= dur;
+		    sprintf(s, playlistMediaFileSpecFmt, dur, urlSuffix, durSoFar, dur);
+		    s += strlen(s);
+		    if (duration < 1.0) break;
+
+		    durSoFar += dur;
+		  }
+
+		  unsigned playlistLen = s - playlist;
+
+		  // Construct our response:
+		  snprintf((char*)fResponseBuffer, sizeof fResponseBuffer,
+			   "HTTP/1.1 200 OK\r\n"
+			   "%s"
+			   "Server: LIVE555 Streaming Media v%s\r\n"
+			   "Content-Length: %d\r\n"
+			   "Content-Type: application/vnd.apple.mpegurl\r\n"
+			   "\r\n",
+			   dateHeader(),
+			   LIVEMEDIA_LIBRARY_VERSION_STRING,
+			   playlistLen);
+
+		  // Send the response header now, because we're about to add more data (the playlist):
+		  send(fClientOutputSocket, (char const*)fResponseBuffer, strlen((char*)fResponseBuffer), 0);
+		  fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
+
+		  // Then, send the playlist.  Because it's large, we don't do so using "send()", because that might not send it all at once.
+		  // Instead, we stream the playlist over the TCP socket:
+		  if (fPlaylistSource != NULL) { // sanity check
+		    if (fTCPSink != NULL) fTCPSink->stopPlaying();
+		    Medium::close(fPlaylistSource);
+		  }
+		  fPlaylistSource = ByteStreamMemoryBufferSource::createNew(envir(), (u_int8_t*)playlist, playlistLen);
+		  if (fTCPSink == NULL) fTCPSink = TCPStreamSink::createNew(envir(), fClientOutputSocket);
+		  fTCPSink->startPlaying(*fPlaylistSource, afterStreaming, this);
+		}
+		
+		void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) {
+		  // If "urlSuffix" ends with "?segment=<offset-in-seconds>,<duration-in-seconds>", then strip this off, and send the
+		  // specified segment.  Otherwise, construct and send a playlist that consists of segments from the specified file.
+		  do {
+		    char const* questionMarkPos = strrchr(urlSuffix, '?');
+		    if (questionMarkPos == NULL) break;
+		    unsigned offsetInSeconds, durationInSeconds;
+		    if (sscanf(questionMarkPos, "?segment=%u,%u", &offsetInSeconds, &durationInSeconds) != 2) break;
+
+		    char* streamName = strDup(urlSuffix);
+		    streamName[questionMarkPos-urlSuffix] = '\0';
+
+		    do {
+		      ServerMediaSession* session = fOurServer.lookupServerMediaSession(streamName);
+		      if (session == NULL) {
+			handleHTTPCmd_notFound();
+			break;
+		      }
+
+		      // We can't send multi-subsession streams over HTTP (because there's no defined way to multiplex more than one subsession).
+		      // Therefore, use the first (and presumed only) substream:
+		      ServerMediaSubsessionIterator iter(*session);
+		      ServerMediaSubsession* subsession = iter.next();
+		      if (subsession == NULL) {
+			// Treat an 'empty' ServerMediaSession the same as one that doesn't exist at all:
+			handleHTTPCmd_notFound();
+			break;
+		      }
+
+		      // Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
+		      // of the parameters to the call are dummy.)
+		      ++fClientSessionId;
+		      Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
+		      netAddressBits destinationAddress = 0;
+		      u_int8_t destinationTTL = 0;
+		      Boolean isMulticast = False;
+		      void* streamToken = NULL;
+		      subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
+		      
+		      // Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
+		      double dOffsetInSeconds = (double)offsetInSeconds;
+		      u_int64_t numBytes;
+		      subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, (double)durationInSeconds, numBytes);
+		      unsigned numTSBytesToStream = (unsigned)numBytes;
+		      std::cout << "numTSBytesToStream:" << numTSBytesToStream << std::endl;
+		      
+		      if (numTSBytesToStream == 0) {
+			// For some reason, we do not know the size of the requested range.  We can't handle this request:
+			handleHTTPCmd_notSupported();
+			break;
+		      }
+		      
+		      // Construct our response:
+		      snprintf((char*)fResponseBuffer, sizeof fResponseBuffer,
+			       "HTTP/1.1 200 OK\r\n"
+			       "%s"
+			       "Server: LIVE555 Streaming Media v%s\r\n"
+			       "Content-Length: %d\r\n"
+			       "Content-Type: text/plain; charset=ISO-8859-1\r\n"
+			       "\r\n",
+			       dateHeader(),
+			       LIVEMEDIA_LIBRARY_VERSION_STRING,
+			       numTSBytesToStream);
+		      // Send the response now, because we're about to add more data (from the source):
+		      send(fClientOutputSocket, (char const*)fResponseBuffer, strlen((char*)fResponseBuffer), 0);
+		      fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
+		      
+		      // Ask the media source to deliver - to the TCP sink - the desired data:
+		      if (fStreamSource != NULL) { // sanity check
+			if (fTCPSink != NULL) fTCPSink->stopPlaying();
+			Medium::close(fStreamSource);
+		      }
+		      fStreamSource = subsession->getStreamSource(streamToken);
+		      if (fStreamSource != NULL) {
+			if (fTCPSink == NULL) fTCPSink = TCPStreamSink::createNew(envir(), fClientOutputSocket);
+			fTCPSink->startPlaying(*fStreamSource, afterStreaming, this);
+		      }
+		    } while(0);
+
+		    delete[] streamName;
+		    return;
+		  } while (0);
+
+		  this->sendPlayList(urlSuffix);
+		}
+
+		static void afterStreaming(void* clientData) {
+			std::cout << "afterStreaming" << std::endl;
+			HLSServer::HLSClientConnection* clientConnection = (HLSServer::HLSClientConnection*)clientData;
+			// Arrange to delete the 'client connection' object:
+			if (clientConnection->fRecursionCount > 0) {
+				// We're still in the midst of handling a request
+				clientConnection->fIsActive = False; // will cause the object to get deleted at the end of handling the request
+			} else {
+				// We're no longer handling a request; delete the object now:
+//				delete clientConnection;
+			}
+		}
+		  private:
+		    u_int32_t fClientSessionId;
+		    FramedSource* fStreamSource;
+		    ByteStreamMemoryBufferSource* fPlaylistSource;
+		    TCPStreamSink* fTCPSink;
+	};
+	
+	public:
+		static HLSServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds) {
+		  int ourSocket = setUpOurSocket(env, rtspPort);
+		  if (ourSocket == -1) return NULL;
+
+		  return new HLSServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds);
+		}
+
+		HLSServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
+		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds) {
+		}
+
+		virtual ~HLSServer() {
+		}
+
+		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) {
+		  return new HLSClientConnection(*this, clientSocket, clientAddr);
+		}
+};
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +300,7 @@ void sighandler(int n)
 RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout)
 {
 	UserAuthenticationDatabase* authDB = NULL;	
-	RTSPServer* rtspServer = RTSPServerSupportingHTTPStreaming::createNew(env, rtspPort, authDB, timeout);
+	RTSPServer* rtspServer = HLSServer::createNew(env, rtspPort, authDB, timeout);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -321,7 +566,7 @@ int main(int argc, char** argv)
 					
 					if (muxTS)
 					{
-						addSession(rtspServer, "/hls", HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat));
+						addSession(rtspServer, "hls", HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat));
 					}
 				}	
 				if (out)
