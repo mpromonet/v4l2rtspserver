@@ -145,10 +145,3 @@ char const* UnicastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedS
 	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
 		
-// -----------------------------------------
-//    ServerMediaSubsession for Unicast
-// -----------------------------------------			
-char const* HLSServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
-{
-	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
-}
