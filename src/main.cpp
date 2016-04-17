@@ -34,14 +34,6 @@ class HLSServer : public RTSPServer
 		  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fClientSessionId(0), fTCPSink(NULL) {
 		}
 
-		~HLSClientConnection() {
-			if (fTCPSink != NULL)
-			{
-				fTCPSink->stopPlaying();
-				Medium::close(fTCPSink);
-			}
-		}
-
 	private:
 
 		void sendHeader(const char* contentType, unsigned int contentLength)
@@ -68,9 +60,11 @@ class HLSServer : public RTSPServer
 		{
 		      if (fTCPSink != NULL) 
 		      {
-				fTCPSink->stopPlaying();
+			        FramedSource* oldSource = fTCPSink->source();
+				fTCPSink->stopPlaying();			       
 				Medium::close(fTCPSink);
 				fTCPSink = NULL;
+				Medium::close(oldSource);
 		      }
 		      if (source != NULL) 
 		      {
@@ -79,29 +73,32 @@ class HLSServer : public RTSPServer
 		      }
 		}
 		
+		ServerMediaSubsession* getSubsesion(const char* urlSuffix)
+		{
+			ServerMediaSubsession* subsession = NULL;
+			ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlSuffix);
+			if (session != NULL) 
+			{
+				ServerMediaSubsessionIterator iter(*session);
+				subsession = iter.next();
+			}
+			return subsession;
+		}
+		
 		void sendPlayList(char const* urlSuffix)
 		{
-			// First, make sure that the named file exists, and is streamable:
-			ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlSuffix);
-			if (session == NULL) {
-				handleHTTPCmd_notFound();
-				return;
-			}
-
-			// To be able to construct a playlist for the requested file, we need to know its duration:
-			float duration = session->duration();
-			if (duration <= 0.0) {
-				handleHTTPCmd_notSupported();
-				return;
-			}
-
-			ServerMediaSubsessionIterator iter(*session);
-			ServerMediaSubsession* subsession = iter.next();
+			ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
 			if (subsession == NULL) {
 				handleHTTPCmd_notSupported();
 				return;			  
 			}
 
+			float duration = subsession->duration();
+			if (duration <= 0.0) {
+				handleHTTPCmd_notSupported();
+				return;
+			}
+			
 			unsigned int startTime = subsession->getCurrentNPT(NULL);
 			unsigned sliceDuration = 10;		  
 			std::ostringstream os;
@@ -127,69 +124,62 @@ class HLSServer : public RTSPServer
 			this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
 		}
 		
-		void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) {
-		  // If "urlSuffix" ends with "?segment=<offset-in-seconds>,<duration-in-seconds>", then strip this off, and send the
-		  // specified segment.  Otherwise, construct and send a playlist that consists of segments from the specified file.
-		  do {
-		    char const* questionMarkPos = strrchr(urlSuffix, '?');
-		    if (questionMarkPos == NULL) break;
-		    unsigned offsetInSeconds;
-		    if (sscanf(questionMarkPos, "?segment=%u", &offsetInSeconds) != 1) break;
+		void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) 
+		{
+			char const* questionMarkPos = strrchr(urlSuffix, '?');
+			if (questionMarkPos == NULL) 
+			{
+				this->sendPlayList(urlSuffix);
+			}
+			else
+			{
+				unsigned offsetInSeconds;
+				if (sscanf(questionMarkPos, "?segment=%u", &offsetInSeconds) != 1)
+				{
+					handleHTTPCmd_notSupported();
+					return;			  
+				}
 
-		    char* streamName = strDup(urlSuffix);
-		    streamName[questionMarkPos-urlSuffix] = '\0';
+				char* streamName = strDup(urlSuffix);
+				streamName[questionMarkPos-urlSuffix] = '\0';
 
-		    do {
-		      ServerMediaSession* session = fOurServer.lookupServerMediaSession(streamName);
-		      if (session == NULL) {
-			handleHTTPCmd_notFound();
-			break;
-		      }
+				do {
+					ServerMediaSubsession* subsession = this->getSubsesion(streamName);
+					if (subsession == NULL) {
+						handleHTTPCmd_notSupported();
+						break;			  
+					}
 
-		      // We can't send multi-subsession streams over HTTP (because there's no defined way to multiplex more than one subsession).
-		      // Therefore, use the first (and presumed only) substream:
-		      ServerMediaSubsessionIterator iter(*session);
-		      ServerMediaSubsession* subsession = iter.next();
-		      if (subsession == NULL) {
-			// Treat an 'empty' ServerMediaSession the same as one that doesn't exist at all:
-			handleHTTPCmd_notFound();
-			break;
-		      }
+					// Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
+					// of the parameters to the call are dummy.)
+					++fClientSessionId;
+					Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
+					netAddressBits destinationAddress = 0;
+					u_int8_t destinationTTL = 0;
+					Boolean isMulticast = False;
+					void* streamToken = NULL;
+					subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
 
-		      // Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
-		      // of the parameters to the call are dummy.)
-		      ++fClientSessionId;
-		      Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
-		      netAddressBits destinationAddress = 0;
-		      u_int8_t destinationTTL = 0;
-		      Boolean isMulticast = False;
-		      void* streamToken = NULL;
-		      subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
-		      
-		      // Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
-		      double dOffsetInSeconds = (double)offsetInSeconds;
-		      u_int64_t numBytes = 0;
-		      subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
-		      
-		      if (numBytes == 0) {
-			// For some reason, we do not know the size of the requested range.  We can't handle this request:
-			handleHTTPCmd_notSupported();
-			break;
-		      }
-		      
-		      // send response header
-		      this->sendHeader("video/mp2t", numBytes);
-		      
-		      // stream body
-		      this->streamSource(subsession->getStreamSource(streamToken));
+					// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
+					double dOffsetInSeconds = (double)offsetInSeconds;
+					u_int64_t numBytes = 0;
+					subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
 
-		    } while(0);
+					if (numBytes == 0) {
+						// For some reason, we do not know the size of the requested range.  We can't handle this request:
+						handleHTTPCmd_notSupported();
+						break;
+					}
 
-		    delete[] streamName;
-		    return;
-		  } while (0);
+					// send response header
+					this->sendHeader("video/mp2t", numBytes);
 
-		  this->sendPlayList(urlSuffix);
+					// stream body
+					this->streamSource(subsession->getStreamSource(streamToken));
+				} while(0);
+
+				delete[] streamName;
+			} 
 		}
 
 		static void afterStreaming(void* clientData) 
@@ -201,7 +191,7 @@ class HLSServer : public RTSPServer
 				clientConnection->fIsActive = False; // will cause the object to get deleted at the end of handling the request
 			} else {
 				// We're no longer handling a request; delete the object now:
-				delete clientConnection;
+//				delete clientConnection;
 			}
 		}
 		private:
