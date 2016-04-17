@@ -1,9 +1,9 @@
 dist: trusty
 before_install:
 - sudo apt-get update
-- sudo apt-get install -y cmake libv4l-dev liblog4cpp5-dev liblivemedia-dev
+- sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev
 - sudo apt-get install -y qemu-user-static debootstrap 
-- sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,libv4l-dev,liblog4cpp5-dev,liblivemedia-dev jessie rootfs
+- sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++-4.8,liblog4cpp5-dev,liblivemedia-dev jessie rootfs
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
 - git clone https://github.com/raspberrypi/tools.git rpi_tools
