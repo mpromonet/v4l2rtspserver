@@ -88,19 +88,22 @@ class HLSServer : public RTSPServer
 		void sendPlayList(char const* urlSuffix)
 		{
 			ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
-			if (subsession == NULL) {
+			if (subsession == NULL) 
+			{
 				handleHTTPCmd_notSupported();
 				return;			  
 			}
 
 			float duration = subsession->duration();
-			if (duration <= 0.0) {
+			if (duration <= 0.0) 
+			{
 				handleHTTPCmd_notSupported();
 				return;
 			}
 			
 			unsigned int startTime = subsession->getCurrentNPT(NULL);
-			unsigned sliceDuration = 10;		  
+			HLSServer* hlsServer = (HLSServer*)(&fOurServer);
+			unsigned sliceDuration = hlsServer->m_hlsSegment;		  
 			std::ostringstream os;
 			os  	<< "#EXTM3U\r\n"
 				<< "#EXT-X-ALLOW-CACHE:YES\r\n"
@@ -139,46 +142,43 @@ class HLSServer : public RTSPServer
 					handleHTTPCmd_notSupported();
 					return;			  
 				}
+				
+				std::string streamName(urlSuffix, questionMarkPos-urlSuffix);
+				ServerMediaSubsession* subsession = this->getSubsesion(streamName.c_str());
+				if (subsession == NULL) 
+				{
+					handleHTTPCmd_notSupported();
+					return;			  
+				}
 
-				char* streamName = strDup(urlSuffix);
-				streamName[questionMarkPos-urlSuffix] = '\0';
+				// Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
+				// of the parameters to the call are dummy.)
+				++fClientSessionId;
+				Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
+				netAddressBits destinationAddress = 0;
+				u_int8_t destinationTTL = 0;
+				Boolean isMulticast = False;
+				void* streamToken = NULL;
+				subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
 
-				do {
-					ServerMediaSubsession* subsession = this->getSubsesion(streamName);
-					if (subsession == NULL) {
-						handleHTTPCmd_notSupported();
-						break;			  
-					}
+				// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
+				double dOffsetInSeconds = (double)offsetInSeconds;
+				u_int64_t numBytes = 0;
+				subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
 
-					// Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
-					// of the parameters to the call are dummy.)
-					++fClientSessionId;
-					Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
-					netAddressBits destinationAddress = 0;
-					u_int8_t destinationTTL = 0;
-					Boolean isMulticast = False;
-					void* streamToken = NULL;
-					subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
+				if (numBytes == 0) 
+				{
+					// For some reason, we do not know the size of the requested range.  We can't handle this request:
+					handleHTTPCmd_notSupported();
+					return;
+				}
 
-					// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
-					double dOffsetInSeconds = (double)offsetInSeconds;
-					u_int64_t numBytes = 0;
-					subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
+				// send response header
+				this->sendHeader("video/mp2t", numBytes);
 
-					if (numBytes == 0) {
-						// For some reason, we do not know the size of the requested range.  We can't handle this request:
-						handleHTTPCmd_notSupported();
-						break;
-					}
+				// stream body
+				this->streamSource(subsession->getStreamSource(streamToken));
 
-					// send response header
-					this->sendHeader("video/mp2t", numBytes);
-
-					// stream body
-					this->streamSource(subsession->getStreamSource(streamToken));
-				} while(0);
-
-				delete[] streamName;
 			} 
 		}
 
@@ -200,19 +200,28 @@ class HLSServer : public RTSPServer
 	};
 	
 	public:
-		static HLSServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds) {
+		static HLSServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment) 
+		{
+			HLSServer* hlsServer = NULL;
 			int ourSocket = setUpOurSocket(env, rtspPort);
-			if (ourSocket == -1) return NULL;
-			return new HLSServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds);
+			if (ourSocket != -1) 
+			{
+				hlsServer = new HLSServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment);
+			}
+			return hlsServer;
 		}
 
-		HLSServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
-		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds) {
+		HLSServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment)
+		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment)
+		{
 		}
 
-		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) {
+		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) 
+		{
 			return new HLSClientConnection(*this, clientSocket, clientAddr);
 		}
+		
+		const unsigned int m_hlsSegment;
 };
 
 #include <stdio.h>
@@ -255,10 +264,10 @@ void sighandler(int n)
 // -----------------------------------------
 //    create RTSP server
 // -----------------------------------------
-RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout)
+RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment)
 {
 	UserAuthenticationDatabase* authDB = NULL;	
-	RTSPServer* rtspServer = HLSServer::createNew(env, rtspPort, authDB, timeout);
+	RTSPServer* rtspServer = HLSServer::createNew(env, rtspPort, authDB, timeout, hlsSegment);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -329,10 +338,11 @@ int main(int argc, char** argv)
 	bool repeatConfig = true;
 	int timeout = 65;
 	bool muxTS = false;
+	unsigned int hlsSegment = 10;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:T" "rsfF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS:" "rsfF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -349,6 +359,7 @@ int main(int argc, char** argv)
 			case 'c':	repeatConfig            = false; break;
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'T':	muxTS                   = true; break;
+			case 'S':	hlsSegment              = atoi(optarg); muxTS=true; break;
 			// V4L2
 			case 'r':	useMmap   =  false; break;
 			case 's':	useThread =  false; break;
@@ -377,6 +388,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
 				std::cout << "\t -T       : send Transport Stream instead of elementary Stream"                    << std::endl;
+				std::cout << "\t -S       : HLS segment duration (enable HLS streaming and TS muxing)"             << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
@@ -429,7 +441,7 @@ int main(int argc, char** argv)
 	unsigned char ttl = 5;
 	
 	// create RTSP server
-	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout);
+	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment);
 	if (rtspServer == NULL) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
@@ -522,7 +534,7 @@ int main(int argc, char** argv)
 					// Create Unicast Session					
 					if (muxTS)
 					{
-						addSession(rtspServer, baseUrl+url, HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat));
+						addSession(rtspServer, baseUrl+url, HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat, hlsSegment));
 					}
 					else
 					{

@@ -155,7 +155,7 @@ class HLSServerMediaSubsession : public UnicastServerMediaSubsession
 					outputBuffer.append((const char*)m_buffer, frameSize);
 					
 					// remove old buffers
-					while (m_outputBuffers.size()>5)
+					while (m_outputBuffers.size()>3)
 					{
 						m_outputBuffers.erase(m_outputBuffers.begin());
 					}
@@ -220,21 +220,21 @@ class HLSServerMediaSubsession : public UnicastServerMediaSubsession
 	};
 	
 	public:
-		static HLSServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format)
+		static HLSServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration)
 		{
-			return new HLSServerMediaSubsession(env,replicator,format);
+			return new HLSServerMediaSubsession(env, replicator, format, sliceDuration);
 		}
 		
 	protected:
-		HLSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format) 
-				: UnicastServerMediaSubsession(env, replicator, format) 
+		HLSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration) 
+				: UnicastServerMediaSubsession(env, replicator, format)
 		{
 			// Create a source
 			FramedSource* source = replicator->createStreamReplica();			
 			FramedSource* videoSource = createSource(env, source, format);
 			
 			// Start Playing the HLS Sink
-			m_hlsSink = HLSSink::createNew(env, OutPacketBuffer::maxSize, 10);
+			m_hlsSink = HLSSink::createNew(env, OutPacketBuffer::maxSize, sliceDuration);
 			m_hlsSink->startPlaying(*videoSource, NULL, NULL);			
 		}
 		virtual ~HLSServerMediaSubsession()
