@@ -279,6 +279,31 @@ RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, uns
 	return rtspServer;
 }
 
+
+// -----------------------------------------
+//    create FramedSource server
+// -----------------------------------------
+FramedSource* createFramedSource(UsageEnvironment* env, const V4L2DeviceParameters& param, V4l2Capture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
+{
+	FramedSource* source = NULL;
+	int format = videoCapture->getFormat();
+	if (format == V4L2_PIX_FMT_H264)
+	{
+		source = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+		if (muxTS)
+		{
+			MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(*env);
+			muxer->addNewVideoSource(source, 5);
+			source = muxer;
+		}
+	}
+	else
+	{
+		source = V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread);
+	}
+	return source;
+}
+	
 // -----------------------------------------
 //    add an RTSP session
 // -----------------------------------------
@@ -300,16 +325,24 @@ void addSession(RTSPServer* rtspServer, const std::string & sessionName, ServerM
 	}
 }
 
-std::string getRtpFormat(int format)
+std::string getRtpFormat(int format, bool muxTS)
 {
 	std::string rtpFormat;
-	switch(format)
-	{	
-		case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
-#ifdef V4L2_PIX_FMT_VP8
-		case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
-#endif
+	if (muxTS)
+	{
+		rtpFormat = "video/MP2T";
 	}
+	else
+	{
+		switch(format)
+		{	
+			case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
+#ifdef V4L2_PIX_FMT_VP8
+			case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
+#endif
+		}
+	}
+	
 	return rtpFormat;
 }
 
@@ -480,23 +513,8 @@ int main(int argc, char** argv)
 				{
 					LOG(NOTICE) << "Cannot start V4L2 Capture for:" << deviceName;
 				}
-				FramedSource* videoES = NULL;
-				std::string rtpFormat(getRtpFormat(format));
-				if (format == V4L2_PIX_FMT_H264)
-				{
-					videoES = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
-					if (muxTS)
-					{
-						MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(*env);
-						muxer->addNewVideoSource(videoES, 5);
-						videoES = muxer;
-						rtpFormat = "video/MP2T";
-					}
-				}
-				else
-				{
-					videoES = V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread);
-				}
+				std::string rtpFormat(getRtpFormat(format, muxTS));
+				FramedSource* videoES = createFramedSource(env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
 				if (videoES == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << deviceName;
