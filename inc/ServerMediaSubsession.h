@@ -227,7 +227,7 @@ class HLSServerMediaSubsession : public UnicastServerMediaSubsession
 		
 	protected:
 		HLSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration) 
-				: UnicastServerMediaSubsession(env, replicator, format)
+				: UnicastServerMediaSubsession(env, replicator, format), m_slice(0)
 		{
 			// Create a source
 			FramedSource* source = replicator->createStreamReplica();			
