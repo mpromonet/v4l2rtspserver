@@ -14,10 +14,9 @@ compiler:
 - gcc
 script:
 - cmake . && make && cpack .
-- rm -rf CMakeCache.txt *.a CMakeFiles
-- cmake . -DCMAKE_TOOLCHAIN_FILE=raspberry.toolchain && make && cpack .
-- rm -rf CMakeCache.txt *.a CMakeFiles
 - cmake -DCOVERAGE=ON . && make && make test
+#- rm -rf CMakeCache.txt *.a CMakeFiles
+#- cmake . -DCMAKE_TOOLCHAIN_FILE=raspberry.toolchain && make && cpack .
 after_success:
 - coveralls --gcov-options '\-lp'
 env:
