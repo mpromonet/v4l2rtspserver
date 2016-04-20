@@ -38,7 +38,7 @@ class V4L2DeviceSource: public FramedSource
 			Frame(char* buffer, int size, timeval timestamp) : m_buffer(buffer), m_size(size), m_timestamp(timestamp) {};
 			Frame(const Frame&);
 			Frame& operator=(const Frame&);
-			~Frame()  { delete m_buffer; };
+			~Frame()  { delete [] m_buffer; };
 			
 			char* m_buffer;
 			int m_size;

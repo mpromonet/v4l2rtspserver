@@ -78,10 +78,10 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
 			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
 			m_auxLine.assign(os.str());
-			
-			free(sps_base64);
-			free(pps_base64);
 			LOG(NOTICE) << m_auxLine;
+			
+			delete [] sps_base64;
+			delete [] pps_base64;
 		}
 		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
 		
