@@ -78,7 +78,6 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters p
 V4L2DeviceSource::~V4L2DeviceSource()
 {	
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
-	m_device->captureStop();
 	pthread_join(m_thid, NULL);	
 	pthread_mutex_destroy(&m_mutex);
 	delete m_device;

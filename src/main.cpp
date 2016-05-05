@@ -152,7 +152,8 @@ int main(int argc, char** argv)
 	bool multicast = false;
 	int verbose = 0;
 	std::string outputFile;
-	bool useMmap = true;
+	V4l2DeviceFactory::IoType ioTypeIn  = V4l2DeviceFactory::IOTYPE_MMAP;
+	V4l2DeviceFactory::IoType ioTypeOut = V4l2DeviceFactory::IOTYPE_MMAP;
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	bool useThread = true;
@@ -164,7 +165,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS:" "rsfF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS:" "rwsfF:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -183,7 +184,8 @@ int main(int argc, char** argv)
 			case 'T':	muxTS                   = true; break;
 			case 'S':	hlsSegment              = atoi(optarg); muxTS=true; break;
 			// V4L2
-			case 'r':	useMmap   =  false; break;
+			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READ; break;
+			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READ; break;	
 			case 's':	useThread =  false; break;
 			case 'f':	format    = 0; break;
 			case 'F':	fps       = atoi(optarg); break;
@@ -195,7 +197,7 @@ int main(int argc, char** argv)
 			{
 				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
 				std::cout << "\t          [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout]" << std::endl;
-				std::cout << "\t          [-r] [-s] [-W width] [-H height] [-F fps] [device] [device]"           << std::endl;
+				std::cout << "\t          [-r] [-w] [-s] [-W width] [-H height] [-F fps] [device] [device]"        << std::endl;
 				std::cout << "\t -v       : verbose"                                                               << std::endl;
 				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
@@ -213,6 +215,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -S       : HTTP segment duration (enable HLS & MPEG-DASH)"                        << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
+				std::cout << "\t -w       : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
 				std::cout << "\t -f       : V4L2 capture using current format (-W,-H,-F are ignore)"               << std::endl;
 				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
@@ -270,6 +273,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{			
+		V4l2Output* out = NULL;
 		int nbSource = 0;
 		std::list<std::string>::iterator devIt;
 		for ( devIt=devList.begin() ; devIt!=devList.end() ; ++devIt)
@@ -279,32 +283,27 @@ int main(int argc, char** argv)
 			// Init capture
 			LOG(NOTICE) << "Create V4L2 Source..." << deviceName;
 			V4L2DeviceParameters param(deviceName.c_str(),format,width,height,fps, verbose);
-			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, useMmap);
+			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, ioTypeIn);
 			if (videoCapture)
 			{
 				nbSource++;
 				format = videoCapture->getFormat();				
 				int outfd = -1;
 				
-				V4l2Output* out = NULL;
 				if (!outputFile.empty())
 				{
 					V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-					V4l2Output* out = V4l2DeviceFactory::CreateVideoOutput(outparam, useMmap);
+					out = V4l2DeviceFactory::CreateVideoOutput(outparam, ioTypeOut);
 					if (out != NULL)
 					{
 						outfd = out->getFd();
 					}
 				}
 				
-				LOG(NOTICE) << "Start V4L2 Capture..." << deviceName;
-				if (!videoCapture->captureStart())
-				{
-					LOG(NOTICE) << "Cannot start V4L2 Capture for:" << deviceName;
-				}
+				LOG(NOTICE) << "Create Source ..." << deviceName;
 				std::string rtpFormat(getRtpFormat(format, muxTS));
-				FramedSource* videoES = createFramedSource(env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
-				if (videoES == NULL) 
+				FramedSource* videoSource = createFramedSource(env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+				if (videoSource == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << deviceName;
 					delete videoCapture;
@@ -317,7 +316,7 @@ int main(int argc, char** argv)
 						OutPacketBuffer::maxSize = videoCapture->getBufferSize();
 					}
 					
-					StreamReplicator* replicator = StreamReplicator::createNew(*env, videoES, false);
+					StreamReplicator* replicator = StreamReplicator::createNew(*env, videoSource, false);
 					
 					std::string baseUrl;
 					if (devList.size() > 1)
@@ -348,10 +347,6 @@ int main(int argc, char** argv)
 						addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,rtpFormat));
 					}
 				}	
-				if (out)
-				{
-					delete out;
-				}
 			}
 		}
 
@@ -364,6 +359,11 @@ int main(int argc, char** argv)
 		}
 		
 		Medium::close(rtspServer);
+
+		if (out)
+		{
+			delete out;
+		}
 	}
 	
 	env->reclaim();
