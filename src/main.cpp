@@ -127,12 +127,74 @@ class HLSServer : public RTSPServer
 			this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
 		}
 		
+		void sendMpdPlayList(char const* urlSuffix)
+		{
+			ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
+			if (subsession == NULL) 
+			{
+				handleHTTPCmd_notSupported();
+				return;			  
+			}
+
+			float duration = subsession->duration();
+			if (duration <= 0.0) 
+			{
+				handleHTTPCmd_notSupported();
+				return;
+			}
+			
+			unsigned int startTime = subsession->getCurrentNPT(NULL);
+			HLSServer* hlsServer = (HLSServer*)(&fOurServer);
+			unsigned sliceDuration = hlsServer->m_hlsSegment;		  
+			std::ostringstream os;
+			
+			os  << "<?xml version='1.0' encoding='UTF-8'?>\r\n"
+				<< "<MPD type='dynamic' xmlns='urn:mpeg:DASH:schema:MPD:2011' profiles='urn:mpeg:dash:profile:full:2011' minimumUpdatePeriod='PT"<< sliceDuration <<"S' minBufferTime='" << sliceDuration << "'>\r\n"
+				<< "<Period start='PT0S'><AdaptationSet segmentAlignment='true'><Representation mimeType='video/mp2t' codecs='' >"
+				<< "<SegmentList duration='" << sliceDuration << "' startNumber='" << startTime << "' >\r\n";
+
+			for (unsigned int slice=0; slice*sliceDuration<duration; slice++)
+			{
+				os << "<SegmentURL media='" << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "' />\r\n";
+			}
+			os << "</SegmentList></Representation></AdaptationSet></Period>\r\n";
+			os << "</MPD>\r\n";
+
+			const std::string& playList(os.str());
+
+			// send response header
+			this->sendHeader("application/dash+xml", playList.size());
+			
+			// stream body
+			u_int8_t* playListBuffer = new u_int8_t[playList.size()];
+			memcpy(playListBuffer, playList.c_str(), playList.size());
+			this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
+		}
+
+		
 		void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) 
 		{
 			char const* questionMarkPos = strrchr(urlSuffix, '?');
 			if (questionMarkPos == NULL) 
 			{
-				this->sendPlayList(urlSuffix);
+				std::string streamName(urlSuffix);
+				std::string ext;
+
+				std::string url(urlSuffix);
+				size_t pos = url.find_last_of(".");
+				if (pos != std::string::npos)
+				{
+					streamName.assign(url.substr(0,pos));
+					ext.assign(url.substr(pos+1));
+				}
+				if (ext == "mpd")
+				{
+					this->sendMpdPlayList(streamName.c_str());				
+				}
+				else
+				{
+					this->sendPlayList(streamName.c_str());
+				}
 			}
 			else
 			{
