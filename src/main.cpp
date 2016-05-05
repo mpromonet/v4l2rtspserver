@@ -12,280 +12,6 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
-
-#include <sstream>
-
-#include "RTSPServer.hh"
-#include "RTSPCommon.hh"
-#include <time.h>
-#include "ByteStreamMemoryBufferSource.hh"
-#include "TCPStreamSink.hh"
-
-// -----------------------------------------
-//  RTSP server supporting live HLS
-// -----------------------------------------
-class HLSServer : public RTSPServer
-{
-
-	class HLSClientConnection : public RTSPServer::RTSPClientConnection
-	{
-	public:
-		HLSClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
-		  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fClientSessionId(0), fTCPSink(NULL) {
-		}
-
-	private:
-
-		void sendHeader(const char* contentType, unsigned int contentLength)
-		{
-			// Construct our response:
-			snprintf((char*)fResponseBuffer, sizeof fResponseBuffer,
-			   "HTTP/1.1 200 OK\r\n"
-			   "%s"
-			   "Server: LIVE555 Streaming Media v%s\r\n"
-			   "Content-Type: %s\r\n"
-			   "Content-Length: %d\r\n"
-			   "\r\n",
-			   dateHeader(),
-			   LIVEMEDIA_LIBRARY_VERSION_STRING,
-			   contentType,
-			   contentLength);
-
-			  // Send the response header 
-			  send(fClientOutputSocket, (char const*)fResponseBuffer, strlen((char*)fResponseBuffer), 0);
-			  fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
-		}
-		
-		void streamSource(FramedSource* source)
-		{
-		      if (fTCPSink != NULL) 
-		      {
-			        FramedSource* oldSource = fTCPSink->source();
-				fTCPSink->stopPlaying();			       
-				Medium::close(fTCPSink);
-				fTCPSink = NULL;
-				Medium::close(oldSource);
-		      }
-		      if (source != NULL) 
-		      {
-				fTCPSink = TCPStreamSink::createNew(envir(), fClientOutputSocket);
-				fTCPSink->startPlaying(*source, afterStreaming, this);
-		      }
-		}
-		
-		ServerMediaSubsession* getSubsesion(const char* urlSuffix)
-		{
-			ServerMediaSubsession* subsession = NULL;
-			ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlSuffix);
-			if (session != NULL) 
-			{
-				ServerMediaSubsessionIterator iter(*session);
-				subsession = iter.next();
-			}
-			return subsession;
-		}
-		
-		void sendPlayList(char const* urlSuffix)
-		{
-			ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
-			if (subsession == NULL) 
-			{
-				handleHTTPCmd_notSupported();
-				return;			  
-			}
-
-			float duration = subsession->duration();
-			if (duration <= 0.0) 
-			{
-				handleHTTPCmd_notSupported();
-				return;
-			}
-			
-			unsigned int startTime = subsession->getCurrentNPT(NULL);
-			HLSServer* hlsServer = (HLSServer*)(&fOurServer);
-			unsigned sliceDuration = hlsServer->m_hlsSegment;		  
-			std::ostringstream os;
-			os  	<< "#EXTM3U\r\n"
-				<< "#EXT-X-ALLOW-CACHE:YES\r\n"
-				<< "#EXT-X-MEDIA-SEQUENCE:" << startTime <<  "\r\n"
-				<< "#EXT-X-TARGETDURATION:" << sliceDuration << "\r\n";
-
-			for (unsigned int slice=0; slice*sliceDuration<duration; slice++)
-			{
-				os << "#EXTINF:" << sliceDuration << ",\r\n";
-				os << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "\r\n";
-			}
-
-			const std::string& playList(os.str());
-
-			// send response header
-			this->sendHeader("application/vnd.apple.mpegurl", playList.size());
-			
-			// stream body
-			u_int8_t* playListBuffer = new u_int8_t[playList.size()];
-			memcpy(playListBuffer, playList.c_str(), playList.size());
-			this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
-		}
-		
-		void sendMpdPlayList(char const* urlSuffix)
-		{
-			ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
-			if (subsession == NULL) 
-			{
-				handleHTTPCmd_notSupported();
-				return;			  
-			}
-
-			float duration = subsession->duration();
-			if (duration <= 0.0) 
-			{
-				handleHTTPCmd_notSupported();
-				return;
-			}
-			
-			unsigned int startTime = subsession->getCurrentNPT(NULL);
-			HLSServer* hlsServer = (HLSServer*)(&fOurServer);
-			unsigned sliceDuration = hlsServer->m_hlsSegment;		  
-			std::ostringstream os;
-			
-			os  << "<?xml version='1.0' encoding='UTF-8'?>\r\n"
-				<< "<MPD type='dynamic' xmlns='urn:mpeg:DASH:schema:MPD:2011' profiles='urn:mpeg:dash:profile:full:2011' minimumUpdatePeriod='PT"<< sliceDuration <<"S' minBufferTime='" << sliceDuration << "'>\r\n"
-				<< "<Period start='PT0S'><AdaptationSet segmentAlignment='true'><Representation mimeType='video/mp2t' codecs='' >"
-				<< "<SegmentList duration='" << sliceDuration << "' startNumber='" << startTime << "' >\r\n";
-
-			for (unsigned int slice=0; slice*sliceDuration<duration; slice++)
-			{
-				os << "<SegmentURL media='" << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "' />\r\n";
-			}
-			os << "</SegmentList></Representation></AdaptationSet></Period>\r\n";
-			os << "</MPD>\r\n";
-
-			const std::string& playList(os.str());
-
-			// send response header
-			this->sendHeader("application/dash+xml", playList.size());
-			
-			// stream body
-			u_int8_t* playListBuffer = new u_int8_t[playList.size()];
-			memcpy(playListBuffer, playList.c_str(), playList.size());
-			this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
-		}
-
-		
-		void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) 
-		{
-			char const* questionMarkPos = strrchr(urlSuffix, '?');
-			if (questionMarkPos == NULL) 
-			{
-				std::string streamName(urlSuffix);
-				std::string ext;
-
-				std::string url(urlSuffix);
-				size_t pos = url.find_last_of(".");
-				if (pos != std::string::npos)
-				{
-					streamName.assign(url.substr(0,pos));
-					ext.assign(url.substr(pos+1));
-				}
-				if (ext == "mpd")
-				{
-					this->sendMpdPlayList(streamName.c_str());				
-				}
-				else
-				{
-					this->sendPlayList(streamName.c_str());
-				}
-			}
-			else
-			{
-				unsigned offsetInSeconds;
-				if (sscanf(questionMarkPos, "?segment=%u", &offsetInSeconds) != 1)
-				{
-					handleHTTPCmd_notSupported();
-					return;			  
-				}
-				
-				std::string streamName(urlSuffix, questionMarkPos-urlSuffix);
-				ServerMediaSubsession* subsession = this->getSubsesion(streamName.c_str());
-				if (subsession == NULL) 
-				{
-					handleHTTPCmd_notSupported();
-					return;			  
-				}
-
-				// Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
-				// of the parameters to the call are dummy.)
-				++fClientSessionId;
-				Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
-				netAddressBits destinationAddress = 0;
-				u_int8_t destinationTTL = 0;
-				Boolean isMulticast = False;
-				void* streamToken = NULL;
-				subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
-
-				// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
-				double dOffsetInSeconds = (double)offsetInSeconds;
-				u_int64_t numBytes = 0;
-				subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
-
-				if (numBytes == 0) 
-				{
-					// For some reason, we do not know the size of the requested range.  We can't handle this request:
-					handleHTTPCmd_notSupported();
-					return;
-				}
-
-				// send response header
-				this->sendHeader("video/mp2t", numBytes);
-
-				// stream body
-				this->streamSource(subsession->getStreamSource(streamToken));
-
-			} 
-		}
-
-		static void afterStreaming(void* clientData) 
-		{
-			HLSServer::HLSClientConnection* clientConnection = (HLSServer::HLSClientConnection*)clientData;
-			// Arrange to delete the 'client connection' object:
-			if (clientConnection->fRecursionCount > 0) {
-				// We're still in the midst of handling a request
-				clientConnection->fIsActive = False; // will cause the object to get deleted at the end of handling the request
-			} else {
-				// We're no longer handling a request; delete the object now:
-//				delete clientConnection;
-			}
-		}
-		private:
-		    u_int32_t fClientSessionId;
-		    TCPStreamSink* fTCPSink;
-	};
-	
-	public:
-		static HLSServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment) 
-		{
-			HLSServer* hlsServer = NULL;
-			int ourSocket = setUpOurSocket(env, rtspPort);
-			if (ourSocket != -1) 
-			{
-				hlsServer = new HLSServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment);
-			}
-			return hlsServer;
-		}
-
-		HLSServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment)
-		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment)
-		{
-		}
-
-		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) 
-		{
-			return new HLSClientConnection(*this, clientSocket, clientAddr);
-		}
-		
-		const unsigned int m_hlsSegment;
-};
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -311,6 +37,7 @@ class HLSServer : public RTSPServer
 
 #include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
+#include "HTTPServer.h"
 
 // -----------------------------------------
 //    signal handler
@@ -329,7 +56,7 @@ void sighandler(int n)
 RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment)
 {
 	UserAuthenticationDatabase* authDB = NULL;	
-	RTSPServer* rtspServer = HLSServer::createNew(env, rtspPort, authDB, timeout, hlsSegment);
+	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, authDB, timeout, hlsSegment);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -483,7 +210,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
 				std::cout << "\t -T       : send Transport Stream instead of elementary Stream"                    << std::endl;
-				std::cout << "\t -S       : HLS segment duration (enable HLS streaming and TS muxing)"             << std::endl;
+				std::cout << "\t -S       : HTTP segment duration (enable HLS & MPEG-DASH)"                        << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
 				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
