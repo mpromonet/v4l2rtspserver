@@ -16,6 +16,7 @@
 
 // project
 #include "ServerMediaSubsession.h"
+#include "MJPEGVideoSource.h"
 #include "V4l2DeviceSource.h"
 
 // ---------------------------------
@@ -31,6 +32,10 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 	else if (format == "video/H264")
 	{
 		source = H264VideoStreamDiscreteFramer::createNew(env, videoES);
+	}
+	else if (format == "video/JPEG")
+	{
+		source = MJPEGVideoSource::createNew(env, videoES);
 	}
 	else 
 	{
@@ -53,6 +58,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	else if (format == "video/VP8")
 	{
 		videoSink = VP8VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
+	}
+	else if (format == "video/JPEG")
+	{
+		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
 	}
 	return videoSink;
 }
