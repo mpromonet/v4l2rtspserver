@@ -136,6 +136,17 @@ std::string getRtpFormat(int format, bool muxTS)
 	return rtpFormat;
 }
 
+int decodeFormat(const char* fmt)
+{
+	char fourcc[4];
+	memset(&fourcc, 0, sizeof(fourcc));
+	if (fmt != NULL)
+	{
+		strncpy(fourcc, fmt, 4);	
+	}
+	return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+}
+
 // -----------------------------------------
 //    entry point
 // -----------------------------------------
@@ -166,7 +177,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS:" "rwsfF:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS:" "rwsf::F:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -188,7 +199,7 @@ int main(int argc, char** argv)
 			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READ; break;
 			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READ; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = 0; break;
+			case 'f':	format    = decodeFormat(optarg); break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
@@ -199,29 +210,30 @@ int main(int argc, char** argv)
 				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
 				std::cout << "\t          [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout]" << std::endl;
 				std::cout << "\t          [-r] [-w] [-s] [-W width] [-H height] [-F fps] [device] [device]"        << std::endl;
-				std::cout << "\t -v       : verbose"                                                               << std::endl;
-				std::cout << "\t -vv      : very verbose"                                                          << std::endl;
-				std::cout << "\t -Q length: Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
-				std::cout << "\t -O output: Copy captured frame to a file or a V4L2 device"                        << std::endl;
+				std::cout << "\t -v        : verbose"                                                               << std::endl;
+				std::cout << "\t -vv       : very verbose"                                                          << std::endl;
+				std::cout << "\t -Q length : Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
+				std::cout << "\t -O output : Copy captured frame to a file or a V4L2 device"                        << std::endl;
 				std::cout << "\t RTSP/RTP options :"                                                               << std::endl;
-				std::cout << "\t -I addr  : RTSP interface (default autodetect)"                                   << std::endl;
-				std::cout << "\t -P port  : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
-				std::cout << "\t -p port  : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
-				std::cout << "\t -u url   : unicast url (default " << url << ")"                                   << std::endl;
-				std::cout << "\t -m url   : multicast url (default " << murl << ")"                                << std::endl;
-				std::cout << "\t -M addr  : multicast group:port (default is random_address:20000)"                << std::endl;
-				std::cout << "\t -c       : don't repeat config (default repeat config before IDR frame)"          << std::endl;
-				std::cout << "\t -t secs  : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
-				std::cout << "\t -T       : send Transport Stream instead of elementary Stream"                    << std::endl;
-				std::cout << "\t -S       : HTTP segment duration (enable HLS & MPEG-DASH)"                        << std::endl;
+				std::cout << "\t -I addr   : RTSP interface (default autodetect)"                                   << std::endl;
+				std::cout << "\t -P port   : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
+				std::cout << "\t -p port   : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
+				std::cout << "\t -u url    : unicast url (default " << url << ")"                                   << std::endl;
+				std::cout << "\t -m url    : multicast url (default " << murl << ")"                                << std::endl;
+				std::cout << "\t -M addr   : multicast group:port (default is random_address:20000)"                << std::endl;
+				std::cout << "\t -c        : don't repeat config (default repeat config before IDR frame)"          << std::endl;
+				std::cout << "\t -t secs   : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
+				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                    << std::endl;
+				std::cout << "\t -S secs   : HTTP segment duration (enable HLS & MPEG-DASH)"                        << std::endl;
 				std::cout << "\t V4L2 options :"                                                                   << std::endl;
-				std::cout << "\t -r       : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
-				std::cout << "\t -w       : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
-				std::cout << "\t -s       : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
-				std::cout << "\t -f       : V4L2 capture using current format (-W,-H,-F are ignore)"               << std::endl;
-				std::cout << "\t -W width : V4L2 capture width (default "<< width << ")"                           << std::endl;
-				std::cout << "\t -H height: V4L2 capture height (default "<< height << ")"                         << std::endl;
-				std::cout << "\t -F fps   : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
+				std::cout << "\t -r        : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
+				std::cout << "\t -w        : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
+				std::cout << "\t -s        : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
+				std::cout << "\t -f        : V4L2 capture using current capture format (-W,-H,-F are ignored)"      << std::endl;
+				std::cout << "\t -f format : V4L2 capture using format (-W,-H,-F are used)"                         << std::endl;
+				std::cout << "\t -W width  : V4L2 capture width (default "<< width << ")"                           << std::endl;
+				std::cout << "\t -H height : V4L2 capture height (default "<< height << ")"                         << std::endl;
+				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				std::cout << "\t device   : V4L2 capture device (default "<< dev_name << ")"                       << std::endl;
 				exit(0);
 			}
