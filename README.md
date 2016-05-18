@@ -1,18 +1,22 @@
-[![Build status](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver.png)](https://travis-ci.org/mpromonet/h264_v4l2_rtspserver)
+[![Build status](https://travis-ci.org/mpromonet/v4l2rtspserver.png)](https://travis-ci.org/mpromonet/v4l2rtspserver)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
-[![Coverage Status](https://coveralls.io/repos/github/mpromonet/h264_v4l2_rtspserver/badge.svg?branch=master)](https://coveralls.io/github/mpromonet/h264_v4l2_rtspserver?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/mpromonet/v4l2rtspserver/badge.svg?branch=master)](https://coveralls.io/github/mpromonet/v4l2rtspserver?branch=master)
 
 
-h264_v4l2_rtspserver
+v4l2rtspserver
 ====================
 
-This is an RTSP server feed from an Video4Linux device that support H264 capture.
+This is an streamer feed from an Video4Linux device that support H264/JPEG or VP8 capture.
 
 The RTSP server support :
 - RTP/UDP unicast
 - RTP/UDP multicast
 - RTP/TCP
 - RTP/RTSP/HTTP
+
+The HTTP server support :
+- HLS
+- MPEG-DASH
 
 License
 ------------
@@ -33,6 +37,13 @@ Build
 
 If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
 If it still not work you will need to read Makefile.  
+
+In order to build live555 disabling check of port reuse, you can proceed like this:
+
+	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz - | tar xvzf -
+	cd live
+	./genMakefile linux
+	sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
 
 Install
 --------- 
