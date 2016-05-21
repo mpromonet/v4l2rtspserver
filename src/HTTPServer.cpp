@@ -13,6 +13,8 @@
 
 
 #include <sstream>
+#include <fstream>
+#include <algorithm>
 
 #include "RTSPServer.hh"
 #include "RTSPCommon.hh"
@@ -71,20 +73,18 @@ ServerMediaSubsession* HTTPServer::HTTPClientConnection::getSubsesion(const char
 	return subsession;
 }
 		
-void HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
+bool HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 {
 	ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
 	if (subsession == NULL) 
 	{
-		handleHTTPCmd_notSupported();
-		return;			  
+		return false;			  
 	}
 
 	float duration = subsession->duration();
 	if (duration <= 0.0) 
 	{
-		handleHTTPCmd_notSupported();
-		return;
+		return false;			  
 	}
 	
 	unsigned int startTime = subsession->getCurrentNPT(NULL);
@@ -102,6 +102,7 @@ void HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 		os << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "\r\n";
 	}
 
+	envir() << "send M3u8 playlist:" << urlSuffix <<"\n";
 	const std::string& playList(os.str());
 
 	// send response header
@@ -111,22 +112,22 @@ void HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 	u_int8_t* playListBuffer = new u_int8_t[playList.size()];
 	memcpy(playListBuffer, playList.c_str(), playList.size());
 	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
+
+	return true;			  
 }
 		
-void HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
+bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 {
 	ServerMediaSubsession* subsession = this->getSubsesion(urlSuffix);
 	if (subsession == NULL) 
 	{
-		handleHTTPCmd_notSupported();
-		return;			  
+		return false;			  
 	}
 
 	float duration = subsession->duration();
 	if (duration <= 0.0) 
 	{
-		handleHTTPCmd_notSupported();
-		return;
+		return false;
 	}
 	
 	unsigned int startTime = subsession->getCurrentNPT(NULL);
@@ -146,6 +147,7 @@ void HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 	os << "</SegmentList></Representation></AdaptationSet></Period>\r\n";
 	os << "</MPD>\r\n";
 
+	envir() << "send MPEG-DASH playlist:" << urlSuffix <<"\n";
 	const std::string& playList(os.str());
 
 	// send response header
@@ -155,6 +157,8 @@ void HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 	u_int8_t* playListBuffer = new u_int8_t[playList.size()];
 	memcpy(playListBuffer, playList.c_str(), playList.size());
 	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
+
+	return true;
 }
 
 		
@@ -173,15 +177,45 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 			streamName.assign(url.substr(0,pos));
 			ext.assign(url.substr(pos+1));
 		}
+		bool ok;
 		if (ext == "mpd")
 		{
 			// MPEG-DASH Playlist
-			this->sendMpdPlayList(streamName.c_str());				
+			ok = this->sendMpdPlayList(streamName.c_str());				
 		}
 		else
 		{
 			// HLS Playlist
-			this->sendM3u8PlayList(streamName.c_str());
+			ok = this->sendM3u8PlayList(streamName.c_str());
+		}
+
+		if (!ok)
+		{
+			size_t pos = url.find_last_of("/");
+			if (pos != std::string::npos)
+			{
+				url.erase(pos);
+			}
+			if (url.empty())
+			{
+				url = "index.html";
+				ext = "html";
+			}
+			std::ifstream file(url.c_str());
+			if (file.is_open())
+			{
+				envir() << "send file:" << url.c_str() <<"\n";
+				std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+				std::string mime("text/html");
+				this->sendHeader(mime.c_str(), content.size());
+				send(fClientOutputSocket, content.c_str(), content.size() , 0);
+				ok = true;
+			}
+		}
+
+		if (!ok)
+		{
+			handleHTTPCmd_notSupported();
 		}
 	}
 	else
