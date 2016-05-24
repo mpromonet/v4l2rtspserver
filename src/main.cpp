@@ -173,7 +173,7 @@ int main(int argc, char** argv)
 	bool repeatConfig = true;
 	int timeout = 65;
 	bool muxTS = false;
-	unsigned int hlsSegment = 10;
+	unsigned int hlsSegment = -1;
 
 	// decode parameters
 	int c = 0;     
@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -w        : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
 				std::cout << "\t -s        : V4L2 capture using live555 mainloop (default use a reader thread)"     << std::endl;
 				std::cout << "\t -f        : V4L2 capture using current capture format (-W,-H,-F are ignored)"      << std::endl;
-				std::cout << "\t -f format : V4L2 capture using format (-W,-H,-F are used)"                         << std::endl;
+				std::cout << "\t -fformat  : V4L2 capture using format (-W,-H,-F are used)"                         << std::endl;
 				std::cout << "\t -W width  : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height : V4L2 capture height (default "<< height << ")"                         << std::endl;
 				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
@@ -351,9 +351,13 @@ int main(int argc, char** argv)
 						
 					}
 					// Create Unicast Session					
-					if (muxTS)
+					if (hlsSegment > 0)
 					{
 						addSession(rtspServer, baseUrl+url, HLSServerMediaSubsession::createNew(*env,replicator,rtpFormat, hlsSegment));
+						struct in_addr ip;
+						ip.s_addr = ourIPAddress(*env);
+						LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << rtspPort << baseUrl+url << ".m3u8";
+						LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << rtspPort << baseUrl+url << ".mpd";
 					}
 					else
 					{
