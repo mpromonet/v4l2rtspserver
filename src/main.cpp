@@ -208,8 +208,8 @@ int main(int argc, char** argv)
 			default:
 			{
 				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
-				std::cout << "\t          [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout]" << std::endl;
-				std::cout << "\t          [-r] [-w] [-s] [-W width] [-H height] [-F fps] [device] [device]"         << std::endl;
+				std::cout << "\t          [-I interface] [-P RTSP port] [-p RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] [-T] [-S[duration]]" << std::endl;
+				std::cout << "\t          [-r] [-w] [-s] [-f[format] [-W width] [-H height] [-F fps] [device] [device]"         << std::endl;
 				std::cout << "\t -v        : verbose"                                                               << std::endl;
 				std::cout << "\t -vv       : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length : Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
@@ -222,9 +222,9 @@ int main(int argc, char** argv)
 				std::cout << "\t -m url    : multicast url (default " << murl << ")"                                << std::endl;
 				std::cout << "\t -M addr   : multicast group:port (default is random_address:20000)"                << std::endl;
 				std::cout << "\t -c        : don't repeat config (default repeat config before IDR frame)"          << std::endl;
-				std::cout << "\t -t secs   : RTCP expiration timeout (default " << timeout << ")"                   << std::endl;
+				std::cout << "\t -t timeout: RTCP expiration timeout in seconds (default " << timeout << ")"        << std::endl;
 				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                    << std::endl;
-				std::cout << "\t -S[secs]  : enable HLS & MPEG-DASH with segment duration  of secs (default 5)"     << std::endl;
+				std::cout << "\t -S[duration]: enable HLS & MPEG-DASH with segment duration  in seconds (default 5)"     << std::endl;
 				std::cout << "\t V4L2 options :"                                                                    << std::endl;
 				std::cout << "\t -r        : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -w        : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
