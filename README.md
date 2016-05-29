@@ -40,7 +40,7 @@ If it still not work you will need to read Makefile.
 
 In order to build live555 disabling check of port reuse, you can proceed like this:
 
-	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz - | tar xvzf -
+	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
 	cd live
 	./genMakefile linux
 	sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
