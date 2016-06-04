@@ -27,6 +27,7 @@ class HTTPServer : public RTSPServer
 			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
 			  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fClientSessionId(0), fTCPSink(NULL) {
 			}
+			virtual ~HTTPClientConnection();
 
 		private:
 

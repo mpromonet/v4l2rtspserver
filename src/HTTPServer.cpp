@@ -92,7 +92,7 @@ bool HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 	unsigned sliceDuration = httpServer->m_hlsSegment;		  
 	std::ostringstream os;
 	os  	<< "#EXTM3U\r\n"
-		<< "#EXT-X-ALLOW-CACHE:YES\r\n"
+		<< "#EXT-X-ALLOW-CACHE:NO\r\n"
 		<< "#EXT-X-MEDIA-SEQUENCE:" << startTime <<  "\r\n"
 		<< "#EXT-X-TARGETDURATION:" << sliceDuration << "\r\n";
 
@@ -137,14 +137,10 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 	
 	os  << "<?xml version='1.0' encoding='UTF-8'?>\r\n"
 		<< "<MPD type='dynamic' xmlns='urn:mpeg:DASH:schema:MPD:2011' profiles='urn:mpeg:dash:profile:full:2011' minimumUpdatePeriod='PT"<< sliceDuration <<"S' minBufferTime='" << sliceDuration << "'>\r\n"
-		<< "<Period start='PT0S'><AdaptationSet segmentAlignment='true'><Representation mimeType='video/mp2t' codecs='' >"
-		<< "<SegmentList duration='" << sliceDuration << "' startNumber='" << startTime << "' >\r\n";
+		<< "<Period start='PT0S'><AdaptationSet segmentAlignment='true'><Representation mimeType='video/mp2t' codecs='' >\r\n";
 
-	for (unsigned int slice=0; slice*sliceDuration<duration; slice++)
-	{
-		os << "<SegmentURL media='" << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "' />\r\n";
-	}
-	os << "</SegmentList></Representation></AdaptationSet></Period>\r\n";
+	os << "<SegmentTemplate duration='" << sliceDuration << "' media='" << urlSuffix << "?segment=$Number$' startNumber='" << startTime << "' />\r\n";
+	os << "</Representation></AdaptationSet></Period>\r\n";
 	os << "</MPD>\r\n";
 
 	envir() << "send MPEG-DASH playlist:" << urlSuffix <<"\n";
@@ -191,6 +187,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 
 		if (!ok)
 		{
+			// send local files
 			size_t pos = url.find_last_of("/");
 			if (pos != std::string::npos)
 			{
@@ -201,14 +198,16 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 				url = "index.html";
 				ext = "html";
 			}
+			if (ext=="js") ext ="javascript";
 			std::ifstream file(url.c_str());
 			if (file.is_open())
 			{
 				envir() << "send file:" << url.c_str() <<"\n";
 				std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-				std::string mime("text/html");
+				std::string mime("text/");
+				mime.append(ext);
 				this->sendHeader(mime.c_str(), content.size());
-				send(fClientOutputSocket, content.c_str(), content.size() , 0);
+				this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), (u_int8_t*)content.c_str(), content.size()));
 				ok = true;
 			}
 		}
@@ -254,15 +253,15 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		{
 			// For some reason, we do not know the size of the requested range.  We can't handle this request:
 			handleHTTPCmd_notSupported();
-			return;
 		}
+		else
+		{
+			// send response header
+			this->sendHeader("video/mp2t", numBytes);
 
-		// send response header
-		this->sendHeader("video/mp2t", numBytes);
-
-		// stream body
-		this->streamSource(subsession->getStreamSource(streamToken));
-
+			// stream body
+			this->streamSource(subsession->getStreamSource(streamToken));
+		}
 	} 
 }
 
@@ -275,6 +274,17 @@ void HTTPServer::HTTPClientConnection::afterStreaming(void* clientData)
 		clientConnection->fIsActive = False; // will cause the object to get deleted at the end of handling the request
 	} else {
 		// We're no longer handling a request; delete the object now:
-//				delete clientConnection;
+//		delete clientConnection;
 	}
+}
+
+HTTPServer::HTTPClientConnection::~HTTPClientConnection() 
+{
+      if (fTCPSink != NULL) 
+      {
+		FramedSource* oldSource = fTCPSink->source();
+		fTCPSink->stopPlaying();			       
+		Medium::close(fTCPSink);
+		Medium::close(oldSource);
+      }
 }
