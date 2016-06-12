@@ -119,3 +119,4 @@ When v4l2rtspserver is started with '-S' arguments it give access to streams thr
            vlc http://..../unicast.m3u8  
            gstreamer-launch-1.0 playbin uri=http://.../unicast.m3u8  
 
+# v4l2rtspclient
