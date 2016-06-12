@@ -268,7 +268,7 @@ std::list< std::pair<unsigned char*,size_t> > V4L2DeviceSource::splitFrames(unsi
 	std::list< std::pair<unsigned char*,size_t> > frameList;
 	if (frame != NULL)
 	{
-		frameList.push_back(std::make_pair<unsigned char*,size_t>(frame, frameSize));
+		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
 	}
 	return frameList;
 }

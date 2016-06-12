@@ -59,8 +59,8 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			case 5: LOG(INFO) << "IDR size:" << size; 
 				if (m_repeatConfig && !m_sps.empty() && !m_pps.empty())
 				{
-					frameList.push_back(std::make_pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
-					frameList.push_back(std::make_pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
+					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
+					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
 				}
 			break;
 			default: break;
@@ -83,7 +83,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			delete [] sps_base64;
 			delete [] pps_base64;
 		}
-		frameList.push_back(std::make_pair<unsigned char*,size_t>(buffer, size));
+		frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
 		
 		buffer = this->extractFrame(&buffer[size], bufSize, size);
 	}
