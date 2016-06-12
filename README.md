@@ -31,19 +31,21 @@ Download
 --------
 [Latest build](https://github.com/mpromonet/h264_v4l2_rtspserver/releases/latest/) 
  
+Before build
+------- 
+The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
+
+	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
+	cd live
+	./genMakefiles linux
+	sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
+
 Build
 ------- 
 	cmake . && make
 
 If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
 If it still not work you will need to read Makefile.  
-
-In order to build live555 disabling check of port reuse, you can proceed like this:
-
-	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz - | tar xvzf -
-	cd live
-	./genMakefile linux
-	sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
 
 Install
 --------- 
@@ -52,7 +54,7 @@ Install
 Build Package
 -------------
 	cpack .
-	dpkg -i h264_v4l2_rtspserver*.deb
+	dpkg -i v4l2rtspserver*.deb
 
 Using Raspberry Pi Camera
 ------------------------- 
@@ -68,18 +70,18 @@ Using with v4l2loopback
 ----------------------- 
 For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
 
-	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> h264_v4l2_rtspserver
+	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> v4l2rtspserver
 
 This workflow could be set using :
 
 	modprobe v4l2loopback video_nr=10
 	v4l2compress_h264 /dev/video0 /dev/video10 &
-	h264_v4l2_rtspserver /dev/video10 &
+	v4l2rtspserver /dev/video10 &
 
 Usage
 -----
-	./h264_v4l2_rtspserver [-v[v]] [-Q queueSize] [-O file] \
-			       [-I interface] [-P RTSP port] [-T RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] \
+	./v4l2rtspserver [-v[v]] [-Q queueSize] [-O file] \
+			       [-I interface] [-P RTSP port] [-p RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] \
 			       [-r] [-s] [-W width] [-H height] [-F fps] [device1] [device2]
 		 -v       : verbose
 		 -vv      : very verbose
@@ -88,18 +90,31 @@ Usage
 		 RTSP options :
 		 -I addr  : RTSP interface (default autodetect)
 		 -P port  : RTSP port (default 8554)
-		 -T port  : RTSP over HTTP port (default 0)
+		 -p port  : RTSP over HTTP port (default 0)
 		 -u url   : unicast url (default unicast)
 		 -m url   : multicast url (default multicast)
 		 -M addr  : multicast group:port (default is random_address:20000)
 		 -c       : don't repeat config (default repeat config before IDR frame)
 		 -t secs  : RTCP expiration timeout (default 65)
+		 -T       : send Transport Stream instead of elementary Stream
+		 -S secs  : HTTP segment duration (enable HLS & MPEG-DASH)
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
+		 -w       : V4L2 capture using write interface (default use memory mapped buffers)
 		 -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)
-		 -f       : V4L2 capture using current format (-W,-H,-F are ignored)
+		 -f       : V4L2 capture using current capture format (-W,-H,-F are ignored)
+		 -fformat : V4L2 capture using format (-W,-H,-F are used)
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 -F fps   : V4L2 capture framerate (default 25)
 		 device   : V4L2 capture device (default /dev/video0)
+
+Receiving HTTP streams
+-----------------------
+When v4l2rtspserver is started with '-S' arguments it give access to streams through HTTP. These streams could be reveced :
+	* for MPEG-DASH with :
+           MP4Client http://..../unicast.mpd
+	* for HLS with :
+           vlc http://..../unicast.m3u8
+           gstreamer-launch-1.0 playbin uri=http://.../unicast.m3u8
 

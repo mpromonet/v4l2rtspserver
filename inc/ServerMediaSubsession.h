@@ -155,7 +155,7 @@ class HLSServerMediaSubsession : public UnicastServerMediaSubsession
 					outputBuffer.append((const char*)m_buffer, frameSize);
 					
 					// remove old buffers
-					while (m_outputBuffers.size()>3)
+					while (m_outputBuffers.size()>5)
 					{
 						m_outputBuffers.erase(m_outputBuffers.begin());
 					}

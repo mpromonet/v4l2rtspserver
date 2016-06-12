@@ -40,7 +40,7 @@ class MJPEGVideoSource : public JPEGVideoSource
          int headerSize = 0;
          bool headerOk = false;
          fFrameSize = 0;
-	      
+                  
          for (unsigned int i = 0; i < frameSize ; ++i)
          {
             // SOF
@@ -53,13 +53,13 @@ class MJPEGVideoSource : public JPEGVideoSource
             // DQT
             if ( (i+5+64) < frameSize && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDB))
             {
-               int quantSize = fTo[i+3];
-               int quantIdx = fTo[i+4];
-               if (quantIdx < 3)
+               unsigned int quantSize = fTo[i+3]-4;
+               unsigned int quantIdx = fTo[i+4];
+               if (quantSize*quantIdx+quantSize <= sizeof(m_qTable))
                {
-			if ( quantIdx+1 > m_qTableCount )
-				m_qTableCount = quantIdx+1;
-			memcpy(m_qTable + quantIdx*64, fTo + i + 5, 64);
+                  memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, quantSize);
+                  if (quantSize*quantIdx+quantSize > m_qTableSize)
+                     m_qTableSize = quantSize*quantIdx+quantSize;
                }
             }
             // End of header
@@ -90,9 +90,9 @@ class MJPEGVideoSource : public JPEGVideoSource
       {
          length = 0;
          precision = 0;
-         if (m_qTableCount > 0)
+         if (m_qTableSize > 0)
          {
-            length = 64*m_qTableCount;
+            length = m_qTableSize;
          }
          return m_qTable;            
       }
@@ -100,7 +100,7 @@ class MJPEGVideoSource : public JPEGVideoSource
    protected:
       MJPEGVideoSource(UsageEnvironment& env, FramedSource* source) : JPEGVideoSource(env),
          m_inputSource(source),
-         m_width(0), m_height(0), m_qTableCount(0),
+         m_width(0), m_height(0), m_qTableSize(0),
          m_type(0)
       {
          memset(&m_qTable,0,sizeof(m_qTable));
@@ -114,7 +114,7 @@ class MJPEGVideoSource : public JPEGVideoSource
       FramedSource* m_inputSource;
       u_int8_t      m_width;
       u_int8_t      m_height;
-      u_int8_t      m_qTable[64*3];
-      int           m_qTableCount;
+      u_int8_t      m_qTable[128*2];
+      unsigned int  m_qTableSize;
       u_int8_t      m_type;
 };

@@ -1,0 +1,17 @@
+<html>
+    <link rel="shortcut icon" href="about:blank"/>
+    <body>
+	<video controls id="video"></video>
+	<script src="https://cdn.jsdelivr.net/hls.js/latest/hls.js" ></script>
+	<script>
+		if (Hls.isSupported()) {
+			var video = document.getElementById("video");
+			var hls = new Hls();
+			hls.loadSource("unicast.m3u8");
+			hls.attachMedia(video);
+			hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+		}
+	</script>
+    </body>
+</html>
+
