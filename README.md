@@ -112,9 +112,10 @@ Usage
 Receiving HTTP streams
 -----------------------
 When v4l2rtspserver is started with '-S' arguments it give access to streams through HTTP. These streams could be reveced :
-	* for MPEG-DASH with :
-           MP4Client http://..../unicast.mpd
-	* for HLS with :
-           vlc http://..../unicast.m3u8
-           gstreamer-launch-1.0 playbin uri=http://.../unicast.m3u8
+
+	* for MPEG-DASH with :   
+           MP4Client http://..../unicast.mpd   
+	* for HLS with :  
+           vlc http://..../unicast.m3u8  
+           gstreamer-launch-1.0 playbin uri=http://.../unicast.m3u8  
 
