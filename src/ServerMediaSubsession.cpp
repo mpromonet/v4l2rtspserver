@@ -63,6 +63,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
 	}
+	else if (format == "audio/L16")
+	{
+		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, 44100, "audio", "L16", 2, True, False); 
+	}
 	return videoSink;
 }
 

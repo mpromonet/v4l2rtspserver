@@ -38,6 +38,10 @@ target_link_libraries(${PROJECT_NAME} ${V4L2WRAPPER_LIBRARY})
 find_package (Threads)
 target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}) 
 
+#ALSA
+find_package(ALSA)
+target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
+
 # LOG4CPP
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
 if (NOT LOG4CPP_INCLUDE_DIR)
