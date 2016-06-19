@@ -10,6 +10,7 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
+#include "logger.h"
 #include "JPEGVideoSource.hh"
 
 class MJPEGVideoSource : public JPEGVideoSource
@@ -49,6 +50,8 @@ class MJPEGVideoSource : public JPEGVideoSource
                m_height = (fTo[i+5]<<5)|(fTo[i+6]>>3);
                m_width  = (fTo[i+7]<<5)|(fTo[i+8]>>3);
                m_type   = (fTo[i+11] - 0x21);
+               LOG(INFO) << "width:" << (int)m_width << " height:" << (int)m_height << " type:"<< (int)m_type;
+
             }
             // DQT
             if ( (i+5+64) < frameSize && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDB))
@@ -59,7 +62,10 @@ class MJPEGVideoSource : public JPEGVideoSource
                {
                   memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, quantSize);
                   if (quantSize*quantIdx+quantSize > m_qTableSize)
+                  {
                      m_qTableSize = quantSize*quantIdx+quantSize;
+                     LOG(NOTICE) << "Quantization table idx:" << quantIdx << " size:" << quantSize << " total size:" << m_qTableSize;
+                  }
                }
             }
             // End of header
@@ -75,6 +81,10 @@ class MJPEGVideoSource : public JPEGVideoSource
          {
             fFrameSize = frameSize - headerSize;
             memmove( fTo, fTo + headerSize, fFrameSize );
+         }
+         else
+         {
+            LOG(NOTICE) << "Bad header => dropping frame";
          }
 
          fNumTruncatedBytes = numTruncatedBytes;
