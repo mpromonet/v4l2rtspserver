@@ -51,12 +51,37 @@ void sighandler(int n)
 
 
 // -----------------------------------------
+//    create UserAuthenticationDatabase for RTSP server
+// -----------------------------------------
+UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
+{
+	UserAuthenticationDatabase* auth = NULL;
+	if (userPasswordList.size() > 0)
+	{
+		auth = new UserAuthenticationDatabase(realm, (realm != NULL) );
+		
+		std::list<std::string>::const_iterator it;
+		for (it = userPasswordList.begin(); it != userPasswordList.end(); ++it)
+		{
+			std::istringstream is(*it);
+			std::string user;
+			getline(is, user, ':');	
+			std::string password;
+			getline(is, password);	
+			auth->addUserRecord(user.c_str(), password.c_str());
+		}
+	}
+	
+	return auth;
+}
+
+// -----------------------------------------
 //    create RTSP server
 // -----------------------------------------
-RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment)
+RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment, const std::list<std::string> & userPasswordList, const char* realm)
 {
-	UserAuthenticationDatabase* authDB = NULL;	
-	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, authDB, timeout, hlsSegment);
+	UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
+	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, auth, timeout, hlsSegment);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -114,6 +139,9 @@ void addSession(RTSPServer* rtspServer, const std::string & sessionName, ServerM
 	}
 }
 
+// -----------------------------------------
+//    convert V4L2 pix format to RTP mime
+// -----------------------------------------
 std::string getRtpFormat(int format, bool muxTS)
 {
 	std::string rtpFormat;
@@ -136,6 +164,9 @@ std::string getRtpFormat(int format, bool muxTS)
 	return rtpFormat;
 }
 
+// -----------------------------------------
+//    convert string format to fourcc 
+// -----------------------------------------
 int decodeFormat(const char* fmt)
 {
 	char fourcc[4];
@@ -145,6 +176,29 @@ int decodeFormat(const char* fmt)
 		strncpy(fourcc, fmt, 4);	
 	}
 	return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+}
+
+// -------------------------------------------------------
+//    decode multicast url <group>:<rtp_port>:<rtcp_port>
+// -------------------------------------------------------
+void decodeMulticastUrl(const std::string & maddr, in_addr & destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum)
+{
+	std::istringstream is(maddr);
+	std::string ip;
+	getline(is, ip, ':');						
+	if (!ip.empty())
+	{
+		destinationAddress.s_addr = inet_addr(ip.c_str());
+	}						
+	
+	std::string port;
+	getline(is, port, ':');						
+	rtpPortNum = 20000;
+	if (!port.empty())
+	{
+		rtpPortNum = atoi(port.c_str());
+	}	
+	rtcpPortNum = rtpPortNum+1;
 }
 
 // -----------------------------------------
@@ -174,16 +228,19 @@ int main(int argc, char** argv)
 	int timeout = 65;
 	bool muxTS = false;
 	unsigned int hlsSegment = 0;
+	const char* realm = NULL;
+	std::list<std::string> userPasswordList;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::" "rwsf::F:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "h")) != -1)
 	{
 		switch (c)
 		{
 			case 'v':	verbose    = 1; if (optarg && *optarg=='v') verbose++;  break;
 			case 'Q':	queueSize  = atoi(optarg); break;
 			case 'O':	outputFile = optarg; break;
+			
 			// RTSP/RTP
 			case 'I':       ReceivingInterfaceAddr  = inet_addr(optarg); break;
 			case 'P':	rtspPort                = atoi(optarg); break;
@@ -195,6 +252,9 @@ int main(int argc, char** argv)
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'T':	muxTS                   = true; break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : 5; muxTS=true; break;
+			case 'R':       realm                   = optarg; break;
+			case 'U':       userPasswordList.push_back(optarg); break;
+			
 			// V4L2
 			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READ; break;
 			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READ; break;	
@@ -214,17 +274,21 @@ int main(int argc, char** argv)
 				std::cout << "\t -vv       : very verbose"                                                          << std::endl;
 				std::cout << "\t -Q length : Number of frame queue  (default "<< queueSize << ")"                   << std::endl;
 				std::cout << "\t -O output : Copy captured frame to a file or a V4L2 device"                        << std::endl;
+				
 				std::cout << "\t RTSP/RTP options :"                                                                << std::endl;
 				std::cout << "\t -I addr   : RTSP interface (default autodetect)"                                   << std::endl;
 				std::cout << "\t -P port   : RTSP port (default "<< rtspPort << ")"                                 << std::endl;
 				std::cout << "\t -p port   : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"               << std::endl;
+				std::cout << "\t -U user:password : RTSP user and password"                                         << std::endl;
+				std::cout << "\t -R realm  : use md5 password 'md5(<username>:<realm>:<password>')"                 << std::endl;
 				std::cout << "\t -u url    : unicast url (default " << url << ")"                                   << std::endl;
 				std::cout << "\t -m url    : multicast url (default " << murl << ")"                                << std::endl;
 				std::cout << "\t -M addr   : multicast group:port (default is random_address:20000)"                << std::endl;
 				std::cout << "\t -c        : don't repeat config (default repeat config before IDR frame)"          << std::endl;
 				std::cout << "\t -t timeout: RTCP expiration timeout in seconds (default " << timeout << ")"        << std::endl;
-				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                    << std::endl;
-				std::cout << "\t -S[duration]: enable HLS & MPEG-DASH with segment duration  in seconds (default 5)"     << std::endl;
+				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                    << std::endl;				
+				std::cout << "\t -S[duration]: enable HLS & MPEG-DASH with segment duration  in seconds (default 5)"<< std::endl;
+				
 				std::cout << "\t V4L2 options :"                                                                    << std::endl;
 				std::cout << "\t -r        : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
 				std::cout << "\t -w        : V4L2 capture using write interface (default use memory mapped buffers)"<< std::endl;
@@ -234,7 +298,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -W width  : V4L2 capture width (default "<< width << ")"                           << std::endl;
 				std::cout << "\t -H height : V4L2 capture height (default "<< height << ")"                         << std::endl;
 				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
-				std::cout << "\t device    : V4L2 capture device (default "<< dev_name << ")"                        << std::endl;
+				std::cout << "\t device    : V4L2 capture device (default "<< dev_name << ")"                       << std::endl;
 				exit(0);
 			}
 		}
@@ -258,28 +322,15 @@ int main(int argc, char** argv)
 	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
 
 	// split multicast info
-	std::istringstream is(maddr);
-	std::string ip;
-	getline(is, ip, ':');						
 	struct in_addr destinationAddress;
 	destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);
-	if (!ip.empty())
-	{
-		destinationAddress.s_addr = inet_addr(ip.c_str());
-	}						
-	
-	std::string port;
-	getline(is, port, ':');						
 	unsigned short rtpPortNum = 20000;
-	if (!port.empty())
-	{
-		rtpPortNum = atoi(port.c_str());
-	}	
 	unsigned short rtcpPortNum = rtpPortNum+1;
 	unsigned char ttl = 5;
+	decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
 	
 	// create RTSP server
-	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment);
+	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm);
 	if (rtspServer == NULL) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
