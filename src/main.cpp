@@ -97,13 +97,13 @@ RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, uns
 // -----------------------------------------
 //    create FramedSource server
 // -----------------------------------------
-FramedSource* createFramedSource(UsageEnvironment* env, const V4L2DeviceParameters& param, V4l2Capture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
+FramedSource* createFramedSource(UsageEnvironment* env, V4l2Capture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
 {
 	FramedSource* source = NULL;
 	int format = videoCapture->getFormat();
 	if (format == V4L2_PIX_FMT_H264)
 	{
-		source = H264_V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+		source = H264_V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
 		if (muxTS)
 		{
 			MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(*env);
@@ -113,7 +113,7 @@ FramedSource* createFramedSource(UsageEnvironment* env, const V4L2DeviceParamete
 	}
 	else
 	{
-		source = V4L2DeviceSource::createNew(*env, param, videoCapture, outfd, queueSize, useThread);
+		source = V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread);
 	}
 	return source;
 }
@@ -366,7 +366,7 @@ int main(int argc, char** argv)
 				
 				LOG(NOTICE) << "Create Source ..." << deviceName;
 				std::string rtpFormat(getRtpFormat(format, muxTS));
-				FramedSource* videoSource = createFramedSource(env, param, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+				FramedSource* videoSource = createFramedSource(env, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
 				if (videoSource == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << deviceName;

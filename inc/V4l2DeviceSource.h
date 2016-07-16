@@ -64,11 +64,11 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };	
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, V4L2DeviceParameters params, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread);
+		V4L2DeviceSource(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread);
 		virtual ~V4L2DeviceSource();
 
 	protected:	
@@ -90,7 +90,6 @@ class V4L2DeviceSource: public FramedSource
 		virtual void doStopGettingFrames();
 					
 	protected:
-		V4L2DeviceParameters m_params;
 		std::list<Frame*> m_captureQueue;
 		Stats m_in;
 		Stats m_out;
