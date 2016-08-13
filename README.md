@@ -102,11 +102,11 @@ Usage
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
 		 -w       : V4L2 capture using write interface (default use memory mapped buffers)
 		 -s       : V4L2 capture using live555 mainloop (default use a separated reading thread)
-		 -f       : V4L2 capture using current capture format (-W,-H,-F are ignored)
-		 -fformat : V4L2 capture using format (-W,-H,-F are used)
+		 -f       : V4L2 capture using current capture format (-W,-H are ignored)
+		 -fformat : V4L2 capture using format (-W,-H are used)
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
-		 -F fps   : V4L2 capture framerate (default 25)
+		 -F fps   : V4L2 capture framerate (default 25, 0 disable setting framerate)
 		 device   : V4L2 capture device (default /dev/video0)
 
 Receiving HTTP streams
