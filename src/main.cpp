@@ -347,7 +347,7 @@ int main(int argc, char** argv)
 			// Init capture
 			LOG(NOTICE) << "Create V4L2 Source..." << deviceName;
 			V4L2DeviceParameters param(deviceName.c_str(),format,width,height,fps, verbose);
-			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapure(param, ioTypeIn);
+			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapture(param, ioTypeIn);
 			if (videoCapture)
 			{
 				nbSource++;
