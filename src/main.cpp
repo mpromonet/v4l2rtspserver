@@ -230,10 +230,11 @@ int main(int argc, char** argv)
 	unsigned int hlsSegment = 0;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
+	std::string sdpConnInfoAddr = "";
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "h" "A:")) != -1)
 	{
 		switch (c)
 		{
@@ -254,6 +255,7 @@ int main(int argc, char** argv)
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : 5; muxTS=true; break;
 			case 'R':       realm                   = optarg; break;
 			case 'U':       userPasswordList.push_back(optarg); break;
+			case 'A':	sdpConnInfoAddr         = optarg; break;
 			
 			// V4L2
 			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READ; break;
@@ -288,6 +290,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -t timeout: RTCP expiration timeout in seconds (default " << timeout << ")"        << std::endl;
 				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                    << std::endl;				
 				std::cout << "\t -S[duration]: enable HLS & MPEG-DASH with segment duration  in seconds (default 5)"<< std::endl;
+				std::cout << "\t -A addr   : unicast sdp connection information address"                            << std::endl;
 				
 				std::cout << "\t V4L2 options :"                                                                    << std::endl;
 				std::cout << "\t -r        : V4L2 capture using read interface (default use memory mapped buffers)" << std::endl;
@@ -412,6 +415,7 @@ int main(int argc, char** argv)
 					}
 					else
 					{
+						UnicastServerMediaSubsession::m_sdpConnInfoAddr = sdpConnInfoAddr;
 						addSession(rtspServer, baseUrl+url, UnicastServerMediaSubsession::createNew(*env,replicator,rtpFormat));
 					}
 				}	
