@@ -2,7 +2,7 @@ dist: trusty
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
 - sudo apt-get install -y qemu-user-static debootstrap 
-- hosts mirrors.kernel.org
+- host mirrors.kernel.org
 - sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,liblog4cpp5-dev,liblivemedia-dev,libasound2-dev jessie rootfs http://sfo-korg-mirror.kernel.org
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
