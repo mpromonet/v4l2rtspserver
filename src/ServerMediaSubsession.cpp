@@ -137,6 +137,8 @@ char const* MulticastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,Frame
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
+/*static*/ std::string UnicastServerMediaSubsession::m_sdpConnInfoAddr = "";
+
 UnicastServerMediaSubsession* UnicastServerMediaSubsession::createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format) 
 { 
 	return new UnicastServerMediaSubsession(env,replicator,format);
@@ -150,9 +152,26 @@ FramedSource* UnicastServerMediaSubsession::createNewStreamSource(unsigned clien
 		
 RTPSink* UnicastServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource)
 {
-	return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format);
+	return m_rtpSink = createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format);
 }
+
+char const* UnicastServerMediaSubsession::sdpLines() 
+{
+	if (m_SDPLines.empty())
+	{
+		if (!m_sdpConnInfoAddr.empty())
+			setServerAddressAndPortForSDP(inet_addr(m_sdpConnInfoAddr.c_str()), 8554);
 		
+		// Ugly workaround to give SPS/PPS that are get from the RTPSink 
+		m_SDPLines.assign(OnDemandServerMediaSubsession::sdpLines());
+		m_SDPLines.append(getAuxSDPLine(m_rtpSink,NULL));
+	}
+	
+	LOG(INFO) << "UnicastServerMediaSubsession SDP\n" << m_SDPLines.c_str() << "\n";
+	
+	return m_SDPLines.c_str();
+}
+
 char const* UnicastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
 {
 	return this->getAuxLine(dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());

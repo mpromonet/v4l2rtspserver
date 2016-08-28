@@ -73,17 +73,22 @@ class UnicastServerMediaSubsession : public OnDemandServerMediaSubsession , publ
 {
 	public:
 		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format);
+		static std::string m_sdpConnInfoAddr;
 		
 	protected:
 		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format) 
-				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator), m_format(format) {};
+				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator), m_format(format), m_SDPLines(), m_rtpSink(NULL) {};
 			
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
 		virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);		
+		
+		virtual char const* sdpLines() ;
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);	
 					
 	protected:
 		const std::string m_format;
+		std::string m_SDPLines;
+		RTPSink* m_rtpSink;
 };
 
 // -----------------------------------------
