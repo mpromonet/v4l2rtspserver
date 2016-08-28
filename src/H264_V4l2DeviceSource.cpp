@@ -54,9 +54,9 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	{
 		switch (m_frameType)					
 		{
-			case 7: LOG(INFO) << "SPS size:" << size; m_sps.assign((char*)buffer,size); break;
-			case 8: LOG(INFO) << "PPS size:" << size; m_pps.assign((char*)buffer,size); break;
-			case 5: LOG(INFO) << "IDR size:" << size; 
+			case 7: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); break;
+			case 8: LOG(INFO) << "PPS size:" << size << " bufSize:" << bufSize; m_pps.assign((char*)buffer,size); break;
+			case 5: LOG(INFO) << "IDR size:" << size << " bufSize:" << bufSize; 
 				if (m_repeatConfig && !m_sps.empty() && !m_pps.empty())
 				{
 					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
@@ -101,7 +101,7 @@ unsigned char*  H264_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 	{
 		markerlength = sizeof(H264marker);
 	}
-	else if (memcmp(frame,H264shortmarker,sizeof(H264shortmarker)) == 0)
+	else if ( (size>= sizeof(H264shortmarker)) && (memcmp(frame,H264shortmarker,sizeof(H264shortmarker)) == 0) )
 	{
 		markerlength = sizeof(H264shortmarker);
 	}
