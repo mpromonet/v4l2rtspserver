@@ -2,21 +2,23 @@ dist: trusty
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
 - sudo apt-get install -y qemu-user-static debootstrap 
-- host mirrors.kernel.org
+# for coverage
+- pip install --user cpp-coveralls pyYaml
+# install chroot for cross-compilation
 - sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,liblog4cpp5-dev,liblivemedia-dev,libasound2-dev jessie rootfs http://sfo-korg-mirror.kernel.org/debian
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
-- git clone https://github.com/raspberrypi/tools.git rpi_tools
-- export PATH=$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH
-- pip install --user cpp-coveralls pyYaml
 language: cpp
 compiler:
 - gcc
 script:
+#build on native system
 - cmake . && make && cpack .
 - cmake -DCOVERAGE=ON . && make && make test
-#- rm -rf CMakeCache.txt *.a CMakeFiles
-#- cmake . -DCMAKE_TOOLCHAIN_FILE=raspberry.toolchain && make && cpack .
+#build on chroot system
+- rm -rf CMakeCache.txt *.a CMakeFiles
+- sudo mount --bind . rootfs/home
+- sudo chroot rootfs bash -c "cd /home && cmake . && make && cpack ."
 after_success:
 - coveralls --gcov-options '\-lp'
 env:
