@@ -5,7 +5,7 @@ before_install:
 # for coverage
 - pip install --user cpp-coveralls pyYaml
 # install chroot for cross-compilation
-- sudo debootstrap --variant=minbase --arch armhf --foreign --include=g++,liblog4cpp5-dev,liblivemedia-dev,libasound2-dev jessie rootfs http://sfo-korg-mirror.kernel.org/debian
+- sudo debootstrap --arch armhf --foreign --include=g++,cmake,liblog4cpp5-dev,liblivemedia-dev,libasound2-dev jessie rootfs http://sfo-korg-mirror.kernel.org/debian
 - sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 - sudo chroot rootfs /debootstrap/debootstrap --second-stage
 language: cpp
