@@ -27,7 +27,7 @@ endif()
 include_directories("v4l2wrapper/inc")
 find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a PATHS ".")
 if (NOT V4L2WRAPPER_LIBRARY)
-        message(STATUS "Could not find v4l2wrapper")
+        message(STATUS "Installing v4l2wrapper")
         EXEC_PROGRAM("git submodule init && git submodule update && make -C v4l2wrapper CC=${CMAKE_C_COMPILER} CFLAGS_EXTRA=--sysroot=${CMAKE_FIND_ROOT_PATH} && cp v4l2wrapper/libv4l2wrapper.a . && make -C v4l2wrapper clean")
 	find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a PATHS ".")
         message(STATUS "v4l2wrapper built in V4L2WRAPPER_LIBRARY=${V4L2WRAPPER_LIBRARY}")	
@@ -40,15 +40,22 @@ target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 #ALSA
 find_package(ALSA)
+if (NOT ALSA_LIBRARY)
+        message(STATUS "Installing libasound2-dev.")
+        EXEC_PROGRAM("sudo apt-get install -y libasound2-dev")
+endif (NOT ALSA_LIBRARY)
+
+find_package(ALSA)
 target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
 
 # LOG4CPP
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
 if (NOT LOG4CPP_INCLUDE_DIR)
-        message(STATUS "Could not find the liblog4cpp5-dev.")
+        message(STATUS "Installing liblog4cpp5-dev.")
         EXEC_PROGRAM("sudo apt-get install -y liblog4cpp5-dev")
-        find_path(V4L2_INCLUDE_DIR log4cpp/Category.hh)
 endif (NOT LOG4CPP_INCLUDE_DIR)
+
+find_path(V4L2_INCLUDE_DIR log4cpp/Category.hh)
 include_directories(${LOG4CPP_INCLUDE_DIR}) 
 
 find_library(LOG4CPP_LIBRARY log4cpp)
@@ -57,10 +64,11 @@ target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 # live555
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 if (NOT LIBLIVE555_INCLUDE_DIR)
-        message(STATUS "Could not find the liblivemedia-dev")
+        message(STATUS "Installing liblivemedia-dev")
         EXEC_PROGRAM("sudo apt-get install -y liblivemedia-dev")
-        find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 endif (NOT LIBLIVE555_INCLUDE_DIR)
+
+find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
 	include_directories(${LIBLIVE555_INCLUDE_DIR}/${LIBLIVE555_module}) 
 endforeach (LIBLIVE555_module)
