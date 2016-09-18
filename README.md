@@ -27,57 +27,7 @@ Dependencies
 ------------
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
  - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license)
-
-Download
---------
-[Latest build](https://github.com/mpromonet/h264_v4l2_rtspserver/releases/latest/) 
- 
-Before build
-------- 
-The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
-
-	wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
-	cd live
-	./genMakefiles linux
-	sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
-
-Build
-------- 
-	cmake . && make
-
-If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
-If it still not work you will need to read Makefile.  
-
-Install
---------- 
-	make install
-
-Build Package
--------------
-	cpack .
-	dpkg -i v4l2rtspserver*.deb
-
-Using Raspberry Pi Camera
-------------------------- 
-This RTSP server works using Raspberry Pi camera with :
-- the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
-
-	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
-- the official V4L2 driver bcm2835-v4l2
-
-	sudo modprobe -v bcm2835-v4l2
-
-Using with v4l2loopback
------------------------ 
-For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
-
-	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> v4l2rtspserver
-
-This workflow could be set using :
-
-	modprobe v4l2loopback video_nr=10
-	v4l2compress_h264 /dev/video0 /dev/video10 &
-	v4l2rtspserver /dev/video10 &
+ - libv4l2cpp [Unlicense](https://github.com/mpromonet/libv4l2cpp/blob/master/LICENSE)
 
 Usage
 -----
@@ -109,6 +59,54 @@ Usage
 		 -H height: V4L2 capture height (default 480)
 		 -F fps   : V4L2 capture framerate (default 25, 0 disable setting framerate)
 		 device   : V4L2 capture device (default /dev/video0)
+
+Build
+------- 
+- Before build  
+	The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
+
+		wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
+		cd live
+		./genMakefiles linux
+		sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
+
+- Build  
+
+		cmake . && make
+
+	If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
+	If it still not work you will need to read Makefile.  
+
+- Install  
+
+		make install
+
+- Packaging  
+
+		cpack .
+
+Using Raspberry Pi Camera
+------------------------- 
+This RTSP server works using Raspberry Pi camera with :
+- the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
+
+	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
+- the official V4L2 driver bcm2835-v4l2
+
+	sudo modprobe -v bcm2835-v4l2
+
+Using with v4l2loopback
+----------------------- 
+For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
+
+	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> v4l2rtspserver
+
+This workflow could be set using :
+
+	modprobe v4l2loopback video_nr=10
+	v4l2compress_h264 /dev/video0 /dev/video10 &
+	v4l2rtspserver /dev/video10 &
+
 
 Receiving HTTP streams
 -----------------------
