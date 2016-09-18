@@ -37,7 +37,7 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
@@ -48,7 +48,7 @@ V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, V4l2Capture
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) 
 	: FramedSource(env), 
 	m_in("in"), 
 	m_out("out") , 
@@ -93,13 +93,14 @@ void* V4L2DeviceSource::thread()
 	LOG(NOTICE) << "begin thread"; 
 	while (!stop) 
 	{
-		FD_SET(m_device->getFd(), &fdset);
+		int fd = m_device->getFd();
+		FD_SET(fd, &fdset);
 		tv.tv_sec=1;
 		tv.tv_usec=0;	
-		int ret = select(m_device->getFd()+1, &fdset, NULL, NULL, &tv);
+		int ret = select(fd+1, &fdset, NULL, NULL, &tv);
 		if (ret == 1)
 		{
-			if (FD_ISSET(m_device->getFd(), &fdset))
+			if (FD_ISSET(fd, &fdset))
 			{
 				if (this->getNextFrame() <= 0)
 				{
@@ -192,11 +193,10 @@ void V4L2DeviceSource::incomingPacketHandler()
 // read from device
 int V4L2DeviceSource::getNextFrame() 
 {
-	char buffer[m_device->getBufferSize()];	
 	timeval ref;
 	gettimeofday(&ref, NULL);											
-	int frameSize = m_device->read(buffer,  m_device->getBufferSize());
-	
+	char buffer[m_device->getBufferSize()];	
+	int frameSize = m_device->read(buffer,  m_device->getBufferSize());	
 	if (frameSize < 0)
 	{
 		LOG(NOTICE) << "V4L2DeviceSource::getNextFrame errno:" << errno << " "  << strerror(errno);		

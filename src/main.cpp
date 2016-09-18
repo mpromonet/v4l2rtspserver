@@ -38,6 +38,7 @@
 #include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
 #include "HTTPServer.h"
+#include "ALSACapture.h"
 
 // -----------------------------------------
 //    signal handler
@@ -97,10 +98,9 @@ RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, uns
 // -----------------------------------------
 //    create FramedSource server
 // -----------------------------------------
-FramedSource* createFramedSource(UsageEnvironment* env, V4l2Capture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
+FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceCapture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
 {
 	FramedSource* source = NULL;
-	int format = videoCapture->getFormat();
 	if (format == V4L2_PIX_FMT_H264)
 	{
 		source = H264_V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
@@ -230,10 +230,11 @@ int main(int argc, char** argv)
 	unsigned int hlsSegment = 0;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
+	std::string audioDevice;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:A::" "h")) != -1)
 	{
 		switch (c)
 		{
@@ -263,6 +264,9 @@ int main(int argc, char** argv)
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
+			
+			// ALSA
+			case 'A' :      audioDevice = optarg ? optarg : "default"; break;			
 
 			case 'h':
 			default:
@@ -366,7 +370,7 @@ int main(int argc, char** argv)
 				
 				LOG(NOTICE) << "Create Source ..." << deviceName;
 				std::string rtpFormat(getRtpFormat(format, muxTS));
-				FramedSource* videoSource = createFramedSource(env, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+				FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new V4L2DeviceCapture<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
 				if (videoSource == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << deviceName;
@@ -417,6 +421,23 @@ int main(int argc, char** argv)
 				}	
 			}
 		}
+		if (!audioDevice.empty())
+		{
+			ALSACaptureParameters param(audioDevice.c_str(), 44100, 2, verbose);
+			ALSACapture* audioCapture = ALSACapture::createNew(param);
+			FramedSource* audioSource = V4L2DeviceSource::createNew(*env, new V4L2DeviceCapture<ALSACapture>(audioCapture), -1, queueSize, useThread);
+			if (audioSource == NULL) 
+			{
+				LOG(FATAL) << "Unable to create source for device " << audioDevice;
+				delete audioCapture;
+			}
+			else
+			{
+				nbSource++;
+				StreamReplicator* audioReplicator = StreamReplicator::createNew(*env, audioSource, false);
+				addSession(rtspServer, "audio", UnicastServerMediaSubsession::createNew(*env,audioReplicator,"audio/L16"));				
+			}
+		}		
 
 		if (nbSource>0)
 		{

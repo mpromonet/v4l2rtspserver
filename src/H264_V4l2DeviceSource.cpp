@@ -21,7 +21,7 @@
 // ---------------------------------
 // H264 V4L2 FramedSource
 // ---------------------------------
-H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
+H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
 { 	
 	H264_V4L2DeviceSource* source = NULL;
 	if (device)
@@ -32,8 +32,8 @@ H264_V4L2DeviceSource* H264_V4L2DeviceSource::createNew(UsageEnvironment& env, V
 }
 
 // Constructor
-H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, V4l2Capture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
-	: V4L2DeviceSource(env, device, outputFd, queueSize,useThread), m_repeatConfig(repeatConfig), m_keepMarker(keepMarker), m_frameType(0)
+H264_V4L2DeviceSource::H264_V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
+	: V4L2DeviceSource(env, device, outputFd, queueSize, useThread), m_repeatConfig(repeatConfig), m_keepMarker(keepMarker), m_frameType(0)
 {
 }
 
