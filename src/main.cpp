@@ -257,8 +257,8 @@ int main(int argc, char** argv)
 			case 'U':       userPasswordList.push_back(optarg); break;
 			
 			// V4L2
-			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READ; break;
-			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READ; break;	
+			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READWRITE; break;
+			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READWRITE; break;	
 			case 's':	useThread =  false; break;
 			case 'f':	format    = decodeFormat(optarg); break;
 			case 'F':	fps       = atoi(optarg); break;
