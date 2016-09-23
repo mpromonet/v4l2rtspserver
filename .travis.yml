@@ -14,11 +14,13 @@ compiler:
 script:
 #build on native system
 - cmake . && make && cpack .
-- cmake -DCOVERAGE=ON . && make && make test
 #build on chroot system
 - rm -rf CMakeCache.txt *.a CMakeFiles
 - sudo mount --bind . rootfs/home
 - sudo chroot rootfs bash -c "cd /home && cmake . && make && cpack ."
+#run coverage test
+- rm -rf CMakeCache.txt *.a CMakeFiles
+- cmake -DCOVERAGE=ON . && make && make test
 after_success:
 - coveralls --gcov-options '\-lp'
 env:
