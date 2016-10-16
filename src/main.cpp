@@ -218,8 +218,8 @@ int main(int argc, char** argv)
 	bool multicast = false;
 	int verbose = 0;
 	std::string outputFile;
-	V4l2DeviceFactory::IoType ioTypeIn  = V4l2DeviceFactory::IOTYPE_MMAP;
-	V4l2DeviceFactory::IoType ioTypeOut = V4l2DeviceFactory::IOTYPE_MMAP;
+	V4l2Access::IoType ioTypeIn  = V4l2Access::IOTYPE_MMAP;
+	V4l2Access::IoType ioTypeOut = V4l2Access::IOTYPE_MMAP;
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	bool useThread = true;
@@ -257,8 +257,8 @@ int main(int argc, char** argv)
 			case 'U':       userPasswordList.push_back(optarg); break;
 			
 			// V4L2
-			case 'r':	ioTypeIn  = V4l2DeviceFactory::IOTYPE_READWRITE; break;
-			case 'w':	ioTypeOut = V4l2DeviceFactory::IOTYPE_READWRITE; break;	
+			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
+			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 's':	useThread =  false; break;
 			case 'f':	format    = decodeFormat(optarg); break;
 			case 'F':	fps       = atoi(optarg); break;
@@ -351,7 +351,7 @@ int main(int argc, char** argv)
 			// Init capture
 			LOG(NOTICE) << "Create V4L2 Source..." << deviceName;
 			V4L2DeviceParameters param(deviceName.c_str(),format,width,height,fps, verbose);
-			V4l2Capture* videoCapture = V4l2DeviceFactory::CreateVideoCapture(param, ioTypeIn);
+			V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
 			if (videoCapture)
 			{
 				nbSource++;
@@ -361,7 +361,7 @@ int main(int argc, char** argv)
 				if (!outputFile.empty())
 				{
 					V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-					out = V4l2DeviceFactory::CreateVideoOutput(outparam, ioTypeOut);
+					out = V4l2Output::create(outparam, ioTypeOut);
 					if (out != NULL)
 					{
 						outfd = out->getFd();
