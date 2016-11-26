@@ -59,6 +59,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{
 		videoSink = VP8VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
 	}
+	else if (format == "video/VP9")
+	{
+		videoSink = VP9VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
+	}
 	else if (format == "video/JPEG")
 	{
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
