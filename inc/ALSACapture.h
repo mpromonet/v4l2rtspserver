@@ -30,7 +30,19 @@ struct ALSACaptureParameters
 class ALSACapture 
 {
 	public:
-		static ALSACapture* createNew(const ALSACaptureParameters & params) { return new ALSACapture(params); }
+		static ALSACapture* createNew(const ALSACaptureParameters & params) 
+		{ 
+			ALSACapture* capture = new ALSACapture(params);
+			if (capture) 
+			{
+				if (capture->getFd() == -1) 
+				{
+					delete capture;
+					capture = NULL;
+				}
+			}
+			return capture; 
+		}
 		virtual ~ALSACapture()
 		{
 			if (m_pcm != NULL)
