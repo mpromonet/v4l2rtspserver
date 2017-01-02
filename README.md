@@ -87,8 +87,8 @@ Build
 
 Using Raspberry Pi Camera
 ------------------------- 
-This RTSP server works using Raspberry Pi camera with :
-- the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/modules/sections/index.php?op=viewarticle&artid=14
+This RTSP server works using Raspberry Pi camera using :
+- the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/uv4l/
 
 	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
 - the official V4L2 driver bcm2835-v4l2
