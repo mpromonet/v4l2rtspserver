@@ -62,7 +62,7 @@ Usage
 
 Build
 ------- 
-- Before build  
+- Before build (optional)
 	The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
 
 		wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
@@ -77,11 +77,11 @@ Build
 	If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
 	If it still not work you will need to read Makefile.  
 
-- Install  
+- Install (optional) 
 
-		make install
+		sudo make install
 
-- Packaging  
+- Packaging  (optional)
 
 		cpack .
 
