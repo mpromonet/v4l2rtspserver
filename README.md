@@ -7,8 +7,10 @@
 v4l2rtspserver
 ====================
 
-This is an streamer feed from an Video4Linux device that support H264/JPEG or VP8 capture.
-
+This is an streamer feed from :
+ - an Video4Linux device that support H264, JPEG or VP8 capture.
+ - an ALSA device that support PCM 16 BE
+ 
 The RTSP server support :
 - RTP/UDP unicast
 - RTP/UDP multicast
@@ -58,7 +60,14 @@ Usage
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 -F fps   : V4L2 capture framerate (default 25, 0 disable setting framerate)
-		 device   : V4L2 capture device (default /dev/video0)
+		 device   : V4L2 capture device and/or ALSA device (default /dev/video0,default)
+
+It is possible to compose the RTSP session is different way :
+ * v4l2rtspserver /dev/video0              : one RTSP session with RTP video capturing V4L2 device /dev/video0
+ * v4l2rtspserver ,default                 : one RTSP session with RTP audio capturing ALSA device default
+ * v4l2rtspserver /dev/video0,default      : one RTSP session with RTP audio and RTP video
+ * v4l2rtspserver /dev/video0 ,default     : two RTSP sessions first one with RTP video and second one with RTP audio
+ * v4l2rtspserver /dev/video0 /dev/video1  : two RTSP sessions with an RTP video
 
 Build
 ------- 
