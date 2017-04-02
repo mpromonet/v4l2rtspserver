@@ -30,7 +30,7 @@ env:
 addons:
   coverity_scan:
     project:
-      name: mpromonet/h264_v4l2_rtspserver
+      name: mpromonet/v4l2rtspserver
     build_command_prepend: cmake .
     build_command: make
     branch_pattern: master
@@ -48,5 +48,5 @@ deploy:
     - "${RELEASE_PKG_FILE_ARM}"
   skip_cleanup: true
   on:
-    repo: mpromonet/h264_v4l2_rtspserver
+    repo: mpromonet/v4l2rtspserver
     tags: true
