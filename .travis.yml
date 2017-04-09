@@ -26,7 +26,7 @@ after_success:
 - coveralls --gcov-options '\-lp'
 env:
   global:
-  - secure: hcQTuiLgzgWcinU2QKOlVI7xe0/XWAf6PnBbQG6YI7CkoQWMOaayime+07CpkRFM83GnZ7pc6qeA+RzVjwTZVfyIM8/T0af0mSNqop/ciflFa8t6v3k4nmUsWB9Cw9vEPdfuzsUMU1g7+qGFBMFRQj4lwgxgVll/S9wAUjD14pU=
+  - secure: jKV3Hj/lvoNjU2JUSUlLsLAHX+BI0R27+qTEPSihHpNGB+NOvbwlfpisrqxA/9nanVhtq9I3PJi2Jd5Pkg+3TkYvRq62ZT1Ty/DuxbQmMWlhEZT6wxbVS7919OZ3K0WAOizt3/HzSxL5XZheGRAKf89SoUF6mOP4V3DCh5rzze4=
 addons:
   coverity_scan:
     project:
