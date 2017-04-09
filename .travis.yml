@@ -1,4 +1,4 @@
-- pip install --user cpp-coveralls pyYaml
+dist: trusty
 sudo: required
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
