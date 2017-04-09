@@ -1,4 +1,4 @@
-dist: trusty
+- sudo apt-get install -y qemu-user-static debootstrap 
 sudo: required
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
@@ -15,10 +15,12 @@ compiler:
 script:
 #build on native system
 - cmake . && make && cpack .
-#build on chroot system
+#cleanup
 - rm -rf CMakeCache.txt *.a CMakeFiles
-- sudo mount --bind . rootfs/home
-- sudo chroot rootfs bash -c "cd /home && cmake . && make && cpack ."
+#build on chroot system
+- sudo mkdir rootfs/home/$(basename ${PROJECT_NAME})
+- sudo mount --bind . rootfs/home/$(basename ${PROJECT_NAME})
+- sudo chroot rootfs bash -c "cd /home/$(basename ${PROJECT_NAME}) && cmake . && make && cpack ."
 #run coverage test
 - sudo rm -rf CMakeCache.txt *.a CMakeFiles
 - cmake -DCOVERAGE=ON . && make && make test
