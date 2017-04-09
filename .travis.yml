@@ -1,4 +1,4 @@
-dist: trusty
+- pip install --user cpp-coveralls pyYaml
 sudo: required
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
@@ -42,7 +42,7 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: HvPy3gyZ1nGPLAMgpRvJO2yFqpYBU7HzPQVr8LkBuOIMfya+08fbrQ9lRmvGI/3R4hwx4aPZug2DEfedP07vFXmbISLy/VTeL9TBg86CKX4vPywaoqiv5mTECUp29pmj9R3aCrIK0ROjuXQJqLN1/+jsAEnvh/gBMplQuM6a3Zc=
+    secure: gcQy7QO09vfGtcRMi8D+6VykDfK1tuz1jEZRmJER6eZ0p2gRi4F6mtsMRJWt3QsKkZQWkJpPTvCfv9GyNmWTrZV746y5QVnd+mjPx+6K/LgroK4LWgOgzJ6zQ6qfDKU80GbxJOnNv9/HmIcxSCiactxS50tbvntqpBGCmiIL+4U=
   file: 
     - "${RELEASE_PKG_FILE_X86}"
     - "${RELEASE_PKG_FILE_ARM}"
