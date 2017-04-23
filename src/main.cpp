@@ -252,7 +252,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "A:""h")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "A:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -286,6 +286,13 @@ int main(int argc, char** argv)
 			// ALSA
 			case 'A':	audioFreq = atoi(optarg); break;
 			
+			// version
+			case 'V':	
+				std::cout << VERSION << std::endl;
+				exit(0);			
+			break;
+			
+			// help
 			case 'h':
 			default:
 			{
