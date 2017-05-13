@@ -112,12 +112,20 @@ class ALSACapture
 			size_t size = snd_pcm_readi (m_pcm, buffer, m_periodSize);
 			
 			// swap if capture in not in network order
-			if (m_params.m_fmt == SND_PCM_FORMAT_S16_LE) {
+			if (!snd_pcm_format_big_endian(m_params.m_fmt)) {
+				int fmt_phys_width_bits = snd_pcm_format_physical_width(m_params.m_fmt);
+				int fmt_phys_width_bytes = fmt_phys_width_bits / 8;			
+			
 				for(unsigned int i = 0; i < m_periodSize; i++){
+					char * ptr = &buffer[i * fmt_phys_width_bytes * m_params.m_channels];
+					
 					for(unsigned int j = 0; j < m_params.m_channels; j++){
-						uint16_t value = ((uint16_t *) buffer)[(i * m_params.m_channels) + j];
-						value = htons(value);
-						((uint16_t *) buffer)[(i * m_params.m_channels) + j] = value;
+						ptr += j * fmt_phys_width_bytes;
+						for (int k = 0; k < fmt_phys_width_bytes/2; k++) {
+							char byte = ptr[k];
+							ptr[k] = ptr[fmt_phys_width_bytes - 1 - k];
+							ptr[fmt_phys_width_bytes - 1 - k] = byte; 
+						}
 					}
 				}			
 			}

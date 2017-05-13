@@ -195,6 +195,10 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 		audioFmt = SND_PCM_FORMAT_S16_BE;
 	} else if (fmt == "S16_LE") {
 		audioFmt = SND_PCM_FORMAT_S16_LE;
+	} else if (fmt == "S32_BE") {
+		audioFmt = SND_PCM_FORMAT_S32_BE;
+	} else if (fmt == "S32_LE") {
+		audioFmt = SND_PCM_FORMAT_S32_LE;
 	}
 	return audioFmt;
 }
