@@ -1,7 +1,9 @@
-[![Release](https://img.shields.io/github/release/mpromonet/v4l2rtspserver.svg)](https://github.com/mpromonet/v4l2rtspserver/releases/latest)
 [![Build status](https://travis-ci.org/mpromonet/v4l2rtspserver.png)](https://travis-ci.org/mpromonet/v4l2rtspserver)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
 [![Coverage Status](https://coveralls.io/repos/github/mpromonet/v4l2rtspserver/badge.svg?branch=master)](https://coveralls.io/github/mpromonet/v4l2rtspserver?branch=master)
+
+[![Release](https://img.shields.io/github/release/mpromonet/v4l2rtspserver.svg)](https://github.com/mpromonet/v4l2rtspserver/releases/latest)
+[![Download](https://img.shields.io/github/downloads/mpromonet/v4l2rtspserver/total.svg)](https://github.com/mpromonet/v4l2rtspserver/releases/latest)
 
 
 v4l2rtspserver
