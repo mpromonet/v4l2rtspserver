@@ -172,9 +172,9 @@ std::string getRtpFormat(int format, bool muxTS)
 }
 
 // -----------------------------------------
-//    convert string format to fourcc 
+//    convert string video format to fourcc 
 // -----------------------------------------
-int decodeFormat(const char* fmt)
+int decodeVideoFormat(const char* fmt)
 {
 	char fourcc[4];
 	memset(&fourcc, 0, sizeof(fourcc));
@@ -183,6 +183,20 @@ int decodeFormat(const char* fmt)
 		strncpy(fourcc, fmt, 4);	
 	}
 	return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+}
+
+// -----------------------------------------
+//    convert string audio format to pcm
+// -----------------------------------------
+snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
+{
+	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
+	if (fmt == "S16_BE") {
+		audioFmt = SND_PCM_FORMAT_S16_BE;
+	} else if (fmt == "S16_LE") {
+		audioFmt = SND_PCM_FORMAT_S16_LE;
+	}
+	return audioFmt;
 }
 
 // -------------------------------------------------------
@@ -215,7 +229,7 @@ void decodeDevice(const std::string & device, std::string & videoDev, std::strin
 {
 	std::istringstream is(device);
 	getline(is, videoDev, ',');						
-	getline(is, audioDev, ',');						
+	getline(is, audioDev);						
 }
 
 
@@ -249,10 +263,12 @@ int main(int argc, char** argv)
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	int audioFreq = 44100;
+	int audioNbCahnnels = 2;
+	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "A:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -278,13 +294,15 @@ int main(int argc, char** argv)
 			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = decodeFormat(optarg); break;
+			case 'f':	format    = decodeVideoFormat(optarg); break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
 			
 			// ALSA
 			case 'A':	audioFreq = atoi(optarg); break;
+			case 'C':	audioNbCahnnels = atoi(optarg); break;
+			case 'a':	audioFmt = decodeAudioFormat(optarg); break;
 			
 			// version
 			case 'V':	
@@ -329,7 +347,9 @@ int main(int argc, char** argv)
 				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                         << std::endl;
 				
 				std::cout << "\t ALSA options :"                                                                    << std::endl;
-				std::cout << "\t -A freq   : ALSA capture frequency (default " << audioFreq << ")"                  << std::endl;
+				std::cout << "\t -A freq    : ALSA capture frequency and channel (default " << audioFreq << ")"     << std::endl;
+				std::cout << "\t -C channels: ALSA capture channels (default " << audioNbCahnnels << ")"            << std::endl;
+				std::cout << "\t -a fmt     : ALSA capture audio format (default S16_BE)"                           << std::endl;
 				
 				std::cout << "\t Devices :"                                                                         << std::endl;
 				std::cout << "\t [V4L2 device][,ALSA device] : V4L2 capture device or/and ALSA capture device (default "<< dev_name << ")" << std::endl;
@@ -434,7 +454,7 @@ int main(int argc, char** argv)
 			StreamReplicator* audioReplicator = NULL;
 			if (!audioDev.empty())
 			{
-				ALSACaptureParameters param(audioDev.c_str(), audioFreq, 2, verbose);
+				ALSACaptureParameters param(audioDev.c_str(), audioFmt, audioFreq, audioNbCahnnels, verbose);
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{
