@@ -42,10 +42,13 @@ Usage
 		 -vv      : very verbose
 		 -Q length: Number of frame queue  (default 10)
 		 -O output: Copy captured frame to a file or a V4L2 device
+		 
 		 RTSP options :
 		 -I addr  : RTSP interface (default autodetect)
 		 -P port  : RTSP port (default 8554)
 		 -p port  : RTSP over HTTP port (default 0)
+		 -U user:password : RTSP user and password
+		 -R realm  : use md5 password 'md5(<username>:<realm>:<password>')
 		 -u url   : unicast url (default unicast)
 		 -m url   : multicast url (default multicast)
 		 -M addr  : multicast group:port (default is random_address:20000)
@@ -53,6 +56,7 @@ Usage
 		 -t secs  : RTCP expiration timeout (default 65)
 		 -T       : send Transport Stream instead of elementary Stream
 		 -S secs  : HTTP segment duration (enable HLS & MPEG-DASH)
+		 
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
 		 -w       : V4L2 capture using write interface (default use memory mapped buffers)
@@ -62,9 +66,19 @@ Usage
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 -F fps   : V4L2 capture framerate (default 25, 0 disable setting framerate)
+		 
+		 ALSA options :
+		 -A freq    : ALSA capture frequency and channel (default 44100)
+		 -C channels: ALSA capture channels (default 2)
+		 -a fmt     : ALSA capture audio format (default S16_BE)
+		 
 		 device   : V4L2 capture device and/or ALSA device (default /dev/video0,default)
 
-It is possible to compose the RTSP session is different way :
+Authentification is enable when almost one user is defined. You can canfigure credentials :
+ * using plain text password: -U foo:bar -U admin:admin
+ * using md5 password: -R myrealm -U foo:$(echo -n foo:myrealm:bar | md5sum | cut -d- -f1) -U admin:$(echo -n admin:myrealm:admin | md5sum | cut -d- -f1)
+
+It is possible to compose the RTSP session is different ways :
  * v4l2rtspserver /dev/video0              : one RTSP session with RTP video capturing V4L2 device /dev/video0
  * v4l2rtspserver ,default                 : one RTSP session with RTP audio capturing ALSA device default
  * v4l2rtspserver /dev/video0,default      : one RTSP session with RTP audio and RTP video
