@@ -124,24 +124,27 @@ FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceCaptur
 int addSession(RTSPServer* rtspServer, const std::string & sessionName, const std::list<ServerMediaSubsession*> & subSession)
 {
 	int nbSubsession = 0;
-	UsageEnvironment& env(rtspServer->envir());
-	ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName.c_str());
-	if (sms != NULL)
+	if (subSession.empty() == false)
 	{
-		std::list<ServerMediaSubsession*>::const_iterator subIt;
-		for (subIt = subSession.begin(); subIt != subSession.end(); ++subIt)
+		UsageEnvironment& env(rtspServer->envir());
+		ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName.c_str());
+		if (sms != NULL)
 		{
-			sms->addSubsession(*subIt);
-			nbSubsession++;
-		}
-		
-		rtspServer->addServerMediaSession(sms);
+			std::list<ServerMediaSubsession*>::const_iterator subIt;
+			for (subIt = subSession.begin(); subIt != subSession.end(); ++subIt)
+			{
+				sms->addSubsession(*subIt);
+				nbSubsession++;
+			}
+			
+			rtspServer->addServerMediaSession(sms);
 
-		char* url = rtspServer->rtspURL(sms);
-		if (url != NULL)
-		{
-			LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
-			delete[] url;			
+			char* url = rtspServer->rtspURL(sms);
+			if (url != NULL)
+			{
+				LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
+				delete[] url;			
+			}
 		}
 	}
 	return nbSubsession;
@@ -415,44 +418,47 @@ int main(int argc, char** argv)
 				baseUrl.append("/");
 			}			
 			
-			// Init video capture
-			LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
-			
 			StreamReplicator* videoReplicator = NULL;
 			std::string rtpFormat;
-			V4L2DeviceParameters param(videoDev.c_str(), format, width, height, fps, verbose);
-			V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
-			if (videoCapture)
+			if (!videoDev.empty())
 			{
-				format = videoCapture->getFormat();				
-				int outfd = -1;
+				// Init video capture
+				LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
 				
-				if (!outputFile.empty())
+				V4L2DeviceParameters param(videoDev.c_str(), format, width, height, fps, verbose);
+				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
+				if (videoCapture)
 				{
-					V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-					out = V4l2Output::create(outparam, ioTypeOut);
-					if (out != NULL)
+					format = videoCapture->getFormat();				
+					int outfd = -1;
+					
+					if (!outputFile.empty())
 					{
-						outfd = out->getFd();
+						V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
+						out = V4l2Output::create(outparam, ioTypeOut);
+						if (out != NULL)
+						{
+							outfd = out->getFd();
+						}
 					}
-				}
-				
-				LOG(NOTICE) << "Create Source ..." << videoDev;
-				rtpFormat.assign(getRtpFormat(format, muxTS));
-				FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new V4L2DeviceCapture<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
-				if (videoSource == NULL) 
-				{
-					LOG(FATAL) << "Unable to create source for device " << videoDev;
-					delete videoCapture;
-				}
-				else
-				{	
-					// extend buffer size if needed
-					if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+					
+					LOG(NOTICE) << "Create Source ..." << videoDev;
+					rtpFormat.assign(getRtpFormat(format, muxTS));
+					FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new V4L2DeviceCapture<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
+					if (videoSource == NULL) 
 					{
-						OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+						LOG(FATAL) << "Unable to create source for device " << videoDev;
+						delete videoCapture;
 					}
-					videoReplicator = StreamReplicator::createNew(*env, videoSource, false);
+					else
+					{	
+						// extend buffer size if needed
+						if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+						{
+							OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+						}
+						videoReplicator = StreamReplicator::createNew(*env, videoSource, false);
+					}
 				}
 			}
 					
@@ -460,6 +466,9 @@ int main(int argc, char** argv)
 			StreamReplicator* audioReplicator = NULL;
 			if (!audioDev.empty())
 			{
+				// Init audio capture
+				LOG(NOTICE) << "Create ALSA Source..." << audioDev;
+				
 				ALSACaptureParameters param(audioDev.c_str(), audioFmt, audioFreq, audioNbChannels, verbose);
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
@@ -476,8 +485,7 @@ int main(int argc, char** argv)
 						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)
 						{
 							OutPacketBuffer::maxSize = audioCapture->getBufferSize();
-						}
-						
+						}						
 						audioReplicator = StreamReplicator::createNew(*env, audioSource, false);
 					}
 				}
