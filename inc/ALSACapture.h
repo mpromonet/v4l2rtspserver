@@ -103,7 +103,7 @@ class ALSACapture
 				LOG(ERROR) << "cannot start audio interface for use device: " << params.m_devName << " error:" <<  snd_strerror (err);
 			}			
 			
-			LOG(NOTICE) << "ALSA device: \"" << params.m_devName << "\" buffer size:" << m_bufferSize;
+			LOG(NOTICE) << "ALSA device: \"" << params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize;
 		}
 			
 	public:
@@ -111,12 +111,16 @@ class ALSACapture
 		{
 			size_t size = snd_pcm_readi (m_pcm, buffer, m_periodSize);
 			
+			LOG(DEBUG) << "ALSA buffer size:" << m_bufferSize << " " << m_periodSize*m_params.m_channels << " " << size;
+			
 			// swap if capture in not in network order
 			if (!snd_pcm_format_big_endian(m_params.m_fmt)) {
+				
+				
 				int fmt_phys_width_bits = snd_pcm_format_physical_width(m_params.m_fmt);
 				int fmt_phys_width_bytes = fmt_phys_width_bits / 8;			
 			
-				for(unsigned int i = 0; i < m_periodSize; i++){
+				for(unsigned int i = 0; i < size; i++){
 					char * ptr = &buffer[i * fmt_phys_width_bytes * m_params.m_channels];
 					
 					for(unsigned int j = 0; j < m_params.m_channels; j++){
@@ -129,7 +133,7 @@ class ALSACapture
 					}
 				}			
 			}
-			return size;
+			return size*m_params.m_channels;
 		}
 		
 		virtual int getFd()

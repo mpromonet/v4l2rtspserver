@@ -267,12 +267,12 @@ int main(int argc, char** argv)
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	int audioFreq = 44100;
-	int audioNbCahnnels = 2;
+	int audioNbChannels = 2;
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::R:U:" "rwsf::F:W:H:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::" "R:U:" "rwsf::F:W:H:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -291,6 +291,8 @@ int main(int argc, char** argv)
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'T':	muxTS                   = true; break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : 5; muxTS=true; break;
+			
+			// users
 			case 'R':       realm                   = optarg; break;
 			case 'U':       userPasswordList.push_back(optarg); break;
 			
@@ -305,7 +307,7 @@ int main(int argc, char** argv)
 			
 			// ALSA
 			case 'A':	audioFreq = atoi(optarg); break;
-			case 'C':	audioNbCahnnels = atoi(optarg); break;
+			case 'C':	audioNbChannels = atoi(optarg); break;
 			case 'a':	audioFmt = decodeAudioFormat(optarg); break;
 			
 			// version
@@ -352,7 +354,7 @@ int main(int argc, char** argv)
 				
 				std::cout << "\t ALSA options :"                                                                    << std::endl;
 				std::cout << "\t -A freq    : ALSA capture frequency and channel (default " << audioFreq << ")"     << std::endl;
-				std::cout << "\t -C channels: ALSA capture channels (default " << audioNbCahnnels << ")"            << std::endl;
+				std::cout << "\t -C channels: ALSA capture channels (default " << audioNbChannels << ")"            << std::endl;
 				std::cout << "\t -a fmt     : ALSA capture audio format (default S16_BE)"                           << std::endl;
 				
 				std::cout << "\t Devices :"                                                                         << std::endl;
@@ -458,7 +460,7 @@ int main(int argc, char** argv)
 			StreamReplicator* audioReplicator = NULL;
 			if (!audioDev.empty())
 			{
-				ALSACaptureParameters param(audioDev.c_str(), audioFmt, audioFreq, audioNbCahnnels, verbose);
+				ALSACaptureParameters param(audioDev.c_str(), audioFmt, audioFreq, audioNbChannels, verbose);
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{
@@ -470,6 +472,12 @@ int main(int argc, char** argv)
 					}
 					else
 					{
+						// extend buffer size if needed
+						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)
+						{
+							OutPacketBuffer::maxSize = audioCapture->getBufferSize();
+						}
+						
 						audioReplicator = StreamReplicator::createNew(*env, audioSource, false);
 					}
 				}
