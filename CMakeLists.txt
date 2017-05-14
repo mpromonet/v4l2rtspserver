@@ -8,7 +8,7 @@ option(COVERAGE "Coverage" OFF)
 
 set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_C_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 
 find_package(Git)
 if(GIT_FOUND)
