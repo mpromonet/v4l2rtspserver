@@ -464,6 +464,7 @@ int main(int argc, char** argv)
 					
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
+			std::string rtpAudioFormat;
 			if (!audioDev.empty())
 			{
 				// Init audio capture
@@ -481,6 +482,10 @@ int main(int argc, char** argv)
 					}
 					else
 					{
+						rtpAudioFormat.assign("audio/L16");
+						rtpAudioFormat.append("/").append(std::to_string(audioCapture->getSampleRate()));
+						rtpAudioFormat.append("/").append(std::to_string(audioCapture->getChannels()));
+						
 						// extend buffer size if needed
 						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)
 						{
@@ -509,7 +514,7 @@ int main(int argc, char** argv)
 				
 				if (audioReplicator)
 				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, "audio/L16"));				
+					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
 					
 					// increment ports for next sessions
 					rtpPortNum+=2;
@@ -521,7 +526,10 @@ int main(int argc, char** argv)
 			if (hlsSegment > 0)
 			{
 				std::list<ServerMediaSubsession*> subSession;
-				subSession.push_back(HLSServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat, hlsSegment));				
+				if (videoReplicator)
+				{
+					subSession.push_back(HLSServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat, hlsSegment));				
+				}
 				nbSource += addSession(rtspServer, baseUrl+url, subSession);
 				
 				struct in_addr ip;
@@ -538,7 +546,7 @@ int main(int argc, char** argv)
 				}
 				if (audioReplicator)
 				{
-					subSession.push_back(UnicastServerMediaSubsession::createNew(*env, audioReplicator, "audio/L16"));				
+					subSession.push_back(UnicastServerMediaSubsession::createNew(*env, audioReplicator, rtpAudioFormat));				
 				}
 				nbSource += addSession(rtspServer, baseUrl+url, subSession);				
 			}

@@ -69,9 +69,17 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
 	}
-	else if (format == "audio/L16")
+	else if (format.find("audio/L16") == 0)
 	{
-		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, 44100, "audio", "L16", 2, True, False); 
+		std::istringstream is(format);
+		std::string dummy;
+		getline(is, dummy, '/');	
+		getline(is, dummy, '/');	
+		std::string sampleRate("44100");
+		getline(is, sampleRate, '/');	
+		std::string channels("2");
+		getline(is, channels);	
+		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, std::stoi(sampleRate), "audio", "L16", std::stoi(channels), True, False); 
 	}
 	return videoSink;
 }
