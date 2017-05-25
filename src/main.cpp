@@ -492,9 +492,9 @@ int main(int argc, char** argv)
 					}
 					else
 					{
-						rtpAudioFormat.assign("audio/L16");
-						rtpAudioFormat.append("/").append(std::to_string(audioCapture->getSampleRate()));
-						rtpAudioFormat.append("/").append(std::to_string(audioCapture->getChannels()));
+						std::ostringstream os;
+						os << "audio/L16/" << audioCapture->getSampleRate() << "/" << audioCapture->getChannels();
+						rtpAudioFormat.assign(os.str());
 						
 						// extend buffer size if needed
 						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)
