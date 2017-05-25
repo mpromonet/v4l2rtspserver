@@ -38,7 +38,10 @@
 #include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
 #include "HTTPServer.h"
+
+#ifdef HAVE_ALSA
 #include "ALSACapture.h"
+#endif
 
 // -----------------------------------------
 //    signal handler
@@ -191,6 +194,7 @@ int decodeVideoFormat(const char* fmt)
 // -----------------------------------------
 //    convert string audio format to pcm
 // -----------------------------------------
+#ifdef HAVE_ALSA
 snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 {
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
@@ -205,6 +209,7 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 	}
 	return audioFmt;
 }
+#endif
 
 // -------------------------------------------------------
 //    decode multicast url <group>:<rtp_port>:<rtcp_port>
@@ -271,7 +276,9 @@ int main(int argc, char** argv)
 	std::list<std::string> userPasswordList;
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
+#ifdef HAVE_ALSA	
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
+#endif	
 
 	// decode parameters
 	int c = 0;     
@@ -309,9 +316,11 @@ int main(int argc, char** argv)
 			case 'H':	height    = atoi(optarg); break;
 			
 			// ALSA
+#ifdef HAVE_ALSA	
 			case 'A':	audioFreq = atoi(optarg); break;
 			case 'C':	audioNbChannels = atoi(optarg); break;
 			case 'a':	audioFmt = decodeAudioFormat(optarg); break;
+#endif			
 			
 			// version
 			case 'V':	
@@ -465,6 +474,7 @@ int main(int argc, char** argv)
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
 			std::string rtpAudioFormat;
+#ifdef HAVE_ALSA
 			if (!audioDev.empty())
 			{
 				// Init audio capture
@@ -495,6 +505,7 @@ int main(int argc, char** argv)
 					}
 				}
 			}		
+#endif
 					
 										
 			// Create Multicast Session
