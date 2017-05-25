@@ -124,10 +124,11 @@ class ALSACapture
 		virtual size_t read(char* buffer, size_t bufferSize)
 		{
 			size_t size = 0;
+			int fmt_phys_width_bytes = 0;
 			if (m_pcm != 0)
 			{
 				int fmt_phys_width_bits = snd_pcm_format_physical_width(m_params.m_fmt);
-				int fmt_phys_width_bytes = fmt_phys_width_bits / 8;			
+				fmt_phys_width_bytes = fmt_phys_width_bits / 8;
 
 				snd_pcm_sframes_t ret = snd_pcm_readi (m_pcm, buffer, m_periodSize*fmt_phys_width_bytes);
 				LOG(DEBUG) << "ALSA buffer in_size:" << m_periodSize*fmt_phys_width_bytes << " read_size:" << ret;
@@ -147,11 +148,11 @@ class ALSACapture
 									ptr[fmt_phys_width_bytes - 1 - k] = byte; 
 								}
 							}
-						}			
+						}
 					}
 				}
 			}
-			return size*m_params.m_channels;
+			return size * m_params.m_channels * fmt_phys_width_bytes;
 		}
 		
 		virtual int getFd()
