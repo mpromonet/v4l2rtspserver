@@ -168,6 +168,7 @@ std::string getRtpFormat(int format, bool muxTS)
 		switch(format)
 		{	
 			case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
+			case V4L2_PIX_FMT_MJPEG: rtpFormat = "video/JPEG"; break;
 			case V4L2_PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
 			case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
 			case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
