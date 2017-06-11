@@ -77,7 +77,7 @@ class MJPEGVideoSource : public JPEGVideoSource
                     memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, quantSize);
                     if (quantSize*quantIdx+quantSize > m_qTableSize) {
                         m_qTableSize = quantSize*quantIdx+quantSize;
-                        LOG(NOTICE) << "Quantization table idx:" << quantIdx << " size:" << quantSize << " total size:" << m_qTableSize;
+                        LOG(NOTICE) << "Quantization table idx:" << quantIdx << " precision:" << m_precision << " size:" << quantSize << " total size:" << m_qTableSize;
                     }
                 }
 
