@@ -70,14 +70,14 @@ class MJPEGVideoSource : public JPEGVideoSource
                 int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
                 LOG(DEBUG) << "DQT length:" << length;
 
-                m_precision = fTo[i+4]<<4;
+                unsigned int precision = fTo[i+4]<<4;
                 unsigned int quantIdx  = fTo[i+4]&0x0f;
                 unsigned int quantSize = length-3;
                 if (quantSize*quantIdx+quantSize <= sizeof(m_qTable)) {
                     memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, quantSize);
                     if (quantSize*quantIdx+quantSize > m_qTableSize) {
                         m_qTableSize = quantSize*quantIdx+quantSize;
-                        LOG(NOTICE) << "Quantization table idx:" << quantIdx << " precision:" << m_precision << " size:" << quantSize << " total size:" << m_qTableSize;
+                        LOG(NOTICE) << "Quantization table idx:" << quantIdx << " precision:" << precision << " size:" << quantSize << " total size:" << m_qTableSize;
                     }
                 }
 
