@@ -88,7 +88,7 @@ It is possible to compose the RTSP session is different ways :
 Build
 ------- 
 - Before build (optional)
-	The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
+	The build will try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
 
 		wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
 		cd live
@@ -119,6 +119,7 @@ This RTSP server works using Raspberry Pi camera using :
 - the official V4L2 driver bcm2835-v4l2
 
 	sudo modprobe -v bcm2835-v4l2
+	sudo echo bcm2835-v4l2 >> /etc/modules
 
 Using with v4l2loopback
 ----------------------- 
