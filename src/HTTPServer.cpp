@@ -31,6 +31,7 @@ void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsig
 	   "HTTP/1.1 200 OK\r\n"
 	   "%s"
 	   "Server: LIVE555 Streaming Media v%s\r\n"
+           "Access-Control-Allow-Origin: *\r\n" 
 	   "Content-Type: %s\r\n"
 	   "Content-Length: %d\r\n"
 	   "\r\n",
