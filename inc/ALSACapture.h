@@ -172,7 +172,10 @@ class ALSACapture
 			return pfds[0].fd;
 		}
 		
-		unsigned long getBufferSize() { return m_bufferSize; };
+		virtual unsigned long getBufferSize() { return m_bufferSize; };
+		virtual int getWidth()  {return -1;}
+		virtual int getHeight() {return -1;}	
+		
 		unsigned long getSampleRate() { return m_params.m_sampleRate; };
 		unsigned long getChannels  () { return m_params.m_channels; };
 		

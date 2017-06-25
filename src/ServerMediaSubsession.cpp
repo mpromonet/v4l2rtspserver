@@ -92,7 +92,12 @@ char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source,unsig
 		std::ostringstream os; 
 		os << "a=fmtp:" << int(rtpPayloadType) << " ";				
 		os << source->getAuxLine();				
-		os << "\r\n";				
+		os << "\r\n";		
+		int width = source->getWidth();
+		int height = source->getHeight();
+		if ( (width > 0) && (height>0) ) {
+			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
+		}
 		auxLine = strdup(os.str().c_str());
 	} 
 	return auxLine;
