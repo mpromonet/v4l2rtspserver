@@ -30,6 +30,8 @@ class DeviceCapture
 		virtual size_t read(char* buffer, size_t bufferSize) = 0;	
 		virtual int getFd() = 0;	
 		virtual unsigned long getBufferSize() = 0;
+		virtual int getWidth() = 0;	
+		virtual int getHeight() = 0;	
 		virtual ~DeviceCapture() {};
 };
 
@@ -43,6 +45,8 @@ class V4L2DeviceCapture : public DeviceCapture
 		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
 		virtual int getFd()                                  { return m_device->getFd(); }
 		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
+		virtual int getWidth()                                  { return m_device->getWidth(); }
+		virtual int getHeight()                                  { return m_device->getHeight(); }
 			
 	protected:
 		T* m_device;
@@ -87,6 +91,8 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };	
+		int getWidth() { return m_device->getWidth(); };	
+		int getHeight() { return m_device->getHeight(); };	
 
 	protected:
 		V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread);
