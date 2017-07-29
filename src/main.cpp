@@ -44,6 +44,24 @@
 #endif
 
 // -----------------------------------------
+//    Device Capture Interface template
+// -----------------------------------------
+template<typename T>
+class DeviceCaptureAccess : public DeviceCapture
+{
+	public:
+		DeviceCaptureAccess(T* device) : m_device(device)      {};
+		virtual ~DeviceCaptureAccess()                         { delete m_device; };
+			
+		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
+		virtual int getFd()                                  { return m_device->getFd(); }
+		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
+			
+	protected:
+		T* m_device;
+};
+
+// -----------------------------------------
 //    signal handler
 // -----------------------------------------
 char quit = 0;
@@ -454,7 +472,7 @@ int main(int argc, char** argv)
 					
 					LOG(NOTICE) << "Create Source ..." << videoDev;
 					rtpFormat.assign(getRtpFormat(format, muxTS));
-					FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new V4L2DeviceCapture<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
+					FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
 					if (videoSource == NULL) 
 					{
 						LOG(FATAL) << "Unable to create source for device " << videoDev;
@@ -485,7 +503,7 @@ int main(int argc, char** argv)
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{
-					FramedSource* audioSource = V4L2DeviceSource::createNew(*env, new V4L2DeviceCapture<ALSACapture>(audioCapture), -1, queueSize, useThread);
+					FramedSource* audioSource = V4L2DeviceSource::createNew(*env, new DeviceCaptureAccess<ALSACapture>(audioCapture), -1, queueSize, useThread);
 					if (audioSource == NULL) 
 					{
 						LOG(FATAL) << "Unable to create source for device " << audioDev;

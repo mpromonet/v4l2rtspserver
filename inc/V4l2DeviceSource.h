@@ -33,21 +33,6 @@ class DeviceCapture
 		virtual ~DeviceCapture() {};
 };
 
-template<typename T>
-class V4L2DeviceCapture : public DeviceCapture
-{
-	public:
-		V4L2DeviceCapture(T* device) : m_device(device)      {};
-		virtual ~V4L2DeviceCapture()                         { delete m_device; };
-			
-		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
-		virtual int getFd()                                  { return m_device->getFd(); }
-		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
-			
-	protected:
-		T* m_device;
-};
-
 class V4L2DeviceSource: public FramedSource
 {
 	public:
