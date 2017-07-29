@@ -56,6 +56,8 @@ class DeviceCaptureAccess : public DeviceCapture
 		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
 		virtual int getFd()                                  { return m_device->getFd(); }
 		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
+		virtual int getWidth()                                  { return m_device->getWidth(); }
+		virtual int getHeight()                                  { return m_device->getHeight(); }
 			
 	protected:
 		T* m_device;

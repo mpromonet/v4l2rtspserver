@@ -75,7 +75,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());		
 
 			std::ostringstream os; 
-			os << "profile-level-id=" << std::hex << std::setw(6) << profile_level_id;
+			os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
 			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
 			m_auxLine.assign(os.str());
 			LOG(NOTICE) << m_auxLine;
