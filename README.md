@@ -11,7 +11,7 @@ v4l2rtspserver
 
 This is an streamer feed from :
  - an Video4Linux device that support H264, JPEG or VP8 capture.
- - an ALSA device that support PCM 16 BE
+ - an ALSA device that support PCM S16_BE, S16_LE, S32_BE or S32_LE
  
 The RTSP server support :
 - RTP/UDP unicast
