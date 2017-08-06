@@ -17,7 +17,7 @@
 // project
 #include "ServerMediaSubsession.h"
 #include "MJPEGVideoSource.h"
-#include "V4l2DeviceSource.h"
+#include "DeviceSource.h"
 
 // ---------------------------------
 //   BaseServerMediaSubsession

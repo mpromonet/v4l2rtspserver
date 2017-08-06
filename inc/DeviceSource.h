@@ -10,8 +10,8 @@
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef V4L2_DEVICE_SOURCE
-#define V4L2_DEVICE_SOURCE
+#ifndef DEVICE_SOURCE
+#define DEVICE_SOURCE
 
 #include <string>
 #include <list> 
@@ -21,19 +21,7 @@
 // live555
 #include <liveMedia.hh>
 
-// ---------------------------------
-// V4L2 FramedSource
-// ---------------------------------
-class DeviceCapture
-{
-	public:
-		virtual size_t read(char* buffer, size_t bufferSize) = 0;	
-		virtual int getFd() = 0;	
-		virtual unsigned long getBufferSize() = 0;
-		virtual int getWidth() = 0;	
-		virtual int getHeight() = 0;	
-		virtual ~DeviceCapture() {};
-};
+#include "DeviceInterface.h"
 
 class V4L2DeviceSource: public FramedSource
 {
@@ -72,13 +60,13 @@ class V4L2DeviceSource: public FramedSource
 		};
 		
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };	
 		int getWidth() { return m_device->getWidth(); };	
 		int getHeight() { return m_device->getHeight(); };	
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread);
+		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread);
 		virtual ~V4L2DeviceSource();
 
 	protected:	
@@ -105,7 +93,7 @@ class V4L2DeviceSource: public FramedSource
 		Stats m_out;
 		EventTriggerId m_eventTriggerId;
 		int m_outfd;
-		DeviceCapture * m_device;
+		DeviceInterface * m_device;
 		unsigned int m_queueSize;
 		pthread_t m_thid;
 		pthread_mutex_t m_mutex;

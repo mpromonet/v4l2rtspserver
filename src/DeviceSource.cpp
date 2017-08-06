@@ -15,7 +15,7 @@
 
 // project
 #include "logger.h"
-#include "V4l2DeviceSource.h"
+#include "DeviceSource.h"
 
 // ---------------------------------
 // V4L2 FramedSource Stats
@@ -37,7 +37,7 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
@@ -48,7 +48,7 @@ V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceCaptu
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) 
 	: FramedSource(env), 
 	m_in("in"), 
 	m_out("out") , 

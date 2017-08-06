@@ -14,7 +14,7 @@
 #define H264_V4L2_DEVICE_SOURCE
 
 // project
-#include "V4l2DeviceSource.h"
+#include "DeviceSource.h"
 
 // ---------------------------------
 // H264 V4L2 FramedSource
@@ -24,10 +24,10 @@ const char H264shortmarker[] = {0,0,1};
 class H264_V4L2DeviceSource : public V4L2DeviceSource
 {
 	public:				
-		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) ;
+		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) ;
 
 	protected:
-		H264_V4L2DeviceSource(UsageEnvironment& env, DeviceCapture * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker);
+		H264_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker);
 		virtual ~H264_V4L2DeviceSource();
 
 		unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);

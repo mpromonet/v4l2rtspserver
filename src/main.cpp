@@ -44,26 +44,6 @@
 #endif
 
 // -----------------------------------------
-//    Device Capture Interface template
-// -----------------------------------------
-template<typename T>
-class DeviceCaptureAccess : public DeviceCapture
-{
-	public:
-		DeviceCaptureAccess(T* device) : m_device(device)      {};
-		virtual ~DeviceCaptureAccess()                         { delete m_device; };
-			
-		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
-		virtual int getFd()                                  { return m_device->getFd(); }
-		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
-		virtual int getWidth()                                  { return m_device->getWidth(); }
-		virtual int getHeight()                                  { return m_device->getHeight(); }
-			
-	protected:
-		T* m_device;
-};
-
-// -----------------------------------------
 //    signal handler
 // -----------------------------------------
 char quit = 0;
@@ -121,7 +101,7 @@ RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, uns
 // -----------------------------------------
 //    create FramedSource server
 // -----------------------------------------
-FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceCapture* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
+FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig, bool muxTS)
 {
 	FramedSource* source = NULL;
 	if (format == V4L2_PIX_FMT_H264)
