@@ -439,7 +439,6 @@ int main(int argc, char** argv)
 				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
 				if (videoCapture)
 				{
-					format = videoCapture->getFormat();				
 					int outfd = -1;
 					
 					if (!outputFile.empty())
@@ -453,7 +452,7 @@ int main(int argc, char** argv)
 					}
 					
 					LOG(NOTICE) << "Create Source ..." << videoDev;
-					rtpFormat.assign(getRtpFormat(format, muxTS));
+					rtpFormat.assign(getRtpFormat(videoCapture->getFormat(), muxTS));
 					FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxTS);
 					if (videoSource == NULL) 
 					{
