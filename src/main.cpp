@@ -114,6 +114,16 @@ FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterf
 			source = muxer;
 		}
 	}
+	else if (format == V4L2_PIX_FMT_HEVC)
+	{
+		source = H265_V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread, repeatConfig, muxTS);
+		if (muxTS)
+		{
+			MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(*env);
+			muxer->addNewVideoSource(source, 6);
+			source = muxer;
+		}
+	}
 	else
 	{
 		source = V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread);

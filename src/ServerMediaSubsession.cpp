@@ -33,6 +33,10 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 	{
 		source = H264VideoStreamDiscreteFramer::createNew(env, videoES);
 	}
+	else if (format == "video/H265")
+	{
+		source = H265VideoStreamDiscreteFramer::createNew(env, videoES);
+	}
 	else if (format == "video/JPEG")
 	{
 		source = MJPEGVideoSource::createNew(env, videoES);
@@ -54,6 +58,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	else if (format == "video/H264")
         {
 		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
+	}
+	else if (format == "video/H265")
+        {
+		videoSink = H265VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
 	}
 	else if (format == "video/VP8")
 	{
