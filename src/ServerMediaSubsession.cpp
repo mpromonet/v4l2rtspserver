@@ -59,10 +59,6 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
         {
 		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
 	}
-	else if (format == "video/H265")
-        {
-		videoSink = H265VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
-	}
 	else if (format == "video/VP8")
 	{
 		videoSink = VP8VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
@@ -71,6 +67,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	else if (format == "video/VP9")
 	{
 		videoSink = VP9VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
+	}
+	else if (format == "video/H265")
+        {
+		videoSink = H265VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
 	}
 #endif	
 	else if (format == "video/JPEG")
