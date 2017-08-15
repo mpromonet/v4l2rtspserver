@@ -141,12 +141,6 @@ unsigned char*  H26X_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 		}
 	}
 	if (startFrame != NULL) {
-	std::ostringstream os;
-	for (int j=0; j<16 && j<size ; j++) {
-		os << std::hex << int(frame[j]) << " ";
-	}
-	std::cout << os.str() << std::endl;	
-		
 		m_frameType = startFrame[markerlength];
 		
 		int remainingSize = size-(startFrame-frame+markerlength);		
