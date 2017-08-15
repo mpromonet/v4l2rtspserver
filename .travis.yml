@@ -1,7 +1,7 @@
 dist: trusty
 sudo: required
 before_install:
-- sudo apt-get install -y cmake liblog4cpp5-dev libasound2-dev
+- sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
 - sudo apt-get install -y qemu-user-static debootstrap 
 # for coverage
 - pip install --user cpp-coveralls pyYaml
@@ -13,11 +13,6 @@ language: cpp
 compiler:
 - gcc
 script:
-#build live555
-- wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
-- pushd live
-- ./genMakefiles linux && sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
-- popd
 #build on native system
 - cmake . && make && cpack .
 #cleanup

@@ -33,10 +33,12 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 	{
 		source = H264VideoStreamDiscreteFramer::createNew(env, videoES);
 	}
+#if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
 	else if (format == "video/H265")
 	{
 		source = H265VideoStreamDiscreteFramer::createNew(env, videoES);
 	}
+#endif
 	else if (format == "video/JPEG")
 	{
 		source = MJPEGVideoSource::createNew(env, videoES);
