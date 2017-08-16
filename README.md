@@ -1,3 +1,4 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/aa0c28514aa843ea9fa7da358d905871)](https://www.codacy.com/app/michelpromonet_2643/v4l2rtspserver?utm_source=github.com&utm_medium=referral&utm_content=mpromonet/v4l2rtspserver&utm_campaign=badger)
 [![Build status](https://travis-ci.org/mpromonet/v4l2rtspserver.png)](https://travis-ci.org/mpromonet/v4l2rtspserver)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
 [![Coverage Status](https://coveralls.io/repos/github/mpromonet/v4l2rtspserver/badge.svg?branch=master)](https://coveralls.io/github/mpromonet/v4l2rtspserver?branch=master)
