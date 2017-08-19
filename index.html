@@ -13,13 +13,6 @@
 			hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
 		}
 	</script>
-	<h3>MPEG-DASH</h3>
-	<video controls id="dashvideo"></video>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/2.5.0/dash.all.min.js" ></script>
-	<script>
-		var player = new dashjs.MediaPlayer().create();
-		player.initialize(document.getElementById("dashvideo"),"unicast.mpd",true);
-	</script>	
     </body>
 </html>
 
