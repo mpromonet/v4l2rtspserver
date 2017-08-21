@@ -472,7 +472,7 @@ int main(int argc, char** argv)
 					else
 					{	
 						// extend buffer size if needed
-						if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+						if (videoCapture->getBufferSize() > (int) OutPacketBuffer::maxSize)
 						{
 							OutPacketBuffer::maxSize = videoCapture->getBufferSize();
 						}
