@@ -153,7 +153,7 @@ void V4L2DeviceSource::deliverFrame()
 			m_captureQueue.pop_front();
 	
 			m_out.notify(curTime.tv_sec, frame->m_size);
-			if (frame->m_size > fMaxSize) 
+			if ((int) frame->m_size > fMaxSize) 
 			{
 				fFrameSize = fMaxSize;
 				fNumTruncatedBytes = frame->m_size - fMaxSize;
