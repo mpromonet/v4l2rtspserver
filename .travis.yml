@@ -18,9 +18,9 @@ script:
 #cleanup
 - rm -rf CMakeCache.txt *.a CMakeFiles
 #build on chroot system
-- sudo mkdir rootfs/home/$(basename ${PROJECT_NAME})
-- sudo mount --bind . rootfs/home/$(basename ${PROJECT_NAME})
-- sudo chroot rootfs bash -c "cd /home/$(basename ${PROJECT_NAME}) && cmake . && make && cpack ."
+- sudo mkdir rootfs/home/v4l2rtspserver
+- sudo mount --bind . rootfs/home/v4l2rtspserver
+- sudo chroot rootfs bash -c "cd /home/v4l2rtspserver && cmake . && make && cpack ."
 #run coverage test
 - sudo rm -rf CMakeCache.txt *.a CMakeFiles
 - cmake -DCOVERAGE=ON . && make && make test
