@@ -162,7 +162,36 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) 
 {
 	char const* questionMarkPos = strrchr(urlSuffix, '?');
-	if (questionMarkPos == NULL) 
+	if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
+	{
+		std::ostringstream os;
+		ServerMediaSessionIterator it(fOurServer);
+		ServerMediaSession* serverSession = NULL;
+		if (questionMarkPos != NULL) {
+			questionMarkPos++;
+			os << "var " << questionMarkPos << "=";
+		}
+		os << "[\n";
+		bool first = true;
+		while ( (serverSession = it.next()) != NULL) {
+			if (first) 
+			{
+				first = false;
+				os << " ";					
+			}
+			else 
+			{
+				os << ",";					
+			}
+			os << "\"" << serverSession->streamName() << "\"";
+			os << "\n";
+		}
+		os << "]\n";
+		std::string content(os.str());
+		this->sendHeader("text/plain", content.size());
+		this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), (u_int8_t*)content.c_str(), content.size()));
+	}
+	else if (questionMarkPos == NULL) 
 	{
 		std::string streamName(urlSuffix);
 		std::string ext;
@@ -264,6 +293,17 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 			this->streamSource(subsession->getStreamSource(streamToken));
 		}
 	} 
+}
+
+void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
+	std::ostringstream os;
+	ServerMediaSessionIterator it(fOurServer);
+	ServerMediaSession* serverSession = NULL;
+	while ( (serverSession = it.next()) != NULL) {
+		os << serverSession->streamName() << "\n";
+	}
+	
+	setRTSPResponse("404 Stream Not Found", os.str().c_str());
 }
 
 void HTTPServer::HTTPClientConnection::afterStreaming(void* clientData) 

@@ -37,6 +37,7 @@ class HTTPServer : public RTSPServer
 			bool sendM3u8PlayList(char const* urlSuffix);
 			bool sendMpdPlayList(char const* urlSuffix);
 			virtual void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* fullRequestStr);
+			virtual void handleCmd_notFound();
 			static void afterStreaming(void* clientData);
 		
 		private:

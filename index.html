@@ -1,6 +1,8 @@
 <html>
     <link rel="shortcut icon" href="about:blank"/>
     <body>
+	<!--fill streamList variable with the list of streams -->
+	<script src="/getStreamList?streamList" ></script>
 	<h3>HLS</h3>
 	<video controls id="hlsvideo"></video>
 	<script src="https://cdn.jsdelivr.net/hls.js/latest/hls.min.js" ></script>
@@ -8,11 +10,20 @@
 		if (Hls.isSupported()) {
 			var video = document.getElementById("hlsvideo");
 			var hls = new Hls();
-			hls.loadSource("unicast.m3u8");
+			hls.loadSource(streamList[0]+".m3u8");
 			hls.attachMedia(video);
 			hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+		} else {
+			document.write("HLS not supported");
 		}
 	</script>
+	<h3>MPEG-DASH</h3>
+	<video controls id="dashvideo"></video>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/2.5.0/dash.all.min.js" ></script>
+	<script>
+		var player = new dashjs.MediaPlayer().create();
+		player.initialize(document.getElementById("dashvideo"),streamList[0]+".mpd",true);
+	</script>		
     </body>
 </html>
 
