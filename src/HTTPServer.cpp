@@ -309,25 +309,22 @@ void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
 }
 
 void HTTPServer::HTTPClientConnection::afterStreaming(void* clientData) 
-{
+{	
 	HTTPServer::HTTPClientConnection* clientConnection = (HTTPServer::HTTPClientConnection*)clientData;
+	
+	clientConnection->streamSource(NULL);
+	
 	// Arrange to delete the 'client connection' object:
 	if (clientConnection->fRecursionCount > 0) {
 		// We're still in the midst of handling a request
 		clientConnection->fIsActive = False; // will cause the object to get deleted at the end of handling the request
+				
 	} else {
 		// We're no longer handling a request; delete the object now:
-//		delete clientConnection;
+		delete clientConnection;
 	}
 }
 
 HTTPServer::HTTPClientConnection::~HTTPClientConnection() 
 {
-      if (fTCPSink != NULL) 
-      {
-		FramedSource* oldSource = fTCPSink->source();
-		fTCPSink->stopPlaying();			       
-		Medium::close(fTCPSink);
-		Medium::close(oldSource);
-      }
 }
