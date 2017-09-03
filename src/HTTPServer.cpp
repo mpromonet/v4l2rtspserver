@@ -45,6 +45,13 @@ void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsig
 	  fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
 }
 		
+void HTTPServer::HTTPClientConnection::streamSource(const std::string & content)
+{
+	u_int8_t* buffer = new u_int8_t[content.size()];
+	memcpy(buffer, content.c_str(), content.size());
+	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, content.size()));
+}
+
 void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 {
       if (fTCPSink != NULL) 
@@ -52,7 +59,6 @@ void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 		FramedSource* oldSource = fTCPSink->source();
 		fTCPSink->stopPlaying();			       
 		Medium::close(fTCPSink);
-		fTCPSink = NULL;
 		Medium::close(oldSource);
       }
       if (source != NULL) 
@@ -102,7 +108,7 @@ bool HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 		os << "#EXTINF:" << sliceDuration << ",\r\n";
 		os << urlSuffix << "?segment=" << (startTime+slice*sliceDuration) << "\r\n";
 	}
-
+	
 	envir() << "send M3u8 playlist:" << urlSuffix <<"\n";
 	const std::string& playList(os.str());
 
@@ -110,9 +116,7 @@ bool HTTPServer::HTTPClientConnection::sendM3u8PlayList(char const* urlSuffix)
 	this->sendHeader("application/vnd.apple.mpegurl", playList.size());
 	
 	// stream body
-	u_int8_t* playListBuffer = new u_int8_t[playList.size()];
-	memcpy(playListBuffer, playList.c_str(), playList.size());
-	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
+	this->streamSource(playList);
 
 	return true;			  
 }
@@ -151,9 +155,7 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 	this->sendHeader("application/dash+xml", playList.size());
 	
 	// stream body
-	u_int8_t* playListBuffer = new u_int8_t[playList.size()];
-	memcpy(playListBuffer, playList.c_str(), playList.size());
-	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), playListBuffer, playList.size()));
+	this->streamSource(playList);
 
 	return true;
 }
@@ -189,7 +191,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		os << "]\n";
 		std::string content(os.str());
 		this->sendHeader("text/plain", content.size());
-		this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), (u_int8_t*)content.c_str(), content.size()));
+		this->streamSource(content);
 	}
 	else if (questionMarkPos == NULL) 
 	{
@@ -237,7 +239,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 				std::string mime("text/");
 				mime.append(ext);
 				this->sendHeader(mime.c_str(), content.size());
-				this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), (u_int8_t*)content.c_str(), content.size()));
+				this->streamSource(content);
 				ok = true;
 			}
 		}
