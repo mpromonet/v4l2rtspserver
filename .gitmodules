@@ -1,3 +1,6 @@
 [submodule "v4l2wrapper"]
 	path = v4l2wrapper
 	url = https://github.com/mpromonet/v4l2wrapper
+[submodule "hls.js"]
+	path = hls.js
+	url = https://github.com/video-dev/hls.js

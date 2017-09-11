@@ -161,13 +161,13 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 }
 
 		
-void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* /*fullRequestStr*/) 
+void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* fullRequestStr) 
 {
 	char const* questionMarkPos = strrchr(urlSuffix, '?');
 	if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{
 		std::ostringstream os;
-		ServerMediaSessionIterator it(fOurServer);
+		ServerMediaSessionIterator it(fOurRTSPServer);
 		ServerMediaSession* serverSession = NULL;
 		if (questionMarkPos != NULL) {
 			questionMarkPos++;
@@ -220,11 +220,26 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		if (!ok)
 		{
 			// send local files
-			size_t pos = url.find_last_of("/");
+			std::string url(fullRequestStr);
+			size_t pos = url.find_first_of(" ");
+			if (pos != std::string::npos)
+			{
+				url.erase(0,pos+1);
+			}
+			pos = url.find_first_of(" ");
 			if (pos != std::string::npos)
 			{
 				url.erase(pos);
 			}
+			pos = url.find_first_of("/");
+			if (pos != std::string::npos)
+			{
+				url.erase(0,1);
+			}
+			std::string pattern("../");
+			while ((pos = url.find(pattern, pos)) != std::string::npos) {
+				url.erase(pos, pattern.length());
+			}			
 			if (url.empty())
 			{
 				url = "index.html";
@@ -299,7 +314,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 
 void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
 	std::ostringstream os;
-	ServerMediaSessionIterator it(fOurServer);
+	ServerMediaSessionIterator it(fOurRTSPServer);
 	ServerMediaSession* serverSession = NULL;
 	while ( (serverSession = it.next()) != NULL) {
 		os << serverSession->streamName() << "\n";
