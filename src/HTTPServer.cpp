@@ -167,7 +167,8 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 	if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{
 		std::ostringstream os;
-		ServerMediaSessionIterator it(fOurRTSPServer);
+		HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
+		ServerMediaSessionIterator it(*httpServer);
 		ServerMediaSession* serverSession = NULL;
 		if (questionMarkPos != NULL) {
 			questionMarkPos++;
@@ -242,7 +243,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 			}			
 			if (url.empty())
 			{
-				url = "index.html";
+				url = "index.html"; 
 				ext = "html";
 			}
 			if (ext=="js") ext ="javascript";
@@ -314,7 +315,8 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 
 void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
 	std::ostringstream os;
-	ServerMediaSessionIterator it(fOurRTSPServer);
+	HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
+	ServerMediaSessionIterator it(*httpServer);
 	ServerMediaSession* serverSession = NULL;
 	while ( (serverSession = it.next()) != NULL) {
 		os << serverSession->streamName() << "\n";
