@@ -37,6 +37,9 @@
 
 #include "H264_V4l2DeviceSource.h"
 #include "ServerMediaSubsession.h"
+#include "UnicastServerMediaSubsession.h"
+#include "MulticastServerMediaSubsession.h"
+#include "SegmentServerMediaSubsession.h"
 #include "HTTPServer.h"
 
 #ifdef HAVE_ALSA
