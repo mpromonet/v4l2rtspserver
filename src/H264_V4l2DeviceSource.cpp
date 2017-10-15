@@ -48,7 +48,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 				break;
 		}
 		
-		if (m_auxLine.empty() && !m_sps.empty() && !m_pps.empty())
+		if (!m_sps.empty() && !m_pps.empty())
 		{
 			u_int32_t profile_level_id = 0;					
 			if (m_sps.size() >= 4) profile_level_id = (m_sps[1]<<16)|(m_sps[2]<<8)|m_sps[3]; 
@@ -60,7 +60,6 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 			os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
 			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
 			m_auxLine.assign(os.str());
-			LOG(NOTICE) << m_auxLine;
 			
 			delete [] sps_base64;
 			delete [] pps_base64;
@@ -99,7 +98,7 @@ std::list< std::pair<unsigned char*,size_t> > H265_V4L2DeviceSource::splitFrames
 			default: break;
 		}
 		
-		if (m_auxLine.empty() && !m_vps.empty() && !m_sps.empty() && !m_pps.empty())
+		if (!m_vps.empty() && !m_sps.empty() && !m_pps.empty())
 		{		
 			char* vps_base64 = base64Encode(m_vps.c_str(), m_vps.size());
 			char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
@@ -110,7 +109,6 @@ std::list< std::pair<unsigned char*,size_t> > H265_V4L2DeviceSource::splitFrames
 			os << ";sprop-sps=" << sps_base64;
 			os << ";sprop-pps=" << pps_base64;
 			m_auxLine.assign(os.str());
-			LOG(NOTICE) << m_auxLine;
 			
 			delete [] vps_base64;
 			delete [] sps_base64;
