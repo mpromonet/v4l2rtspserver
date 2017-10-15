@@ -11,7 +11,7 @@ v4l2rtspserver
 ====================
 
 This is an streamer feed from :
- - an Video4Linux device that support H264, JPEG or VP8 capture.
+ - an Video4Linux device that support H264, HEVC, JPEG, VP8 or VP9 capture.
  - an ALSA device that support PCM S16_BE, S16_LE, S32_BE or S32_LE
  
 The RTSP server support :
@@ -56,7 +56,7 @@ Usage
 		 -c       : don't repeat config (default repeat config before IDR frame)
 		 -t secs  : RTCP expiration timeout (default 65)
 		 -T       : send Transport Stream instead of elementary Stream
-		 -S secs  : HTTP segment duration (enable HLS & MPEG-DASH)
+		 -S[secs] : HTTP segment duration (enable HLS & MPEG-DASH)
 		 
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
@@ -73,7 +73,7 @@ Usage
 		 -C channels: ALSA capture channels (default 2)
 		 -a fmt     : ALSA capture audio format (default S16_BE)
 		 
-		 device   : V4L2 capture device and/or ALSA device (default /dev/video0,default)
+		 device   : V4L2 capture device and/or ALSA device (default /dev/video0)
 
 Authentification is enable when almost one user is defined. You can canfigure credentials :
  * using plain text password: -U foo:bar -U admin:admin
@@ -85,6 +85,7 @@ It is possible to compose the RTSP session is different ways :
  * v4l2rtspserver /dev/video0,default      : one RTSP session with RTP audio and RTP video
  * v4l2rtspserver /dev/video0 ,default     : two RTSP sessions first one with RTP video and second one with RTP audio
  * v4l2rtspserver /dev/video0 /dev/video1  : two RTSP sessions with an RTP video
+ * v4l2rtspserver /dev/video0,/dev/video0  : one RTSP session with RTP audio and RTP video (ALSA device associatd with the V4L2 device)
 
 Build
 ------- 
@@ -134,13 +135,21 @@ This workflow could be set using :
 	v4l2rtspserver /dev/video10 &
 
 
-Receiving HTTP streams
+Playing HTTP streams
 -----------------------
-When v4l2rtspserver is started with '-S' arguments it give access to streams through HTTP. These streams could be reveced :
+When v4l2rtspserver is started with '-S' arguments it also give access to streams through HTTP.  
+These streams could be played :
 
 	* for MPEG-DASH with :   
            MP4Client http://..../unicast.mpd   
+	   
 	* for HLS with :  
            vlc http://..../unicast.m3u8  
            gstreamer-launch-1.0 playbin uri=http://.../unicast.m3u8  
 
+It is now possible to play HLS url directly from browser :
+
+ * using Firefox installing [Native HLS addons](https://addons.mozilla.org/en-US/firefox/addon/native_hls_playback)
+ * using Chrome installing [Native HLS playback](https://chrome.google.com/webstore/detail/native-hls-playback/emnphkkblegpebimobpbekeedfgemhof)
+
+There is also a small HTML page that use hls.js and dash.js, but dash still not work because player doesnot support MP2T format.
