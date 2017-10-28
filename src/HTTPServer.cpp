@@ -24,6 +24,8 @@
 
 #include "HTTPServer.h"
 
+u_int32_t HTTPServer::HTTPClientConnection::fClientSessionId = 0;
+
 void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsigned int contentLength)
 {
 	// Construct our response:
@@ -56,15 +58,20 @@ void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 {
       if (fTCPSink != NULL) 
       {
-		FramedSource* oldSource = fTCPSink->source();
 		fTCPSink->stopPlaying();			       
 		Medium::close(fTCPSink);
-		Medium::close(oldSource);
+		fTCPSink = NULL;
+      }
+      if (fSource != NULL) 
+      {
+		Medium::close(fSource);
+		fSource = NULL;
       }
       if (source != NULL) 
       {
 		fTCPSink = TCPStreamSink::createNew(envir(), fClientOutputSocket);
 		fTCPSink->startPlaying(*source, afterStreaming, this);
+		fSource = source; // we need to keep tracking of source, because sink do not release it
       }
 }
 		
@@ -289,13 +296,12 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		netAddressBits destinationAddress = 0;
 		u_int8_t destinationTTL = 0;
 		Boolean isMulticast = False;
-		void* streamToken = NULL;
-		subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, streamToken);
+		subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, fStreamToken);
 
 		// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
 		double dOffsetInSeconds = (double)offsetInSeconds;
 		u_int64_t numBytes = 0;
-		subsession->seekStream(fClientSessionId, streamToken, dOffsetInSeconds, 0.0, numBytes);
+		subsession->seekStream(fClientSessionId, fStreamToken, dOffsetInSeconds, 0.0, numBytes);
 
 		if (numBytes == 0) 
 		{
@@ -308,7 +314,10 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 			this->sendHeader("video/mp2t", numBytes);
 
 			// stream body
-			this->streamSource(subsession->getStreamSource(streamToken));
+			this->streamSource(subsession->getStreamSource(fStreamToken));
+			
+			// pointer to subsession to close it
+			fSubsession = subsession;
 		}
 	} 
 }
@@ -329,8 +338,6 @@ void HTTPServer::HTTPClientConnection::afterStreaming(void* clientData)
 {	
 	HTTPServer::HTTPClientConnection* clientConnection = (HTTPServer::HTTPClientConnection*)clientData;
 	
-	clientConnection->streamSource(NULL);
-	
 	// Arrange to delete the 'client connection' object:
 	if (clientConnection->fRecursionCount > 0) {
 		// We're still in the midst of handling a request
@@ -344,4 +351,9 @@ void HTTPServer::HTTPClientConnection::afterStreaming(void* clientData)
 
 HTTPServer::HTTPClientConnection::~HTTPClientConnection() 
 {
+	this->streamSource(NULL);
+	
+	if (fSubsession) {
+		fSubsession->deleteStream(fClientSessionId,  fStreamToken);
+	}
 }

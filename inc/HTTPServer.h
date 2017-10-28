@@ -25,7 +25,7 @@ class HTTPServer : public RTSPServer
 	{
 		public:
 			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
-			  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fClientSessionId(0), fTCPSink(NULL) {
+			  : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), fTCPSink(NULL), fStreamToken(NULL), fSubsession(NULL), fSource(NULL) {
 			}
 			virtual ~HTTPClientConnection();
 
@@ -42,8 +42,11 @@ class HTTPServer : public RTSPServer
 			static void afterStreaming(void* clientData);
 		
 		private:
-			u_int32_t fClientSessionId;
+			static u_int32_t fClientSessionId;
 			TCPStreamSink* fTCPSink;
+			void*          fStreamToken;
+			ServerMediaSubsession* fSubsession;
+			FramedSource*          fSource;
 	};
 	
 	public:
