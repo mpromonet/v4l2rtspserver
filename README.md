@@ -75,9 +75,13 @@ Usage
 		 
 		 device   : V4L2 capture device and/or ALSA device (default /dev/video0)
 
-Authentification is enable when almost one user is defined. You can canfigure credentials :
- * using plain text password: -U foo:bar -U admin:admin
- * using md5 password: -R myrealm -U foo:$(echo -n foo:myrealm:bar | md5sum | cut -d- -f1) -U admin:$(echo -n admin:myrealm:admin | md5sum | cut -d- -f1)
+Authentification is enable when almost one user is defined. You can configure credentials :
+ * using plain text password: 
+ 
+       -U foo:bar -U admin:admin
+ * using md5 password: 
+ 
+       -R myrealm -U foo:$(echo -n foo:myrealm:bar | md5sum | cut -d- -f1) -U admin:$(echo -n admin:myrealm:admin | md5sum | cut -d- -f1)
 
 It is possible to compose the RTSP session is different ways :
  * v4l2rtspserver /dev/video0              : one RTSP session with RTP video capturing V4L2 device /dev/video0
@@ -114,7 +118,7 @@ Build
 
 Using Raspberry Pi Camera
 ------------------------- 
-This RTSP server works using Raspberry Pi camera using :
+This RTSP server works with Raspberry Pi camera using :
 - the unofficial V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/uv4l/
 
 	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
@@ -122,7 +126,7 @@ This RTSP server works using Raspberry Pi camera using :
 
 	sudo modprobe -v bcm2835-v4l2
 
-Using with v4l2loopback
+Using v4l2loopback
 ----------------------- 
 For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
 
