@@ -54,16 +54,14 @@ endif (ALSA_LIBRARY)
 
 # LOG4CPP
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
-if (NOT LOG4CPP_INCLUDE_DIR)
-        message(STATUS "Installing liblog4cpp5-dev.")
-        EXEC_PROGRAM("sudo apt-get install -y liblog4cpp5-dev")
-endif (NOT LOG4CPP_INCLUDE_DIR)
+if (LOG4CPP_INCLUDE_DIR)
+        message(STATUS "Log4Cpp available")
+	include_directories(${LOG4CPP_INCLUDE_DIR}) 
 
-find_path(V4L2_INCLUDE_DIR log4cpp/Category.hh)
-include_directories(${LOG4CPP_INCLUDE_DIR}) 
+	find_library(LOG4CPP_LIBRARY log4cpp)
+	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
+endif (LOG4CPP_INCLUDE_DIR)
 
-find_library(LOG4CPP_LIBRARY log4cpp)
-target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 
 # live555
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)

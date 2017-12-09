@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <map>
 #include "UnicastServerMediaSubsession.h"
 
 // -----------------------------------------
