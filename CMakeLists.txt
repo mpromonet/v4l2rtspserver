@@ -56,6 +56,7 @@ endif (ALSA_LIBRARY)
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
 if (LOG4CPP_INCLUDE_DIR)
         message(STATUS "Log4Cpp available")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_LOG4CPP")
 	include_directories(${LOG4CPP_INCLUDE_DIR}) 
 
 	find_library(LOG4CPP_LIBRARY log4cpp)
