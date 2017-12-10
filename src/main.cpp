@@ -388,6 +388,10 @@ int main(int argc, char** argv)
 #ifdef HAVE_ALSA	
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
 #endif	
+	const char* defaultPort = getenv("PORT");
+	if (defaultPort != NULL) {
+		rtspPort = atoi(defaultPort);
+	}
 
 	// decode parameters
 	int c = 0;     
