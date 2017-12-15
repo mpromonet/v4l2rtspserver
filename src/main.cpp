@@ -263,6 +263,17 @@ void decodeDevice(const std::string & device, std::string & videoDev, std::strin
 	getline(is, audioDev);						
 }
 
+std::string getDeviceName(const std::string & devicePath)
+{
+	std::string deviceName(devicePath);
+	size_t pos = deviceName.find_last_of('/');
+	if (pos != std::string::npos) {
+		deviceName.erase(0,pos+1);
+	}
+	return deviceName;
+}
+
+
 /* ---------------------------------------------------------------------------
 **  get a "deviceid" from uevent sys file
 ** -------------------------------------------------------------------------*/
@@ -338,7 +349,7 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 		}
 	}
 
-	auto deviceId  = videodevices.find(basename(v4l2device.c_str()));
+	auto deviceId  = videodevices.find(getDeviceName(v4l2device));
 	if (deviceId != videodevices.end()) {
 		auto audioDeviceIt = audiodevices.find(deviceId->second);
 		
@@ -536,7 +547,7 @@ int main(int argc, char** argv)
 			std::string baseUrl;
 			if (devList.size() > 1)
 			{
-				baseUrl = basename(videoDev.c_str());
+				baseUrl = getDeviceName(videoDev);
 				baseUrl.append("/");
 			}	
 			MPEG2TransportStreamFromESSource* muxer = NULL;
