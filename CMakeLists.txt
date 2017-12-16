@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 find_package(Git)
 if(GIT_FOUND)
     EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-    STRING(REGEX REPLACE "^v(.*)" "\\1" VERSION ${VERSION})
+    STRING(REGEX REPLACE "^v(.*)" "\\1" VERSION "${VERSION}")
     add_definitions("-DVERSION=\"${VERSION}\"")
 endif()
 
