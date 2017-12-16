@@ -24,10 +24,6 @@ The HTTP server support :
 - HLS
 - MPEG-DASH
 
-License
-------------
-Domain public 
-
 Dependencies
 ------------
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
