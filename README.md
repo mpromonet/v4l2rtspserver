@@ -24,15 +24,11 @@ The HTTP server support :
 - HLS
 - MPEG-DASH
 
-License
-------------
-Domain public 
-
 Dependencies
 ------------
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
- - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license)
  - libv4l2cpp [Unlicense](https://github.com/mpromonet/libv4l2cpp/blob/master/LICENSE)
+ - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license) (optional)
 
 Usage
 -----
