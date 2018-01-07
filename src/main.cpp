@@ -371,7 +371,7 @@ int main(int argc, char** argv)
 {
 	// default parameters
 	const char *dev_name = "/dev/video0";	
-	int format = V4L2_PIX_FMT_H264;
+	std::list<unsigned int> formatList;
 	int width = 640;
 	int height = 480;
 	int queueSize = 10;
@@ -396,6 +396,7 @@ int main(int argc, char** argv)
 	std::list<std::string> userPasswordList;
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
+	unsigned int format = ~0;
 #ifdef HAVE_ALSA	
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
 #endif	
@@ -434,7 +435,7 @@ int main(int argc, char** argv)
 			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = decodeVideoFormat(optarg); break;
+			case 'f':	format    = decodeVideoFormat(optarg); if (format) {formatList.push_back(format);};  break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
@@ -509,7 +510,14 @@ int main(int argc, char** argv)
 	{
 		devList.push_back(dev_name);
 	}
-
+	
+	// default format tries
+	if ((formatList.empty()) && (format!=0)) {
+		std::cout << "use default format H264/MJPEG" << std::endl;
+		formatList.push_back(V4L2_PIX_FMT_H264);
+		formatList.push_back(V4L2_PIX_FMT_MJPEG);
+	}
+	
 	// init logger
 	initLogger(verbose);
      
@@ -562,7 +570,7 @@ int main(int argc, char** argv)
 				// Init video capture
 				LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
 				
-				V4L2DeviceParameters param(videoDev.c_str(), format, width, height, fps, verbose);
+				V4L2DeviceParameters param(videoDev.c_str(), formatList, width, height, fps, verbose);
 				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
 				if (videoCapture)
 				{
