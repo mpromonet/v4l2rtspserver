@@ -5,6 +5,7 @@ env:
   matrix:
     - TOOLCHAIN=
     - TOOLCHAIN=raspberry.toolchain
+    - TOOLCHAIN=mips.toolchain
 addons:
   coverity_scan:
     project:
@@ -20,13 +21,14 @@ addons:
       - liblog4cpp5-dev
       - liblivemedia-dev
       - libasound2-dev
+      - g++-mips-linux-gnu
 before_install:
   - pip install --user cpp-coveralls pyYaml
 language: cpp
 compiler: gcc
 script:
   - echo "TOOLCHAIN=$TOOLCHAIN"
-  - if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin ; fi
+  - if [ "$TOOLCHAIN" == "raspberry.toolchain" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin ; fi
   - if [ "$TOOLCHAIN" != "" ]; then cmake -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN . ; fi
   - if [ "$TOOLCHAIN" == "" ]; then cmake .; fi
   #build 
