@@ -8,9 +8,8 @@ addons:
     - liblivemedia-dev
     - libasound2-dev
 env:
-  matrix:
-    - TOOLCHAIN=
-    - TOOLCHAIN=raspberry.toolchain
+  - TOOLCHAIN=
+  - TOOLCHAIN=raspberry.toolchain
 before_install:
 # for coverage
 - pip install --user cpp-coveralls pyYaml
@@ -18,6 +17,7 @@ language: cpp
 compiler:
 - gcc
 script:
+- echo "TOOLCHAIN=$TOOLCHAIN"
 - if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; fi
 #build on native system
 - cmake . && make && cpack .
