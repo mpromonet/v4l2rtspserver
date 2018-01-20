@@ -30,20 +30,23 @@ script:
   - if [ "$TOOLCHAIN" != "" ]; then cmake -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN . ; fi
   - if [ "$TOOLCHAIN" == "" ]; then cmake .; fi
   #build 
-  - make && cpack .
+  - make 
+  - cpack .
+  - cpack -G TGZ .
   #run coverage test
   - if [ "$COVERAGE" != "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
 after_success:
   - if [ "$COVERAGE" != "" ]; then coveralls --gcov-options '\-lp'; fi
 before_deploy:
-  - export RELEASE_PKG_FILE=$(ls *.deb)
-  - echo "deploying ${RELEASE_PKG_FILE} to GitHub releases"    
+  - export RELEASE_DEB_FILE=$(ls *.deb)
+  - export RELEASE_TGZ_FILE=$(ls *.tar.gz)
 deploy:
   provider: releases
   api_key:
     secure: gcQy7QO09vfGtcRMi8D+6VykDfK1tuz1jEZRmJER6eZ0p2gRi4F6mtsMRJWt3QsKkZQWkJpPTvCfv9GyNmWTrZV746y5QVnd+mjPx+6K/LgroK4LWgOgzJ6zQ6qfDKU80GbxJOnNv9/HmIcxSCiactxS50tbvntqpBGCmiIL+4U=
   file: 
-    - "${RELEASE_PKG_FILE}"
+    - "${RELEASE_DEB_FILE}"
+    - "${RELEASE_TGZ_FILE}"
   skip_cleanup: true
   on:
     repo: mpromonet/v4l2rtspserver

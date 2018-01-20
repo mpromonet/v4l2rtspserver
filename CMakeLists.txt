@@ -51,6 +51,8 @@ if (ALSA_LIBRARY)
 	message(STATUS "Alsa available")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_ALSA")
         target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
+	
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS},libasound2-dev)	
 endif (ALSA_LIBRARY)
 
 # LOG4CPP
@@ -62,15 +64,19 @@ if (LOG4CPP_INCLUDE_DIR)
 
 	find_library(LOG4CPP_LIBRARY log4cpp)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
+	
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS},liblog4cpp5-dev)
 endif (LOG4CPP_INCLUDE_DIR)
 
 
 # live555
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 if (NOT LIBLIVE555_INCLUDE_DIR)
-        message(STATUS "Installing live55")
+        message(STATUS "Installing live555")
         EXEC_PROGRAM("wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xzf -")
         EXEC_PROGRAM("cd live && ./genMakefiles linux-gdb && make CPLUSPLUS_COMPILER=${CMAKE_CXX_COMPILER} C_COMPILER=${CMAKE_C_COMPILER} LINK='${CMAKE_CXX_COMPILER} -o' PREFIX=${CMAKE_FIND_ROOT_PATH} install")
+else (NOT LIBLIVE555_INCLUDE_DIR)
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS},livemedia-utils)
 endif (NOT LIBLIVE555_INCLUDE_DIR)
 
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
@@ -97,7 +103,6 @@ install (TARGETS ${PROJECT_NAME} DESTINATION bin)
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Michel Promonet") 
 SET(CPACK_PACKAGE_CONTACT "michel.promonet@free.fr") 
-SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 SET(CPACK_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
 find_package(Git)
 if(VERSION)
