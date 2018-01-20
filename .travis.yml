@@ -11,7 +11,7 @@ addons:
       name: mpromonet/v4l2rtspserver
     build_command_prepend: cmake .
     build_command: make
-    branch_pattern: master
+    branch_pattern: coverity_scan
     notification_email: scan_notifications@example.com
   apt:
     packages:
