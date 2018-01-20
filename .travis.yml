@@ -26,9 +26,10 @@ language: cpp
 compiler: gcc
 script:
   - echo "TOOLCHAIN=$TOOLCHAIN"
-  - if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; fi
-  #build on native system
-  - cmake . && make && cpack .
+  - if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; cmake -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN . fi
+  - if [ "$TOOLCHAIN" == "" ]; then cmake .; fi
+  #build 
+  - make && cpack .
   #run coverage test
   - if [ "$TOOLCHAIN" == "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
 after_success:
