@@ -1,33 +1,10 @@
 dist: trusty
-addons:
-  apt:
-    packages:
-    - git
-    - cmake 
-    - liblog4cpp5-dev
-    - liblivemedia-dev
-    - libasound2-dev
-env:
-  - TOOLCHAIN=
-  - TOOLCHAIN=raspberry.toolchain
-before_install:
-# for coverage
-- pip install --user cpp-coveralls pyYaml
-language: cpp
-compiler:
-- gcc
-script:
-- echo "TOOLCHAIN=$TOOLCHAIN"
-- if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; fi
-#build on native system
-- cmake . && make && cpack .
-#run coverage test
-- if [ "$TOOLCHAIN" == "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
-after_success:
-- coveralls --gcov-options '\-lp'
 env:
   global:
-  - secure: jKV3Hj/lvoNjU2JUSUlLsLAHX+BI0R27+qTEPSihHpNGB+NOvbwlfpisrqxA/9nanVhtq9I3PJi2Jd5Pkg+3TkYvRq62ZT1Ty/DuxbQmMWlhEZT6wxbVS7919OZ3K0WAOizt3/HzSxL5XZheGRAKf89SoUF6mOP4V3DCh5rzze4=
+    - secure: jKV3Hj/lvoNjU2JUSUlLsLAHX+BI0R27+qTEPSihHpNGB+NOvbwlfpisrqxA/9nanVhtq9I3PJi2Jd5Pkg+3TkYvRq62ZT1Ty/DuxbQmMWlhEZT6wxbVS7919OZ3K0WAOizt3/HzSxL5XZheGRAKf89SoUF6mOP4V3DCh5rzze4=
+  matrix:
+    - TOOLCHAIN=
+    - TOOLCHAIN=raspberry.toolchain
 addons:
   coverity_scan:
     project:
@@ -36,6 +13,26 @@ addons:
     build_command: make
     branch_pattern: master
     notification_email: scan_notifications@example.com
+  apt:
+    packages:
+      - git
+      - cmake 
+      - liblog4cpp5-dev
+      - liblivemedia-dev
+      - libasound2-dev
+before_install:
+  - pip install --user cpp-coveralls pyYaml
+language: cpp
+compiler: gcc
+script:
+  - echo "TOOLCHAIN=$TOOLCHAIN"
+  - if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; fi
+  #build on native system
+  - cmake . && make && cpack .
+  #run coverage test
+  - if [ "$TOOLCHAIN" == "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
+after_success:
+  - coveralls --gcov-options '\-lp'
 before_deploy:
   - export RELEASE_PKG_FILE=$(ls *.deb)
   - echo "deploying ${RELEASE_PKG_FILE} to GitHub releases"    
