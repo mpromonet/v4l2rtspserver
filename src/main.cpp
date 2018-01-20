@@ -490,10 +490,12 @@ int main(int argc, char** argv)
 				std::cout << "\t -H height : V4L2 capture height (default "<< height << ")"                                                    << std::endl;
 				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                                                    << std::endl;
 				
+#ifdef HAVE_ALSA	
 				std::cout << "\t ALSA options :"                                                                                               << std::endl;
 				std::cout << "\t -A freq    : ALSA capture frequency and channel (default " << audioFreq << ")"                                << std::endl;
 				std::cout << "\t -C channels: ALSA capture channels (default " << audioNbChannels << ")"                                       << std::endl;
 				std::cout << "\t -a fmt     : ALSA capture audio format (default S16_BE)"                                                      << std::endl;
+#endif
 				
 				std::cout << "\t Devices :"                                                                                                    << std::endl;
 				std::cout << "\t [V4L2 device][,ALSA device] : V4L2 capture device or/and ALSA capture device (default "<< dev_name << ")"     << std::endl;
