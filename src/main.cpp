@@ -372,8 +372,8 @@ int main(int argc, char** argv)
 	// default parameters
 	const char *dev_name = "/dev/video0";	
 	std::list<unsigned int> formatList;
-	int width = 640;
-	int height = 480;
+	int width = 0;
+	int height = 0;
 	int queueSize = 10;
 	int fps = 25;
 	unsigned short rtspPort = 8554;
@@ -586,22 +586,27 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					LOG(NOTICE) << "Create Source ..." << videoDev;
 					rtpFormat.assign(getRtpFormat(videoCapture->getFormat(), muxTS));
-					FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxer);
-					if (videoSource == NULL) 
-					{
-						LOG(FATAL) << "Unable to create source for device " << videoDev;
+					if (rtpFormat.empty()) {
+						LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 						delete videoCapture;
-					}
-					else
-					{	
-						// extend buffer size if needed
-						if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+					} else {
+						LOG(NOTICE) << "Create Source ..." << videoDev;
+						FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig, muxer);
+						if (videoSource == NULL) 
 						{
-							OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+							LOG(FATAL) << "Unable to create source for device " << videoDev;
+							delete videoCapture;
 						}
-						videoReplicator = StreamReplicator::createNew(*env, videoSource, false);
+						else
+						{	
+							// extend buffer size if needed
+							if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
+							{
+								OutPacketBuffer::maxSize = videoCapture->getBufferSize();
+							}
+							videoReplicator = StreamReplicator::createNew(*env, videoSource, false);
+						}
 					}
 				}
 			}
