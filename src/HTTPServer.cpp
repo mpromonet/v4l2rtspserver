@@ -171,7 +171,15 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* fullRequestStr) 
 {
 	char const* questionMarkPos = strrchr(urlSuffix, '?');
-	if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
+	if (strcmp(urlSuffix, "getVersion") == 0) 
+	{
+		std::ostringstream os;
+		os << VERSION;
+		std::string content(os.str());
+		this->sendHeader("text/plain", content.size());
+		this->streamSource(content);
+	}
+	else if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{
 		std::ostringstream os;
 		HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
@@ -270,6 +278,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		if (!ok)
 		{
 			handleHTTPCmd_notSupported();
+			fIsActive = False;
 		}
 	}
 	else
@@ -286,6 +295,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		if (subsession == NULL) 
 		{
 			handleHTTPCmd_notSupported();
+			fIsActive = False;
 			return;			  
 		}
 
@@ -307,6 +317,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		{
 			// For some reason, we do not know the size of the requested range.  We can't handle this request:
 			handleHTTPCmd_notSupported();
+			fIsActive = False;
 		}
 		else
 		{
