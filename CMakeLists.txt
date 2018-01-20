@@ -97,6 +97,19 @@ target_link_libraries(${PROJECT_NAME} ${LIBLIVE555_LIBRARIES})
 enable_testing()
 add_test(help ./${PROJECT_NAME} -h)
 
+#systemd
+find_package(PkgConfig)
+pkg_check_modules(SYSTEMD systemd QUIET)
+if (SYSTEMD_FOUND)
+	message(STATUS "SystemD available")
+	execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=systemdsystemunitdir systemd OUTPUT_VARIABLE SYSTEMD_SERVICES_INSTALL_DIR)
+	string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_SERVICES_INSTALL_DIR "${SYSTEMD_SERVICES_INSTALL_DIR}")
+	message(STATUS "SystemD directory '${SYSTEMD_SERVICES_INSTALL_DIR}'")
+	
+	configure_file(v4l2rtspserver.service.in ${CMAKE_CURRENT_BINARY_DIR}/v4l2rtspserver.service @ONLY)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/v4l2rtspserver.service DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR} COMPONENT data)
+endif (SYSTEMD_FOUND)
+
 # package
 install (TARGETS ${PROJECT_NAME} DESTINATION bin)
 

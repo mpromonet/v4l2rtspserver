@@ -1,0 +1,6 @@
+[Unit]
+Description=V4L2 RTSP server
+
+[Service]
+Type=simple
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/v4l2rtspserver
