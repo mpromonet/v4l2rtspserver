@@ -1,10 +1,17 @@
 dist: trusty
-sudo: required
-matrix:
+addons:
+  apt:
+    packages:
+    - git
+    - cmake 
+    - liblog4cpp5-dev
+    - liblivemedia-dev
+    - libasound2-dev
+env:
+  matrix:
     - TOOLCHAIN=
     - TOOLCHAIN=raspberry.toolchain
 before_install:
-- sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
 # for coverage
 - pip install --user cpp-coveralls pyYaml
 language: cpp
@@ -15,8 +22,7 @@ script:
 #build on native system
 - cmake . && make && cpack .
 #run coverage test
-- sudo rm -rf CMakeCache.txt *.a CMakeFiles
-- cmake -DCOVERAGE=ON . && make && make test
+- if [ "$TOOLCHAIN" == "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
 after_success:
 - coveralls --gcov-options '\-lp'
 env:
