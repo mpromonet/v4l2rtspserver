@@ -1,26 +1,19 @@
 dist: trusty
 sudo: required
+matrix:
+    - TOOLCHAIN=
+    - TOOLCHAIN=raspberry.toolchain
 before_install:
 - sudo apt-get install -y cmake liblog4cpp5-dev liblivemedia-dev libasound2-dev
-- sudo apt-get install -y qemu-user-static debootstrap 
 # for coverage
 - pip install --user cpp-coveralls pyYaml
-# install chroot for cross-compilation
-- sudo debootstrap --arch armhf --foreign --include=g++,git,make,cmake,liblog4cpp5-dev,liblivemedia-dev,libasound2-dev jessie rootfs http://sfo-korg-mirror.kernel.org/debian
-- sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
-- sudo chroot rootfs /debootstrap/debootstrap --second-stage
 language: cpp
 compiler:
 - gcc
 script:
+- if [ "$TOOLCHAIN" != "" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin; fi
 #build on native system
 - cmake . && make && cpack .
-#cleanup
-- rm -rf CMakeCache.txt *.a CMakeFiles
-#build on chroot system
-- sudo mkdir rootfs/home/v4l2rtspserver
-- sudo mount --bind . rootfs/home/v4l2rtspserver
-- sudo chroot rootfs bash -c "cd /home/v4l2rtspserver && cmake . && make && cpack ."
 #run coverage test
 - sudo rm -rf CMakeCache.txt *.a CMakeFiles
 - cmake -DCOVERAGE=ON . && make && make test
@@ -38,16 +31,14 @@ addons:
     branch_pattern: master
     notification_email: scan_notifications@example.com
 before_deploy:
-  - export RELEASE_PKG_FILE_X86=$(ls *-x86_64.deb)
-  - export RELEASE_PKG_FILE_ARM=$(ls *-arm*.deb)
-  - echo "deploying ${RELEASE_PKG_FILE_X86} ${RELEASE_PKG_FILE_ARM} to GitHub releases"    
+  - export RELEASE_PKG_FILE=$(ls *.deb)
+  - echo "deploying ${RELEASE_PKG_FILE} to GitHub releases"    
 deploy:
   provider: releases
   api_key:
     secure: gcQy7QO09vfGtcRMi8D+6VykDfK1tuz1jEZRmJER6eZ0p2gRi4F6mtsMRJWt3QsKkZQWkJpPTvCfv9GyNmWTrZV746y5QVnd+mjPx+6K/LgroK4LWgOgzJ6zQ6qfDKU80GbxJOnNv9/HmIcxSCiactxS50tbvntqpBGCmiIL+4U=
   file: 
-    - "${RELEASE_PKG_FILE_X86}"
-    - "${RELEASE_PKG_FILE_ARM}"
+    - "${RELEASE_PKG_FILE}"
   skip_cleanup: true
   on:
     repo: mpromonet/v4l2rtspserver
