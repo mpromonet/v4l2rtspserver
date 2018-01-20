@@ -14,16 +14,20 @@
 #ifndef ALSA_CAPTURE
 #define ALSA_CAPTURE
 
+#include <list>
+
 #include <alsa/asoundlib.h>
 #include "logger.h"
 
 struct ALSACaptureParameters 
 {
-	ALSACaptureParameters(const char* devname, snd_pcm_format_t fmt, unsigned int sampleRate, unsigned int channels, int verbose) : 
-		m_devName(devname), m_fmt(fmt), m_sampleRate(sampleRate), m_channels(channels), m_verbose(verbose) {};
+	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels, int verbose) : 
+		m_devName(devname), m_formatList(formatList), m_sampleRate(sampleRate), m_channels(channels), m_verbose(verbose) {
+			
+	}
 		
 	std::string      m_devName;
-	snd_pcm_format_t m_fmt;
+	std::list<snd_pcm_format_t> m_formatList;		
 	unsigned int     m_sampleRate;
 	unsigned int     m_channels;
 	int              m_verbose;
@@ -38,6 +42,7 @@ class ALSACapture
 	
 	protected:
 		ALSACapture(const ALSACaptureParameters & params);
+		int configureFormat(snd_pcm_hw_params_t *hw_params);
 			
 	public:
 		virtual size_t read(char* buffer, size_t bufferSize);		
@@ -55,6 +60,7 @@ class ALSACapture
 		unsigned long         m_bufferSize;
 		unsigned long         m_periodSize;
 		ALSACaptureParameters m_params;
+		snd_pcm_format_t      m_fmt;
 };
 
 #endif

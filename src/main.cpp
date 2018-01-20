@@ -370,8 +370,9 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 int main(int argc, char** argv) 
 {
 	// default parameters
-	const char *dev_name = "/dev/video0";	
-	std::list<unsigned int> formatList;
+	const char *dev_name = "/dev/video0,/dev/video0";	
+	unsigned int format = ~0;
+	std::list<unsigned int> videoformatList;
 	int width = 0;
 	int height = 0;
 	int queueSize = 10;
@@ -396,9 +397,9 @@ int main(int argc, char** argv)
 	std::list<std::string> userPasswordList;
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
-	unsigned int format = ~0;
 #ifdef HAVE_ALSA	
-	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_S16_BE;
+	std::list<snd_pcm_format_t> audioFmtList;
+	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
 #endif	
 	const char* defaultPort = getenv("PORT");
 	if (defaultPort != NULL) {
@@ -435,7 +436,7 @@ int main(int argc, char** argv)
 			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = decodeVideoFormat(optarg); if (format) {formatList.push_back(format);};  break;
+			case 'f':	format    = decodeVideoFormat(optarg); if (format) {videoformatList.push_back(format);};  break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
@@ -444,7 +445,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_ALSA	
 			case 'A':	audioFreq = atoi(optarg); break;
 			case 'C':	audioNbChannels = atoi(optarg); break;
-			case 'a':	audioFmt = decodeAudioFormat(optarg); break;
+			case 'a':	audioFmt = decodeAudioFormat(optarg); if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {audioFmtList.push_back(audioFmt);} ; break;
 #endif			
 			
 			// version
@@ -512,11 +513,18 @@ int main(int argc, char** argv)
 	}
 	
 	// default format tries
-	if ((formatList.empty()) && (format!=0)) {
-		std::cout << "use default format H264/MJPEG" << std::endl;
-		formatList.push_back(V4L2_PIX_FMT_H264);
-		formatList.push_back(V4L2_PIX_FMT_MJPEG);
+	if ((videoformatList.empty()) && (format!=0)) {
+		videoformatList.push_back(V4L2_PIX_FMT_H264);
+		videoformatList.push_back(V4L2_PIX_FMT_MJPEG);
 	}
+
+#ifdef HAVE_ALSA	
+	// default audio format tries
+	if (audioFmtList.empty()) {
+		audioFmtList.push_back(SND_PCM_FORMAT_S16_LE);
+		audioFmtList.push_back(SND_PCM_FORMAT_S16_BE);
+	}
+#endif	
 	
 	// init logger
 	initLogger(verbose);
@@ -570,7 +578,7 @@ int main(int argc, char** argv)
 				// Init video capture
 				LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
 				
-				V4L2DeviceParameters param(videoDev.c_str(), formatList, width, height, fps, verbose);
+				V4L2DeviceParameters param(videoDev.c_str(), videoformatList, width, height, fps, verbose);
 				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
 				if (videoCapture)
 				{
@@ -623,7 +631,7 @@ int main(int argc, char** argv)
 				// Init audio capture
 				LOG(NOTICE) << "Create ALSA Source..." << audioDev;
 				
-				ALSACaptureParameters param(audioDev.c_str(), audioFmt, audioFreq, audioNbChannels, verbose);
+				ALSACaptureParameters param(audioDev.c_str(), audioFmtList, audioFreq, audioNbChannels, verbose);
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{

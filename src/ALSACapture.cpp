@@ -69,8 +69,7 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 		LOG(ERROR) << "cannot set access type device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
 		this->close();
 	}
-	else if ((err = snd_pcm_hw_params_set_format (m_pcm, hw_params, m_params.m_fmt)) < 0) {
-		LOG(ERROR) << "cannot set sample format device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
+	else if (this->configureFormat(hw_params) < 0) {
 		this->close();
 	}
 	else if ((err = snd_pcm_hw_params_set_rate_near (m_pcm, hw_params, &m_params.m_sampleRate, 0)) < 0) {
@@ -105,13 +104,31 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 	LOG(NOTICE) << "ALSA device: \"" << m_params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize << " rate:" << m_params.m_sampleRate;
 }
 			
+int ALSACapture::configureFormat(snd_pcm_hw_params_t *hw_params) {
+	
+	// try to set format, widht, height
+	std::list<snd_pcm_format_t>::iterator it;
+	for (it = m_params.m_formatList.begin(); it != m_params.m_formatList.end(); ++it) {
+		snd_pcm_format_t format = *it;
+		int err = snd_pcm_hw_params_set_format (m_pcm, hw_params, format);
+		if (err < 0) {
+			LOG(NOTICE) << "cannot set sample format device: " << m_params.m_devName << " to:" << format << " error:" <<  snd_strerror (err);
+		} else {
+			LOG(NOTICE) << "set sample format device: " << m_params.m_devName << " to:" << format << " ok";
+			m_fmt = format;
+			return 0;
+		}		
+	}
+	return -1;
+}
+
 size_t ALSACapture::read(char* buffer, size_t bufferSize)
 {
 	size_t size = 0;
 	int fmt_phys_width_bytes = 0;
 	if (m_pcm != 0)
 	{
-		int fmt_phys_width_bits = snd_pcm_format_physical_width(m_params.m_fmt);
+		int fmt_phys_width_bits = snd_pcm_format_physical_width(m_fmt);
 		fmt_phys_width_bytes = fmt_phys_width_bits / 8;
 
 		snd_pcm_sframes_t ret = snd_pcm_readi (m_pcm, buffer, m_periodSize*fmt_phys_width_bytes);
@@ -120,7 +137,7 @@ size_t ALSACapture::read(char* buffer, size_t bufferSize)
 			size = ret;				
 			
 			// swap if capture in not in network order
-			if (!snd_pcm_format_big_endian(m_params.m_fmt)) {
+			if (!snd_pcm_format_big_endian(m_fmt)) {
 				for(unsigned int i = 0; i < size; i++){
 					char * ptr = &buffer[i * fmt_phys_width_bytes * m_params.m_channels];
 					
