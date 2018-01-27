@@ -10,6 +10,7 @@ set(CMAKE_BUILD_TYPE DEBUG)
 set(CMAKE_C_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 
+# set version based on git
 find_package(Git)
 if(GIT_FOUND)
     EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -29,6 +30,10 @@ if (COVERAGE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_FLAGS}")
 	target_link_libraries(${PROJECT_NAME} gcov)
 endif()
+
+message(STATUS "CMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
+message(STATUS "CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+message(STATUS "CMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH}")
 
 # v4l2wrapper
 include_directories("v4l2wrapper/inc")
