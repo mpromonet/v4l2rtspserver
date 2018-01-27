@@ -5,14 +5,14 @@ env:
   matrix:
     - TOOLCHAIN=
     - TOOLCHAIN=raspberry.toolchain
-    - TOOLCHAIN=mips.toolchain
+#    - TOOLCHAIN=mips.toolchain
 addons:
   coverity_scan:
     project:
       name: mpromonet/v4l2rtspserver
     build_command_prepend: cmake .
     build_command: make
-    branch_pattern: coverity_scan
+    branch_pattern: master
     notification_email: scan_notifications@example.com
   apt:
     packages:
@@ -21,7 +21,7 @@ addons:
       - liblog4cpp5-dev
       - liblivemedia-dev
       - libasound2-dev
-      - g++-mips-linux-gnu
+#      - g++-mips-linux-gnu
 before_install:
   - pip install --user cpp-coveralls pyYaml
 language: cpp
