@@ -1,11 +1,11 @@
-dist: trusty
+dist: xenial
 env:
   global:
     - secure: jKV3Hj/lvoNjU2JUSUlLsLAHX+BI0R27+qTEPSihHpNGB+NOvbwlfpisrqxA/9nanVhtq9I3PJi2Jd5Pkg+3TkYvRq62ZT1Ty/DuxbQmMWlhEZT6wxbVS7919OZ3K0WAOizt3/HzSxL5XZheGRAKf89SoUF6mOP4V3DCh5rzze4=
   matrix:
     - TOOLCHAIN=
     - TOOLCHAIN=raspberry.toolchain
-#    - TOOLCHAIN=mips.toolchain
+    - TOOLCHAIN=mips.toolchain
 addons:
   coverity_scan:
     project:
@@ -21,7 +21,7 @@ addons:
       - liblog4cpp5-dev
       - liblivemedia-dev
       - libasound2-dev
-#      - g++-mips-linux-gnu
+      - g++-mips-linux-gnu
 before_install:
   - pip install --user cpp-coveralls pyYaml
 language: cpp
