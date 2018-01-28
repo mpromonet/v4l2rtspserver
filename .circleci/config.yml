@@ -5,5 +5,5 @@ jobs:
       - image: circleci/ubuntu-server
     steps:
       - checkout
-      - run: sudo apt-get update; sudo apt-get install -y --no-install-recommends autoconf automake libtool git make g++ liblog4cpp5-dev liblivemedia-dev
+      - run: sudo apt-get update; sudo apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++ liblog4cpp5-dev liblivemedia-dev
       - run: cmake . && make && cpack .
