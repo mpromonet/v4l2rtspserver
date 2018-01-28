@@ -12,7 +12,7 @@ addons:
       name: mpromonet/v4l2rtspserver
     build_command_prepend: cmake .
     build_command: make
-    branch_pattern: master
+    branch_pattern: coverage
     notification_email: scan_notifications@example.com
   apt:
     packages:
@@ -29,8 +29,7 @@ compiler: gcc
 script:
   - echo "TOOLCHAIN=$TOOLCHAIN"
   - if [ "$TOOLCHAIN" == "raspberry.toolchain" ]; then git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools && export PATH=$PATH:$(pwd)/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin ; fi
-  - if [ "$TOOLCHAIN" != "" ]; then cmake -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN . ; fi
-  - if [ "$TOOLCHAIN" == "" ]; then cmake .; fi
+  - if [ "${TOOLCHAIN}" != "" ]; then cmake -DCMAKE_TOOLCHAIN_FILE=$(pwd)/${TOOLCHAIN} . ; else cmake . ; fi
   #build 
   - make 
   - cpack .
