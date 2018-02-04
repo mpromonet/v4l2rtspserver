@@ -38,7 +38,7 @@ jobs:
       - run: cpack -G TGZ .
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
 
-  artifact:
+  build_artifact:
     working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
@@ -53,7 +53,7 @@ workflows:
       - build_x86_64
       - build_rpi
       - build_mips
-      - artifact:
+      - build_artifact:
         requires:
           - build_x86_64
           - build_rpi
