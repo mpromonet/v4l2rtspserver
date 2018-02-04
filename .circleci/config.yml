@@ -9,6 +9,6 @@ jobs:
       - run: cmake . && make
       - run: cpack .
       - run: cpack -G TGZ .
-      - run: mkdir pkg && cp *.deb pkg && cp *.tgz pkg
+      - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
       - store_artifacts:
           path: pkg       
