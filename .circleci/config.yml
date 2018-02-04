@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build_x86_64:
-    working_directory: ~/${CIRCLE_PROJECT_REPONAME}
+    working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
     steps:
@@ -15,7 +15,7 @@ jobs:
           path: pkg       
 
   build_rpi:
-    working_directory: ~/${CIRCLE_PROJECT_REPONAME}
+    working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
     steps:
@@ -31,7 +31,7 @@ jobs:
           path: pkg
 
   build_mips:
-    working_directory: ~/${CIRCLE_PROJECT_REPONAME}
+    working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
     steps:
