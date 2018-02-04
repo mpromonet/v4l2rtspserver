@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_x86_64:
     docker:
       - image: heroku/heroku:16
     steps:
@@ -12,3 +12,26 @@ jobs:
       - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
       - store_artifacts:
           path: pkg       
+
+  build_rpi:
+    docker:
+      - image: heroku/heroku:16
+    steps:
+      - checkout
+      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make 
+      - run: git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools 
+      - run: echo 'export PATH=${CIRCLE_WORKING_DIRECTORY}/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH' >> $BASH_ENV
+      - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
+      - run: cpack .
+      - run: cpack -G TGZ .
+      - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
+      - store_artifacts:
+          path: pkg
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build_x86_64
+      - build_rpi
