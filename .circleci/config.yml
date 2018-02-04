@@ -56,7 +56,7 @@ jobs:
       - image: heroku/heroku:16
     steps:
       - attach_workspace:
-          at: /distrib
+          at: /
       - store_artifacts:
           path: /distrib
 
