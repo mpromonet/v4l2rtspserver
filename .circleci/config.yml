@@ -54,7 +54,7 @@ workflows:
       - build_rpi
       - build_mips
       - build_artifact:
-        requires:
-          - build_x86_64
-          - build_rpi
-          - build_mips
+          requires:
+            - build_x86_64
+            - build_rpi
+            - build_mips
