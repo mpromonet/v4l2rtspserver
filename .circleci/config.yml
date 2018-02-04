@@ -10,9 +10,7 @@ jobs:
       - run: cmake . && make
       - run: cpack .
       - run: cpack -G TGZ .
-      - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
-      - store_artifacts:
-          path: pkg       
+      - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
 
   build_rpi:
     working_directory: ~/v4l2rtspServer
@@ -26,9 +24,7 @@ jobs:
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
       - run: cpack .
       - run: cpack -G TGZ .
-      - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
-      - store_artifacts:
-          path: pkg
+      - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
 
   build_mips:
     working_directory: ~/v4l2rtspServer
@@ -40,10 +36,15 @@ jobs:
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/mips.toolchain . && make
       - run: cpack .
       - run: cpack -G TGZ .
-      - run: mkdir pkg && cp *.deb pkg && cp *.tar.gz pkg
-      - store_artifacts:
-          path: pkg
+      - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
 
+  artifact:
+    working_directory: ~/v4l2rtspServer
+    docker:
+      - image: heroku/heroku:16
+    steps:
+      - store_artifacts:
+          path: /distrib
 
 workflows:
   version: 2
@@ -52,3 +53,8 @@ workflows:
       - build_x86_64
       - build_rpi
       - build_mips
+      - artifact:
+        requires:
+          - build_x86_64
+          - build_rpi
+          - build_mips
