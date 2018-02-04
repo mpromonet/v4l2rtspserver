@@ -6,7 +6,9 @@ jobs:
     steps:
       - checkout
       - run: sudo apt-get update; sudo apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++ liblog4cpp5-dev liblivemedia-dev
-      - run: cmake . && make && cpack .
+      - run: cmake . && make
+      - run: cpack .
+      - run: cpack -G TGZ .
       - run: mkdir pkg && cp *.deb pkg && cp *.tgz pkg
       - store_artifacts:
           path: pkg       
