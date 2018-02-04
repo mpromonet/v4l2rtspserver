@@ -9,4 +9,4 @@ jobs:
       - run: cmake . && make && cpack .
       - run: mkdir pkg && cp *.deb pkg && cp *.tgz pkg
       - store_artifacts:
-        path: pkg       
+          path: pkg       
