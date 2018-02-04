@@ -11,6 +11,9 @@ jobs:
       - run: cpack .
       - run: cpack -G TGZ .
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
+      - persist_to_workspace:
+          root: /distrib
+          path: *
 
   build_rpi:
     working_directory: ~/v4l2rtspServer
@@ -25,6 +28,9 @@ jobs:
       - run: cpack .
       - run: cpack -G TGZ .
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
+      - persist_to_workspace:
+          root: /distrib
+          path: *
 
   build_mips:
     working_directory: ~/v4l2rtspServer
@@ -37,12 +43,17 @@ jobs:
       - run: cpack .
       - run: cpack -G TGZ .
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
+      - persist_to_workspace:
+          root: /distrib
+          path: *
 
   build_artifact:
     working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
     steps:
+      - attach_workspace:
+          at: /distrib
       - store_artifacts:
           path: /distrib
 
