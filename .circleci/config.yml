@@ -13,7 +13,8 @@ jobs:
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
       - persist_to_workspace:
           root: /distrib
-          path: *
+          paths:
+            - *
 
   build_rpi:
     working_directory: ~/v4l2rtspServer
@@ -30,7 +31,8 @@ jobs:
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
       - persist_to_workspace:
           root: /distrib
-          path: *
+          paths:
+            - *
 
   build_mips:
     working_directory: ~/v4l2rtspServer
@@ -45,7 +47,8 @@ jobs:
       - run: mkdir -p /distrib && cp *.deb /distrib && cp *.tar.gz /distrib
       - persist_to_workspace:
           root: /distrib
-          path: *
+          paths:
+            - *
 
   build_artifact:
     working_directory: ~/v4l2rtspServer
