@@ -15,6 +15,9 @@ addons:
     branch_pattern: coverage
     notification_email: scan_notifications@example.com
   apt:
+    sources:
+      - deadsnakes
+      - ubuntu-toolchain-r-test
     packages:
       - git
       - cmake 
