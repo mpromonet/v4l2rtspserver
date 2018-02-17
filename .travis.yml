@@ -26,6 +26,8 @@ addons:
       - libasound2-dev
       - g++-mips-linux-gnu
 before_install:
+  - sudo apt-get update
+  - sudo apt-get install g++-mips-linux-gnu
   - pip install --user cpp-coveralls pyYaml
 language: cpp
 compiler: gcc
