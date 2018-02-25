@@ -395,9 +395,9 @@ int main(int argc, char** argv)
 	unsigned int hlsSegment = 0;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
+#ifdef HAVE_ALSA	
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
-#ifdef HAVE_ALSA	
 	std::list<snd_pcm_format_t> audioFmtList;
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
 #endif	
