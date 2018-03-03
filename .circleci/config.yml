@@ -47,7 +47,7 @@ jobs:
           paths:
             - distrib 
 
-  build_artifact:
+  store_artifact:
     working_directory: ~/v4l2rtspServer
     docker:
       - image: heroku/heroku:16
@@ -56,16 +56,51 @@ jobs:
           at: /
       - store_artifacts:
           path: /distrib
+          
+  github_release:
+    working_directory: ~/v4l2rtspServer
+    docker:
+      - image: heroku/heroku:16
+    steps:
+      - attach_workspace:
+          at: /
+      - run: go get github.com/tcnksm/ghr
+      - deploy:
+          name: "Deploy to Github"
+          command: ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` /distrib
+
 
 workflows:
   version: 2
   build:
     jobs:
-      - build_x86_64
-      - build_rpi
-      - build_mips
-      - build_artifact:
+      - build_x86_64:
+          filters:
+            tags:
+              only: /.*/      
+      - build_rpi:
+          filters:
+            tags:
+              only: /.*/      
+      - build_mips:
+          filters:
+            tags:
+              only: /.*/      
+      - store_artifact:
           requires:
             - build_x86_64
             - build_rpi
             - build_mips
+          filters:
+            tags:
+              only: /.*/      
+      - github_release:
+          requires:
+            - build_x86_64
+            - build_rpi
+            - build_mips
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
