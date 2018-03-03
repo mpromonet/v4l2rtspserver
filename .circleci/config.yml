@@ -69,7 +69,7 @@ jobs:
       - run: go get github.com/tcnksm/ghr
       - deploy:
           name: "Deploy to Github"
-          command: ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` /distrib
+          command: ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME $CIRCLE_TAG /distrib
 
 
 workflows:
