@@ -127,9 +127,13 @@ FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterf
 			source = muxer;
 		}
 	}
-	else
+	else if (!muxTS)
 	{
 		source = V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread);
+	}
+	else 
+	{
+		LOG(ERROR) << "TS in nor compatible with format";
 	}
 	return source;
 }
@@ -408,7 +412,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::" "R:U:" "rwsf::F:W:H:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -440,6 +444,7 @@ int main(int argc, char** argv)
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
+			case 'G':   sscanf(optarg,"%dx%dx%d", &width, &height, &fps); break;
 			
 			// ALSA
 #ifdef HAVE_ALSA	
@@ -461,40 +466,41 @@ int main(int argc, char** argv)
 				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
 				std::cout << "\t          [-I interface] [-P RTSP port] [-p RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] [-T] [-S[duration]]" << std::endl;
 				std::cout << "\t          [-r] [-w] [-s] [-f[format] [-W width] [-H height] [-F fps] [device] [device]"                        << std::endl;
-				std::cout << "\t -v        : verbose"                                                                                          << std::endl;
-				std::cout << "\t -vv       : very verbose"                                                                                     << std::endl;
-				std::cout << "\t -Q length : Number of frame queue  (default "<< queueSize << ")"                                              << std::endl;
-				std::cout << "\t -O output : Copy captured frame to a file or a V4L2 device"                                                   << std::endl;
+				std::cout << "\t -v               : verbose"                                                                                          << std::endl;
+				std::cout << "\t -vv              : very verbose"                                                                                     << std::endl;
+				std::cout << "\t -Q <length>      : Number of frame queue  (default "<< queueSize << ")"                                              << std::endl;
+				std::cout << "\t -O <output>      : Copy captured frame to a file or a V4L2 device"                                                   << std::endl;
 				
-				std::cout << "\t RTSP/RTP options :"                                                                                           << std::endl;
-				std::cout << "\t -I addr   : RTSP interface (default autodetect)"                                                              << std::endl;
-				std::cout << "\t -P port   : RTSP port (default "<< rtspPort << ")"                                                            << std::endl;
-				std::cout << "\t -p port   : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"                                          << std::endl;
-				std::cout << "\t -U user:password : RTSP user and password"                                                                    << std::endl;
-				std::cout << "\t -R realm  : use md5 password 'md5(<username>:<realm>:<password>')"                                            << std::endl;
-				std::cout << "\t -u url    : unicast url (default " << url << ")"                                                              << std::endl;
-				std::cout << "\t -m url    : multicast url (default " << murl << ")"                                                           << std::endl;
-				std::cout << "\t -M addr   : multicast group:port (default is random_address:20000)"                                           << std::endl;
-				std::cout << "\t -c        : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
-				std::cout << "\t -t timeout: RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
-				std::cout << "\t -T        : send Transport Stream instead of elementary Stream"                                               << std::endl;				
-				std::cout << "\t -S[duration]: enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")" << std::endl;
+				std::cout << "\t RTSP/RTP options"                                                                                           << std::endl;
+				std::cout << "\t -I <addr>        : RTSP interface (default autodetect)"                                                              << std::endl;
+				std::cout << "\t -P <port>        : RTSP port (default "<< rtspPort << ")"                                                            << std::endl;
+				std::cout << "\t -p <port>        : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"                                          << std::endl;
+				std::cout << "\t -U <user>:<pass> : RTSP user and password"                                                                    << std::endl;
+				std::cout << "\t -R <realm>       : use md5 password 'md5(<username>:<realm>:<password>')"                                            << std::endl;
+				std::cout << "\t -u <url>         : unicast url (default " << url << ")"                                                              << std::endl;
+				std::cout << "\t -m <url>         : multicast url (default " << murl << ")"                                                           << std::endl;
+				std::cout << "\t -M <addr>        : multicast group:port (default is random_address:20000)"                                           << std::endl;
+				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
+				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
+				std::cout << "\t -T               : send Transport Stream instead of elementary Stream"                                               << std::endl;				
+				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")" << std::endl;
 				
-				std::cout << "\t V4L2 options :"                                                                                               << std::endl;
-				std::cout << "\t -r        : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
-				std::cout << "\t -w        : V4L2 capture using write interface (default use memory mapped buffers)"                           << std::endl;
-				std::cout << "\t -s        : V4L2 capture using live555 mainloop (default use a reader thread)"                                << std::endl;
-				std::cout << "\t -f        : V4L2 capture using current capture format (-W,-H,-F are ignored)"                                 << std::endl;
-				std::cout << "\t -fformat  : V4L2 capture using format (-W,-H,-F are used)"                                                    << std::endl;
-				std::cout << "\t -W width  : V4L2 capture width (default "<< width << ")"                                                      << std::endl;
-				std::cout << "\t -H height : V4L2 capture height (default "<< height << ")"                                                    << std::endl;
-				std::cout << "\t -F fps    : V4L2 capture framerate (default "<< fps << ")"                                                    << std::endl;
+				std::cout << "\t V4L2 options"                                                                                               << std::endl;
+				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
+				std::cout << "\t -w               : V4L2 capture using write interface (default use memory mapped buffers)"                           << std::endl;
+				std::cout << "\t -s               : V4L2 capture using live555 mainloop (default use a reader thread)"                                << std::endl;
+				std::cout << "\t -f               : V4L2 capture using current capture format (-W,-H,-F are ignored)"                                 << std::endl;
+				std::cout << "\t -f<format>       : V4L2 capture using format (-W,-H,-F are used)"                                                    << std::endl;
+				std::cout << "\t -W <width>       : V4L2 capture width (default "<< width << ")"                                                      << std::endl;
+				std::cout << "\t -H <height>      : V4L2 capture height (default "<< height << ")"                                                    << std::endl;
+				std::cout << "\t -F <fps>         : V4L2 capture framerate (default "<< fps << ")"                                                    << std::endl;
+				std::cout << "\t -G <w>x<h>[x<f>] : V4L2 capture format (default "<< width << "x" << height << "x" << fps << ")"  << std::endl;
 				
 #ifdef HAVE_ALSA	
-				std::cout << "\t ALSA options :"                                                                                               << std::endl;
-				std::cout << "\t -A freq    : ALSA capture frequency and channel (default " << audioFreq << ")"                                << std::endl;
-				std::cout << "\t -C channels: ALSA capture channels (default " << audioNbChannels << ")"                                       << std::endl;
-				std::cout << "\t -a fmt     : ALSA capture audio format (default S16_BE)"                                                      << std::endl;
+				std::cout << "\t ALSA options"                                                                                               << std::endl;
+				std::cout << "\t -A freq          : ALSA capture frequency and channel (default " << audioFreq << ")"                                << std::endl;
+				std::cout << "\t -C channels      : ALSA capture channels (default " << audioNbChannels << ")"                                       << std::endl;
+				std::cout << "\t -a fmt           : ALSA capture audio format (default S16_BE)"                                                      << std::endl;
 #endif
 				
 				std::cout << "\t Devices :"                                                                                                    << std::endl;
