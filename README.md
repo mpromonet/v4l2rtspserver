@@ -155,3 +155,23 @@ It is now possible to play HLS url directly from browser :
  * using Chrome installing [Native HLS playback](https://chrome.google.com/webstore/detail/native-hls-playback/emnphkkblegpebimobpbekeedfgemhof)
 
 There is also a small HTML page that use hls.js and dash.js, but dash still not work because player doesnot support MP2T format.
+
+Using Docker image
+===============
+You can start the application using the docker image :
+
+        docker run -p 8554:8554 -it mpromonet/v4l2rtspserver
+
+You can expose V4L2 devices from your host using :
+
+        docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver
+
+The container entry point is the v4l2rtspserver application, then you can :
+
+* get the help using :
+
+        docker run -it mpromonet/v4l2rtspserver -h
+
+* run the container registering a RTSP url using :
+
+        docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver -u "" -H640 -H480 
