@@ -22,7 +22,7 @@ The RTSP server support :
 - RTP/TCP
 - RTP/RTSP/HTTP
 
-The HTTP server support :
+The HTTP server support (available using -S option for compatible cpature format):
 - HLS
 - MPEG-DASH
 
@@ -172,6 +172,6 @@ The container entry point is the v4l2rtspserver application, then you can :
 
         docker run -it mpromonet/v4l2rtspserver -h
 
-* run the container registering a RTSP url using :
+* run the container specifying some paramters :
 
         docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver -u "" -H640 -H480 
