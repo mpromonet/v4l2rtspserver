@@ -232,6 +232,24 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 	}
 	return audioFmt;
 }
+std::string getRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
+{
+	std::ostringstream os;
+	os << "audio/";
+	switch (format) {
+		case SND_PCM_FORMAT_S32_BE:
+		case SND_PCM_FORMAT_S32_LE:
+			os << "L32"
+			break;
+		case SND_PCM_FORMAT_S8:
+			os << "L8"
+			break;
+		default:
+			os << "L16"
+			break;
+	}
+	os << "/" << sampleRate << "/" << channels;
+}
 #endif
 
 // -------------------------------------------------------
@@ -651,9 +669,7 @@ int main(int argc, char** argv)
 					}
 					else
 					{
-						std::ostringstream os;
-						os << "audio/L16/" << audioCapture->getSampleRate() << "/" << audioCapture->getChannels();
-						rtpAudioFormat.assign(os.str());
+						rtpAudioFormat.assign(getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
 						
 						// extend buffer size if needed
 						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)

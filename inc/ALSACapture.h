@@ -52,8 +52,9 @@ class ALSACapture
 		virtual int getWidth()  {return -1;}
 		virtual int getHeight() {return -1;}	
 		
-		unsigned long getSampleRate() { return m_params.m_sampleRate; };
-		unsigned long getChannels  () { return m_params.m_channels; };
+		unsigned long getSampleRate() { return m_params.m_sampleRate; }
+		unsigned long getChannels  () { return m_params.m_channels;   }
+		snd_pcm_format_t getFormat () { return m_fmt;                 }
 		
 	private:
 		snd_pcm_t*            m_pcm;
