@@ -173,7 +173,7 @@ int addSession(RTSPServer* rtspServer, const std::string & sessionName, const st
 // -----------------------------------------
 //    convert V4L2 pix format to RTP mime
 // -----------------------------------------
-std::string getRtpFormat(int format, bool muxTS)
+std::string getVideoRtpFormat(int format, bool muxTS)
 {
 	std::string rtpFormat;
 	if (muxTS)
@@ -221,34 +221,41 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 		audioFmt = SND_PCM_FORMAT_S16_BE;
 	} else if (fmt == "S16_LE") {
 		audioFmt = SND_PCM_FORMAT_S16_LE;
+	} else if (fmt == "S24_BE") {
+		audioFmt = SND_PCM_FORMAT_S24_BE;
+	} else if (fmt == "S24_LE") {
+		audioFmt = SND_PCM_FORMAT_S24_LE;
 	} else if (fmt == "S32_BE") {
 		audioFmt = SND_PCM_FORMAT_S32_BE;
 	} else if (fmt == "S32_LE") {
 		audioFmt = SND_PCM_FORMAT_S32_LE;
-	} else if (fmt == "U8") {
-		audioFmt = SND_PCM_FORMAT_U8;
 	} else if (fmt == "S8") {
 		audioFmt = SND_PCM_FORMAT_S8;
 	}
 	return audioFmt;
 }
-std::string getRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
+std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
 {
 	std::ostringstream os;
 	os << "audio/";
 	switch (format) {
+		case SND_PCM_FORMAT_S8:
+			os << "L8";
+			break;
+		case SND_PCM_FORMAT_S24_BE:
+		case SND_PCM_FORMAT_S24_LE:
+			os << "L24";
+			break;
 		case SND_PCM_FORMAT_S32_BE:
 		case SND_PCM_FORMAT_S32_LE:
-			os << "L32"
-			break;
-		case SND_PCM_FORMAT_S8:
-			os << "L8"
+			os << "L32";
 			break;
 		default:
-			os << "L16"
+			os << "L16";
 			break;
 	}
 	os << "/" << sampleRate << "/" << channels;
+	return os.str();
 }
 #endif
 
@@ -620,7 +627,7 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					rtpFormat.assign(getRtpFormat(videoCapture->getFormat(), muxTS));
+					rtpFormat.assign(getVideoRtpFormat(videoCapture->getFormat(), muxTS));
 					if (rtpFormat.empty()) {
 						LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 						delete videoCapture;
