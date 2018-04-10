@@ -69,7 +69,7 @@ Usage
 		 ALSA options :
 		 -A freq    : ALSA capture frequency and channel (default 44100)
 		 -C channels: ALSA capture channels (default 2)
-		 -a fmt     : ALSA capture audio format (default S16_BE)
+		 -a fmt     : ALSA capture audio format (default S16_LE)
 		 
 		 device   : V4L2 capture device and/or ALSA device (default /dev/video0)
 
