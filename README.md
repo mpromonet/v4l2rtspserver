@@ -91,19 +91,11 @@ It is possible to compose the RTSP session is different ways :
 
 Build
 ------- 
-- Before build (optional)
-	The build try to install live555 package using apt-get, however in order to install live555 disabling check of port reuse, you can proceed like this:
-
-		wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xvzf -
-		cd live
-		./genMakefiles linux
-		sudo make CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 install
-
 - Build  
 
 		cmake . && make
 
-	If it fails you will need to install liblivemedia-dev liblog4cpp5-dev.  
+	If live555 is not installed it will download it from live555.com and compile it. If asound is not installed, ALSA will be disabled.  
 	If it still not work you will need to read Makefile.  
 
 - Install (optional) 
