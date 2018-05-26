@@ -229,6 +229,10 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 		audioFmt = SND_PCM_FORMAT_S32_BE;
 	} else if (fmt == "S32_LE") {
 		audioFmt = SND_PCM_FORMAT_S32_LE;
+	} else if (fmt == "ALAW") {
+		audioFmt = SND_PCM_FORMAT_A_LAW;
+	} else if (fmt == "MULAW") {
+		audioFmt = SND_PCM_FORMAT_MU_LAW;
 	} else if (fmt == "S8") {
 		audioFmt = SND_PCM_FORMAT_S8;
 	}
@@ -239,6 +243,12 @@ std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int chann
 	std::ostringstream os;
 	os << "audio/";
 	switch (format) {
+		case SND_PCM_FORMAT_A_LAW:
+			os << "PCMA";
+			break;
+		case SND_PCM_FORMAT_MU_LAW:
+			os << "PCMU";
+			break;
 		case SND_PCM_FORMAT_S8:
 			os << "L8";
 			break;
