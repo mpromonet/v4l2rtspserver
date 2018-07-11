@@ -22,7 +22,7 @@ The RTSP server support :
 - RTP/TCP
 - RTP/RTSP/HTTP
 
-The HTTP server support (available using -S option for compatible cpature format):
+The HTTP server support (available using -S option for capture format that could be muxed in Transport Stream):
 - HLS
 - MPEG-DASH
 
