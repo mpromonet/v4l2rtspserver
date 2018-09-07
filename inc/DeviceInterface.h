@@ -23,6 +23,7 @@ class DeviceInterface
 		virtual unsigned long getBufferSize() = 0;
 		virtual int getWidth() = 0;	
 		virtual int getHeight() = 0;	
+		virtual int getCaptureFormat() = 0;
 		virtual ~DeviceInterface() {};
 };
 
@@ -40,8 +41,9 @@ class DeviceCaptureAccess : public DeviceInterface
 		virtual size_t read(char* buffer, size_t bufferSize) { return m_device->read(buffer, bufferSize); }
 		virtual int getFd()                                  { return m_device->getFd(); }
 		virtual unsigned long getBufferSize()                { return m_device->getBufferSize(); }
-		virtual int getWidth()                                  { return m_device->getWidth(); }
-		virtual int getHeight()                                  { return m_device->getHeight(); }
+		virtual int getWidth()                               { return m_device->getWidth(); }
+		virtual int getHeight()                              { return m_device->getHeight(); }
+		virtual int getCaptureFormat()                       { return m_device->getFormat(); }
 			
 	protected:
 		T* m_device;

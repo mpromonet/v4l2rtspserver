@@ -190,6 +190,7 @@ std::string getVideoRtpFormat(int format, bool muxTS)
 			case V4L2_PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
 			case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
 			case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
+			case V4L2_PIX_FMT_YUYV : rtpFormat = "video/RAW" ; break;
 		}
 	}
 	

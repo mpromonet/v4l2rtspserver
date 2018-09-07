@@ -27,7 +27,7 @@ FramedSource* UnicastServerMediaSubsession::createNewStreamSource(unsigned clien
 		
 RTPSink* UnicastServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource)
 {
-	return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format);
+	return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format, dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource()));
 }
 		
 char const* UnicastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)

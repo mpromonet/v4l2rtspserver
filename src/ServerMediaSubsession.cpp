@@ -8,7 +8,7 @@
 ** -------------------------------------------------------------------------*/
 
 #include <sstream>
-
+#include <linux/videodev2.h>
 
 // project
 #include "ServerMediaSubsession.h"
@@ -46,7 +46,7 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 	return source;
 }
 
-RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format)
+RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format, V4L2DeviceSource* source)
 {
 	RTPSink* videoSink = NULL;
 	if (format == "video/MP2T")
@@ -74,7 +74,21 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	else if (format == "video/JPEG")
 	{
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
-	}
+    } 
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1536192000	
+	else if (format =="video/RAW") 
+	{ 
+		std::string sampling;
+		switch (source->getCaptureFormat()) {
+			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
+			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
+		}
+		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getHeight(), source->getWidth(), 16, sampling.c_str());
+		if (videoSink) {
+			source->setAuxLine(videoSink->auxSDPLine());
+		}
+    } 
+#endif	
 	else if (format.find("audio/L16") == 0)
 	{
 		std::istringstream is(format);

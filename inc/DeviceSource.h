@@ -62,8 +62,10 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) ;
 		std::string getAuxLine() { return m_auxLine; };	
+		void setAuxLine(const std::string auxLine) { m_auxLine = auxLine; };	
 		int getWidth() { return m_device->getWidth(); };	
 		int getHeight() { return m_device->getHeight(); };	
+		int getCaptureFormat() { return m_device->getCaptureFormat(); };	
 
 	protected:
 		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread);
