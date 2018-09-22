@@ -83,7 +83,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
 			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
 		}
-		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getHeight(), source->getWidth(), 16, sampling.c_str());
+		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getHeight(), source->getWidth(), 8, sampling.c_str());
 		if (videoSink) {
 			source->setAuxLine(videoSink->auxSDPLine());
 		}
