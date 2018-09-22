@@ -6,8 +6,9 @@ project(${BASENAME})
 
 option(COVERAGE "Coverage" OFF)
 
+set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS "-Wall")
 SET(CMAKE_FIND_ROOT_PATH "${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_PROCESSOR}")
 
 # set version based on git
@@ -90,6 +91,7 @@ find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
 	include_directories(${LIBLIVE555_INCLUDE_DIR}/${LIBLIVE555_module}) 
 endforeach (LIBLIVE555_module)
+message(STATUS "live555 available '${LIBLIVE555_INCLUDE_DIR}'")
 
 set(LIBLIVE555_LIBRARIES "")
 foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
