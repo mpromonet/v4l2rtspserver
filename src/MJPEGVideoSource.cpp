@@ -38,7 +38,9 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		    LOG(NOTICE) << "not managed sampling:0x" << std::hex << hv_subsampling;
 		    m_type = 255;
 		}
-		LOG(INFO) << "width:" << (int)(m_width<<3) << " height:" << (int)(m_height<<3) << " type:"<< (int)m_type;
+		    
+		int precision = fTo[i+4];		        
+		LOG(INFO) << "width:" << (int)(m_width<<3) << " height:" << (int)(m_height<<3) << " type:"<< (int)m_type << " precision:" << precision;
 
 		i+=length+2;
 	    }
