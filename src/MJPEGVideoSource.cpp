@@ -51,10 +51,10 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 
 		unsigned int precision = (fTo[i+4]&0xf0)<<4;
 		unsigned int quantIdx  = fTo[i+4]&0x0f;
-		unsigned int quantSize = length-3;
+		unsigned int quantSize = length-4;
 		if (quantSize*quantIdx+quantSize <= sizeof(m_qTable)) {
 		    memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, quantSize);
-		    LOG(NOTICE) << "Quantization table idx:" << quantIdx << " precision:" << precision << " size:" << quantSize << " total size:" << m_qTableSize;
+		    LOG(DEBUG) << "Quantization table idx:" << quantIdx << " precision:" << precision << " size:" << quantSize << " total size:" << m_qTableSize;
 		    if (quantSize*quantIdx+quantSize > m_qTableSize) {
 			m_qTableSize = quantSize*quantIdx+quantSize;
 		    }
