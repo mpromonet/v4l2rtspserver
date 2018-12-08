@@ -43,7 +43,7 @@ class HLSServerMediaSubsession : public UnicastServerMediaSubsession
 			
 		public:
 			unsigned int getHLSBufferSize(unsigned int slice);
-			const char*  getHLSBuffer(unsigned int slice);			
+			std::string  getHLSBuffer(unsigned int slice);			
 			unsigned int firstTime();
 			unsigned int duration();
 			unsigned int getSliceDuration() 	{ return m_sliceDuration; }

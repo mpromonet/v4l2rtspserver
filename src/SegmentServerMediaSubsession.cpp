@@ -81,13 +81,14 @@ unsigned int HLSServerMediaSubsession::HLSSink::getHLSBufferSize(unsigned int sl
 	return size;
 }
 
-const char* HLSServerMediaSubsession::HLSSink::getHLSBuffer(unsigned int slice)
+std::string HLSServerMediaSubsession::HLSSink::getHLSBuffer(unsigned int slice)
 {
-	const char* content = NULL;
+	std::string content;
 	std::map<unsigned int,std::string>::iterator it = m_outputBuffers.find(slice);
 	if (it != m_outputBuffers.end())
 	{
-		content = it->second.c_str();
+		content = it->second;
+
 	}
 	return content;
 }
@@ -112,13 +113,90 @@ unsigned int HLSServerMediaSubsession::HLSSink::duration()
 	return (duration)*m_sliceDuration;
 }
 
+char marker[] = {0,0,0,1};
+class AddMarker : public FramedFilter {
+	public:
+		AddMarker (UsageEnvironment& env, FramedSource* inputSource): FramedFilter(env, inputSource) {
+			m_bufferSize = OutPacketBuffer::maxSize;
+			m_buffer = new unsigned char[m_bufferSize];
+		}
+		virtual ~AddMarker () {
+			delete [] m_buffer;
+		}
+		
+	private:
+
+		static void afterGettingFrame(void* clientData, unsigned frameSize,
+						 unsigned numTruncatedBytes,
+						 struct timeval presentationTime,
+						 unsigned durationInMicroseconds) {
+			AddMarker* sink = (AddMarker*)clientData;
+			sink->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime);
+		}
+				
+		void afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime) 
+		{
+			fPresentationTime = presentationTime;
+			fDurationInMicroseconds = 0;
+			if (numTruncatedBytes > 0) 
+			{
+				envir() << "AddMarker::afterGettingFrame(): The input frame data was too large for our buffer size truncated:" << numTruncatedBytes << " bufferSize:" << m_bufferSize << "\n";
+				m_bufferSize += numTruncatedBytes;
+				delete[] m_buffer;
+				m_buffer = new unsigned char[m_bufferSize];
+				fFrameSize = 0;
+			} else {
+				fFrameSize = frameSize + sizeof(marker);
+				if (fFrameSize > fMaxSize) {
+					fNumTruncatedBytes = fFrameSize - fMaxSize; 
+					envir() << "AddMarker::afterGettingFrame(): buffer too small truncated:" << fNumTruncatedBytes << " bufferSize:" << fFrameSize << "\n";
+				} else {
+					fNumTruncatedBytes = 0;
+					memcpy(fTo, marker, sizeof(marker));
+					memcpy(fTo+sizeof(marker), m_buffer, frameSize); 
+				}
+			}
+			afterGetting(this);
+		}
+		
+		virtual void doGetNextFrame() {
+			if (fInputSource != NULL) 
+			{
+				fInputSource->getNextFrame(m_buffer, m_bufferSize,
+						afterGettingFrame, this,
+						handleClosure, this);
+			}			
+		}
+		
+		unsigned char* m_buffer;
+		unsigned int m_bufferSize;
+};
+
 
 HLSServerMediaSubsession::HLSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration) 
-		: UnicastServerMediaSubsession(env, replicator, format), m_slice(0)
+		: UnicastServerMediaSubsession(env, replicator, "video/MP2T"), m_slice(0)
 {
 	// Create a source
-	FramedSource* source = replicator->createStreamReplica();			
-	FramedSource* videoSource = createSource(env, source, format);
+	FramedSource* source = replicator->createStreamReplica();
+	
+	
+	if (format == "video/H264") {
+		// add marker
+		FramedSource* filter = new AddMarker(env, source);
+		// mux to TS		
+		MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
+		muxer->addNewVideoSource(filter, 5);
+		source = muxer;
+	} else if (format == "video/H265") {
+		// add marker
+		FramedSource* filter = new AddMarker(env, source);
+		// mux to TS		
+		MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
+		muxer->addNewVideoSource(filter, 6);
+		source = muxer;
+	}
+	
+	FramedSource* videoSource = createSource(env, source, m_format);
 	
 	// Start Playing the HLS Sink
 	m_hlsSink = HLSSink::createNew(env, OutPacketBuffer::maxSize, sliceDuration);
@@ -145,14 +223,19 @@ void HLSServerMediaSubsession::seekStream(unsigned clientSessionId, void* stream
 	m_slice = seekNPT / m_hlsSink->getSliceDuration();
 	seekNPT = m_slice * m_hlsSink->getSliceDuration();
 	numBytes = m_hlsSink->getHLSBufferSize(m_slice);
-	std::cout << "seek seekNPT:" << seekNPT << " slice:" << m_slice << " numBytes:" << numBytes << std::endl;
-	
+	std::cout << "seek seekNPT:" << seekNPT << " slice:" << m_slice << " numBytes:" << numBytes << std::endl;	
 }	
 
 FramedSource* HLSServerMediaSubsession::getStreamSource(void* streamToken) 
 {
-	unsigned int size = m_hlsSink->getHLSBufferSize(m_slice);
-	u_int8_t* content = new u_int8_t[size];
-	memcpy(content, m_hlsSink->getHLSBuffer(m_slice), size);
-	return ByteStreamMemoryBufferSource::createNew(envir(), content, size);			
+	FramedSource* source = NULL;
+	
+	std::string buffer = m_hlsSink->getHLSBuffer(m_slice);
+	unsigned int size = buffer.size();
+	if ( size != 0 ) {
+		u_int8_t* content = new u_int8_t[size];
+		memcpy(content, buffer.c_str(), size);
+		source = ByteStreamMemoryBufferSource::createNew(envir(), content, size);			
+	}
+	return source;			
 }					

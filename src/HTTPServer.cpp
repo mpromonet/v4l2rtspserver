@@ -192,17 +192,19 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		os << "[\n";
 		bool first = true;
 		while ( (serverSession = it.next()) != NULL) {
-			if (first) 
-			{
-				first = false;
-				os << " ";					
+			if (serverSession->duration() > 0) {
+				if (first) 
+				{
+					first = false;
+					os << " ";					
+				}
+				else 
+				{
+					os << ",";					
+				}
+				os << "\"" << serverSession->streamName() << "\"";
+				os << "\n";
 			}
-			else 
-			{
-				os << ",";					
-			}
-			os << "\"" << serverSession->streamName() << "\"";
-			os << "\n";
 		}
 		os << "]\n";
 		std::string content(os.str());
