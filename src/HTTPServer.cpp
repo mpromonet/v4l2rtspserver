@@ -167,6 +167,57 @@ bool HTTPServer::HTTPClientConnection::sendMpdPlayList(char const* urlSuffix)
 	return true;
 }
 
+bool HTTPServer::HTTPClientConnection::sendFile(char const* urlSuffix)
+{
+	bool ok = false;
+	
+	std::string url(urlSuffix);
+	size_t pos = url.find_first_of(" ");
+	if (pos != std::string::npos)
+	{
+		url.erase(0,pos+1);
+	}
+	pos = url.find_first_of(" ");
+	if (pos != std::string::npos)
+	{
+		url.erase(pos);
+	}
+	pos = url.find_first_of("/");
+	if (pos != std::string::npos)
+	{
+		url.erase(0,1);
+	}
+	std::string pattern("../");
+	while ((pos = url.find(pattern, pos)) != std::string::npos) {
+		url.erase(pos, pattern.length());
+	}			
+	
+	std::string ext;
+	pos = url.find_last_of(".");
+	if (pos != std::string::npos)
+	{
+		ext.assign(url.substr(pos+1));
+	}
+	
+	if (url.empty())
+	{
+		url = "index.html"; 
+		ext = "html";
+	}
+	if (ext=="js") ext ="javascript";
+	std::ifstream file(url.c_str());
+	if (file.is_open())
+	{
+		envir() << "send file:" << url.c_str() <<"\n";
+		std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		std::string mime("text/");
+		mime.append(ext);
+		this->sendHeader(mime.c_str(), content.size());
+		this->streamSource(content);
+		ok = true;
+	}
+	return ok;
+}			
 		
 void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* fullRequestStr) 
 {
@@ -238,43 +289,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		if (!ok)
 		{
 			// send local files
-			std::string url(fullRequestStr);
-			size_t pos = url.find_first_of(" ");
-			if (pos != std::string::npos)
-			{
-				url.erase(0,pos+1);
-			}
-			pos = url.find_first_of(" ");
-			if (pos != std::string::npos)
-			{
-				url.erase(pos);
-			}
-			pos = url.find_first_of("/");
-			if (pos != std::string::npos)
-			{
-				url.erase(0,1);
-			}
-			std::string pattern("../");
-			while ((pos = url.find(pattern, pos)) != std::string::npos) {
-				url.erase(pos, pattern.length());
-			}			
-			if (url.empty())
-			{
-				url = "index.html"; 
-				ext = "html";
-			}
-			if (ext=="js") ext ="javascript";
-			std::ifstream file(url.c_str());
-			if (file.is_open())
-			{
-				envir() << "send file:" << url.c_str() <<"\n";
-				std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-				std::string mime("text/");
-				mime.append(ext);
-				this->sendHeader(mime.c_str(), content.size());
-				this->streamSource(content);
-				ok = true;
-			}
+			ok = this->sendFile(fullRequestStr);
 		}
 
 		if (!ok)

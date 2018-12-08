@@ -35,6 +35,7 @@ class HTTPServer : public RTSPServer
 			void streamSource(FramedSource* source);	
 			void streamSource(const std::string & content);
 			ServerMediaSubsession* getSubsesion(const char* urlSuffix);
+			bool sendFile(char const* urlSuffix);
 			bool sendM3u8PlayList(char const* urlSuffix);
 			bool sendMpdPlayList(char const* urlSuffix);
 			virtual void handleHTTPCmd_StreamingGET(char const* urlSuffix, char const* fullRequestStr);
