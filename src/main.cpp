@@ -409,7 +409,7 @@ int main(int argc, char** argv)
 	std::string maddr;
 	bool repeatConfig = true;
 	int timeout = 65;
-	int defaultHlsSegment = 5;
+	int defaultHlsSegment = 2;
 	unsigned int hlsSegment = 0;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;

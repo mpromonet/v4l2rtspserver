@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart=@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@ -S1
 WorkingDirectory=@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@
 
 [Install]
