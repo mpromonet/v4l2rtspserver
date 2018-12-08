@@ -40,7 +40,7 @@
 #include "ServerMediaSubsession.h"
 #include "UnicastServerMediaSubsession.h"
 #include "MulticastServerMediaSubsession.h"
-#include "SegmentServerMediaSubsession.h"
+#include "TSServerMediaSubsession.h"
 #include "HTTPServer.h"
 
 #ifdef HAVE_ALSA
@@ -705,7 +705,7 @@ int main(int argc, char** argv)
 				std::list<ServerMediaSubsession*> subSession;
 				if (videoReplicator)
 				{
-					subSession.push_back(HLSServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat, hlsSegment));				
+					subSession.push_back(TSServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat, hlsSegment));				
 				}
 				nbSource += addSession(rtspServer, baseUrl+tsurl, subSession);
 				
