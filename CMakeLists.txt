@@ -120,7 +120,7 @@ endif (SYSTEMD_FOUND)
 # package
 install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 install (FILES index.html DESTINATION share/${PROJECT_NAME}/)
-install (FILES hls.js/dist/hls.min.js DESTINATION share/${PROJECT_NAME}/hls.js/dist/)
+install (FILES hls.js/dist/hls.light.min.js DESTINATION share/${PROJECT_NAME}/hls.js/dist/)
 
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Michel Promonet") 

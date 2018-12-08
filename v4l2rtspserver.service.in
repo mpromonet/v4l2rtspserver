@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 Restart=always
-RestartSec=1
+RestartSec=5
 ExecStart=@CMAKE_INSTALL_PREFIX@/bin/v4l2rtspserver
 WorkingDirectory=@CMAKE_INSTALL_PREFIX@/share/v4l2rtspserver
 
