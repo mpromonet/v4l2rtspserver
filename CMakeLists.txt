@@ -82,7 +82,7 @@ find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
 if (NOT LIBLIVE555_INCLUDE_DIR)
         message(STATUS "Installing live555")
         EXEC_PROGRAM("wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xzf -")
-        EXEC_PROGRAM("cd live && ./genMakefiles linux-gdb && make CPLUSPLUS_COMPILER=${CMAKE_CXX_COMPILER} C_COMPILER=${CMAKE_C_COMPILER} LINK='${CMAKE_CXX_COMPILER} -o' CPPFLAGS=-DALLOW_RTSP_SERVER_PORT_REUSE=1 PREFIX=${CMAKE_FIND_ROOT_PATH} install")
+        EXEC_PROGRAM("cd live && ./genMakefiles linux-gdb && make CPLUSPLUS_COMPILER='${CMAKE_CXX_COMPILER} -DALLOW_RTSP_SERVER_PORT_REUSE=1' C_COMPILER=${CMAKE_C_COMPILER} LINK='${CMAKE_CXX_COMPILER} -o' PREFIX=${CMAKE_FIND_ROOT_PATH} install")
 endif (NOT LIBLIVE555_INCLUDE_DIR)
 
 find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
@@ -93,12 +93,13 @@ message(STATUS "live555 available '${LIBLIVE555_INCLUDE_DIR}'")
 
 set(LIBLIVE555_LIBRARIES "")
 foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
-	find_library( ${LIBLIVE555_module}_LIBRARY ${LIBLIVE555_module} )
+	find_library( ${LIBLIVE555_module}_LIBRARY ${LIBLIVE555_module} ONLY_CMAKE_FIND_ROOT_PATH)
 	if ( ${LIBLIVE555_module}_LIBRARY )
 		set(LIBLIVE555_LIBRARIES ${LIBLIVE555_LIBRARIES} ${${LIBLIVE555_module}_LIBRARY})
 	endif ( ${LIBLIVE555_module}_LIBRARY )
 endforeach (LIBLIVE555_module)
 target_link_libraries(${PROJECT_NAME} ${LIBLIVE555_LIBRARIES})
+message(STATUS "live555 available '${LIBLIVE555_LIBRARIES}'")
 
 #testing
 enable_testing()
