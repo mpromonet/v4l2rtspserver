@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build_x86_64:
-    working_directory: ~/v4l2rtspServer
+    working_directory: ~/v4l2rtspserver
     docker:
       - image: heroku/heroku:16
     steps:
@@ -16,7 +16,7 @@ jobs:
             - distrib 
 
   build_rpi:
-    working_directory: ~/v4l2rtspServer
+    working_directory: ~/v4l2rtspserver
     docker:
       - image: heroku/heroku:16
     steps:
@@ -33,7 +33,7 @@ jobs:
             - distrib 
 
   build_mips:
-    working_directory: ~/v4l2rtspServer
+    working_directory: ~/v4l2rtspserver
     docker:
       - image: heroku/heroku:16
     steps:
@@ -48,7 +48,7 @@ jobs:
             - distrib 
 
   store_artifact:
-    working_directory: ~/v4l2rtspServer
+    working_directory: ~/v4l2rtspserver
     docker:
       - image: heroku/heroku:16
     steps:
@@ -58,7 +58,7 @@ jobs:
           path: /distrib
           
   github_release:
-    working_directory: ~/v4l2rtspServer
+    working_directory: ~/v4l2rtspserver
     docker:
       - image: heroku/heroku:16
     steps:

@@ -6,8 +6,8 @@ After=network.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart=@CMAKE_INSTALL_PREFIX@/bin/v4l2rtspserver
-WorkingDirectory=@CMAKE_INSTALL_PREFIX@/share/v4l2rtspserver
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/@PROJECT_NAME@
+WorkingDirectory=@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@
 
 [Install]
 WantedBy=multi-user.target
