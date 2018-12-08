@@ -426,7 +426,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:TS::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -495,7 +495,6 @@ int main(int argc, char** argv)
 				std::cout << "\t -M <addr>        : multicast group:port (default is random_address:20000)"                                           << std::endl;
 				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
 				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
-				std::cout << "\t -T               : send Transport Stream instead of elementary Stream"                                               << std::endl;				
 				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")" << std::endl;
 				
 				std::cout << "\t V4L2 options"                                                                                               << std::endl;

@@ -53,7 +53,6 @@ Usage
 		 -M addr  : multicast group:port (default is random_address:20000)
 		 -c       : don't repeat config (default repeat config before IDR frame)
 		 -t secs  : RTCP expiration timeout (default 65)
-		 -T       : send Transport Stream instead of elementary Stream
 		 -S[secs] : HTTP segment duration (enable HLS & MPEG-DASH)
 		 
 		 V4L2 options :
