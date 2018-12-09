@@ -22,7 +22,6 @@ addons:
       - git
       - cmake 
       - liblog4cpp5-dev
-      - liblivemedia-dev
       - libasound2-dev
       - g++-mips-linux-gnu
 before_install:
