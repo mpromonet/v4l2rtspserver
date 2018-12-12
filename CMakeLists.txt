@@ -78,14 +78,14 @@ endif (LOG4CPP_INCLUDE_DIR)
 
 
 # live555
-find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
+find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh ONLY_CMAKE_FIND_ROOT_PATH)
 if (NOT LIBLIVE555_INCLUDE_DIR)
         message(STATUS "Installing live555")
         EXEC_PROGRAM("wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xzf -")
         EXEC_PROGRAM("cd live && ./genMakefiles linux-gdb && make CPLUSPLUS_COMPILER='${CMAKE_CXX_COMPILER} -DALLOW_RTSP_SERVER_PORT_REUSE=1' C_COMPILER=${CMAKE_C_COMPILER} LINK='${CMAKE_CXX_COMPILER} -o' PREFIX=${CMAKE_FIND_ROOT_PATH} install")
 endif (NOT LIBLIVE555_INCLUDE_DIR)
 
-find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh)
+find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh ONLY_CMAKE_FIND_ROOT_PATH)
 foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
 	include_directories(${LIBLIVE555_INCLUDE_DIR}/${LIBLIVE555_module}) 
 endforeach (LIBLIVE555_module)
