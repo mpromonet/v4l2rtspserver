@@ -18,6 +18,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include <pthread.h>
+
 // live555
 #include <liveMedia.hh>
 
