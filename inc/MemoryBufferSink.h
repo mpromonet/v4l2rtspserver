@@ -13,7 +13,6 @@
 
 #include <string>
 #include <map>
-#include <string>
 
 #include "MediaSink.hh"
 
