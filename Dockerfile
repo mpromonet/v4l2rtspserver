@@ -1,4 +1,4 @@
-FROM debian
+FROM debian as builder
 LABEL maintainer michel.promonet@free.fr
 
 WORKDIR /v4l2rtspserver
