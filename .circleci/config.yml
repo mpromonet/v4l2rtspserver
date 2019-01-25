@@ -1,9 +1,13 @@
+defaults: &defaults
+  working_directory: /v4l2rtspserver
+  docker:
+    - image: heroku/heroku:18
+
 version: 2
 jobs:
   build_x86_64:
-    working_directory: ~/v4l2rtspserver
-    docker:
-      - image: heroku/heroku:16
+    <<: *defaults
+
     steps:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++ liblog4cpp5-dev libasound2-dev pkg-config
@@ -16,9 +20,8 @@ jobs:
             - distrib 
 
   build_rpi:
-    working_directory: ~/v4l2rtspserver
-    docker:
-      - image: heroku/heroku:16
+    <<: *defaults
+
     steps:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
@@ -33,9 +36,8 @@ jobs:
             - distrib 
 
   build_mips:
-    working_directory: ~/v4l2rtspserver
-    docker:
-      - image: heroku/heroku:16
+    <<: *defaults
+
     steps:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++-mips-linux-gnu pkg-config
@@ -48,9 +50,8 @@ jobs:
             - distrib 
 
   store_artifact:
-    working_directory: ~/v4l2rtspserver
-    docker:
-      - image: heroku/heroku:16
+    <<: *defaults
+
     steps:
       - attach_workspace:
           at: /
@@ -58,9 +59,8 @@ jobs:
           path: /distrib
           
   github_release:
-    working_directory: ~/v4l2rtspserver
-    docker:
-      - image: heroku/heroku:16
+    <<: *defaults
+
     steps:
       - attach_workspace:
           at: /
@@ -70,6 +70,53 @@ jobs:
       - deploy:
           name: "Deploy to Github"
           command: ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME $CIRCLE_TAG /distrib
+
+  # -------------------------------------
+  # publish docker amd64
+  # -------------------------------------
+  publish_docker_linuxamd64:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - checkout
+      - run: git submodule update --init
+      - run:
+          command: |
+            sudo docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
+            sudo docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-amd64 -f Dockerfile .
+            sudo docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-amd64
+
+  # -------------------------------------
+  # publish docker arm
+  # -------------------------------------
+  publish_docker_linuxarm32v7:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - checkout
+      - run: git submodule update --init
+      - run:
+          command: |
+            sudo docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
+            sudo docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-arm32v7 -f Dockerfile.rpi .
+            sudo docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-arm32v7
+  # -------------------------------------
+  # publish docker manifest
+  # -------------------------------------
+  publish_docker_multiarch:
+    machine:
+      image: circleci/classic:201808-01
+    steps:
+      - run:
+          command: |
+            mkdir $HOME/.docker
+            sh -c 'echo "{ \"experimental\": \"enabled\" }" >> $HOME/.docker/config.json'
+            #
+            docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
+            docker manifest create --amend $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-amd64 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-arm32v7
+            docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-amd64 --os linux --arch amd64
+            docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest-arm32v7 --os linux --arch arm --variant v7
+            docker manifest push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:latest -p
 
 
 workflows:
@@ -106,3 +153,21 @@ workflows:
               ignore: /.*/
             tags:
               only: /.*/
+
+  docker:
+    jobs:
+      - publish_docker_linuxamd64:
+          filters:
+            tags:
+              only: /.*/            
+      - publish_docker_linuxarm32v7:
+          filters:
+            tags:
+              only: /.*/            
+      - publish_docker_multiarch:
+          requires:
+            - publish_docker_linuxamd64
+            - publish_docker_linuxarm32v7
+          filters:
+            tags:
+              only: /.*/        

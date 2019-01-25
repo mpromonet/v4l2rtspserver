@@ -1,0 +1,22 @@
+FROM debian as builder
+LABEL maintainer michel.promonet@free.fr
+
+WORKDIR /v4l2rtspserver
+COPY . /v4l2rtspserver
+
+RUN apt-get update && apt-get install -y --no-install-recommends g++ autoconf automake libtool xz-utils cmake make liblog4cpp5-dev pkg-config git wget \
+        && wget -qO- https://releases.linaro.org/components/toolchain/binaries/6.4-2018.05/arm-linux-gnueabihf/gcc-linaro-6.4.1-2018.05-x86_64_arm-linux-gnueabihf.tar.xz  | tar xJ \
+	&& export PATH=$(pwd)/gcc-linaro-6.4.1-2018.05-x86_64_arm-linux-gnueabihf/bin:$PATH \
+        && cmake -DCMAKE_TOOLCHAIN_FILE=raspberry.toolchain . && make install \
+	&& apt-get clean && rm -rf /var/lib/apt/lists/
+
+
+FROM balenalib/rpi-raspbian
+
+WORKDIR /usr/local/share/v4l2rtspserver
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+EXPOSE 8554
+
+ENTRYPOINT [ "/usr/local/bin/v4l2rtspserver" ]
+CMD [ "-S -P ${PORT}" ]
