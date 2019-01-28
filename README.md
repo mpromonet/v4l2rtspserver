@@ -115,6 +115,52 @@ This RTSP server works with Raspberry Pi camera using :
 
 	sudo modprobe -v bcm2835-v4l2
 
+
+Full Raspberry Pi Camera
+------------------------- 
+
+Verified to work on Raspberry Pi Zero W with Pi v2 NoIR camera.  On a clean install of the Pi, do the following:
+
+Run raspi-config and enable the pi camera in the menus under interfaces.
+
+```
+sudo raspi-config
+```
+
+**Reboot**  
+
+Install kernel module and make sure it's loaded on startup
+```
+sudo modprobe -v bcm2835-v4l2
+echo bcm2835-v4l2 | sudo tee -a /etc/modules-load.d/bcm2835-v412.conf
+```
+
+**Now reboot again.**
+
+Install dependencies:
+
+```
+sudo apt install -y git build-essential cmake
+```
+Clone and build project 
+
+```
+git clone https://github.com/mpromonet/v4l2rtspserver.git
+cd v4l2rtspserver
+cmake . && make && sudo make install
+```
+
+Do a test run of with v4l2rtspserver with default parameters and verify your RTSP stream in VLC or your viewer of choice.
+
+```
+v4l2rtspserver
+```
+
+Optional:  you may change resolution if default is not sufficient. 
+```
+v4l2rtspserver -W 1280 -H 720
+```
+
 Using v4l2loopback
 ----------------------- 
 For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
