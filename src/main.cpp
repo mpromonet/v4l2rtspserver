@@ -214,6 +214,8 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 		audioFmt = SND_PCM_FORMAT_MU_LAW;
 	} else if (fmt == "S8") {
 		audioFmt = SND_PCM_FORMAT_S8;
+	} else if (fmt == "MPEG") {
+		audioFmt = SND_PCM_FORMAT_MPEG;
 	}
 	return audioFmt;
 }
@@ -238,6 +240,9 @@ std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int chann
 		case SND_PCM_FORMAT_S32_BE:
 		case SND_PCM_FORMAT_S32_LE:
 			os << "L32";
+			break;
+		case SND_PCM_FORMAT_MPEG:
+			os << "MPEG";
 			break;
 		default:
 			os << "L16";

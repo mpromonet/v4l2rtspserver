@@ -15,29 +15,30 @@ TSServerMediaSubsession::TSServerMediaSubsession(UsageEnvironment& env, StreamRe
 {
 	// Create a source
 	FramedSource* source = videoreplicator->createStreamReplica();
-	
+	MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
 	
 	if (videoformat == "video/H264") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		
-		MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
 		muxer->addNewVideoSource(filter, 5);
-		source = muxer;
 	} else if (videoformat == "video/H265") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		
-		MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
 		muxer->addNewVideoSource(filter, 6);
-		source = muxer;
+	}
+
+	if (audioformat == "audio/MPEG") {
+		// mux to TS		
+		muxer->addNewAudioSource(source, 1);
 	}
 	
-	FramedSource* videoSource = createSource(env, source, m_format);
+	FramedSource* tsSource = createSource(env, muxer, m_format);
 	
 	// Start Playing the HLS Sink
 	m_hlsSink = MemoryBufferSink::createNew(env, OutPacketBuffer::maxSize, sliceDuration);
-	m_hlsSink->startPlaying(*videoSource, NULL, NULL);			
+	m_hlsSink->startPlaying(*tsSource, NULL, NULL);			
 }
 
 TSServerMediaSubsession::~TSServerMediaSubsession()
