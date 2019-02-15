@@ -10,21 +10,21 @@
 #include "TSServerMediaSubsession.h"
 #include "AddH26xMarkerFilter.h"
 
-TSServerMediaSubsession::TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration) 
-		: UnicastServerMediaSubsession(env, replicator, "video/MP2T"), m_slice(0)
+TSServerMediaSubsession::TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* videoreplicator, const std::string& videoformat, StreamReplicator* audioreplicator, const std::string& audioformat, unsigned int sliceDuration) 
+		: UnicastServerMediaSubsession(env, videoreplicator, "video/MP2T"), m_slice(0)
 {
 	// Create a source
-	FramedSource* source = replicator->createStreamReplica();
+	FramedSource* source = videoreplicator->createStreamReplica();
 	
 	
-	if (format == "video/H264") {
+	if (videoformat == "video/H264") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		
 		MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
 		muxer->addNewVideoSource(filter, 5);
 		source = muxer;
-	} else if (format == "video/H265") {
+	} else if (videoformat == "video/H265") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		

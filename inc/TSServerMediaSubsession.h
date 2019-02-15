@@ -19,13 +19,13 @@
 class TSServerMediaSubsession : public UnicastServerMediaSubsession
 {
 	public:
-		static TSServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration)
+		static TSServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* videoreplicator, const std::string& videoformat, StreamReplicator* audioreplicator, const std::string& audioformat, unsigned int sliceDuration)
 		{
-			return new TSServerMediaSubsession(env, replicator, format, sliceDuration);
+			return new TSServerMediaSubsession(env, videoreplicator, videoformat, audioreplicator, audioformat, sliceDuration);
 		}
 		
 	protected:
-		TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format, unsigned int sliceDuration); 
+		TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* videoreplicator, const std::string& videoformat, StreamReplicator* audioreplicator, const std::string& audioformat, unsigned int sliceDuration); 
 		virtual ~TSServerMediaSubsession();
 			
 		virtual float         getCurrentNPT(void* streamToken);
