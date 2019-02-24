@@ -4,7 +4,7 @@ WORKDIR /v4l2rtspserver
 COPY . /v4l2rtspserver
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends g++ autoconf automake libtool xz-utils cmake make liblog4cpp5-dev pkg-config git wget \
+    && apt-get install -y --no-install-recommends ca-certificates g++ autoconf automake libtool xz-utils cmake make liblog4cpp5-dev pkg-config git wget \
     && cmake . && make install && apt-get clean && rm -rf /var/lib/apt/lists/
 
 FROM ubuntu:18.04
