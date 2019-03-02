@@ -57,9 +57,9 @@ endif()
 
 # LOG4CPP
 find_package(log4cpp QUIET)
+if (LOG4CPP_LIBRARY)
         message(STATUS "Log4Cpp available")
 	add_definitions(-DHAVE_LOG4CPP)
-	include_directories(${LOG4CPP_INCLUDE_DIR}) 
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
