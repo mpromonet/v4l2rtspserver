@@ -39,15 +39,6 @@ message(STATUS "CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 message(STATUS "CMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
-# v4l2wrapper
-if (NOT EXISTS v4l2wrapper)
-   EXEC_PROGRAM("git submodule init && git submodule update")
-endif()
-aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
-include_directories("v4l2wrapper/inc")
-add_library(v4l2wrapper ${LIBSRC_FILES})
-target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
-
 #pthread
 find_package (Threads)
 target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}) 
@@ -57,7 +48,7 @@ if (ALSA)
 find_package(ALSA QUIET)
 if (ALSA_LIBRARY)
 	message(STATUS "Alsa available")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_ALSA")
+	add_definitions(-DHAVE_ALSA)
         target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2-dev,)	
@@ -68,15 +59,22 @@ endif()
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
 if (LOG4CPP_INCLUDE_DIR)
         message(STATUS "Log4Cpp available")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_LOG4CPP")
+	add_definitions(-DHAVE_LOG4CPP)
 	include_directories(${LOG4CPP_INCLUDE_DIR}) 
-
 	find_library(LOG4CPP_LIBRARY log4cpp)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
 endif (LOG4CPP_INCLUDE_DIR)
 
+# v4l2wrapper
+if (NOT EXISTS v4l2wrapper)
+   EXEC_PROGRAM("git submodule init && git submodule update")
+endif()
+aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
+include_directories("v4l2wrapper/inc")
+add_library(v4l2wrapper ${LIBSRC_FILES})
+target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 # live555
 if (NOT EXISTS live)
