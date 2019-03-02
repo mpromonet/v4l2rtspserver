@@ -68,12 +68,10 @@ if (LOG4CPP_INCLUDE_DIR)
 endif (LOG4CPP_INCLUDE_DIR)
 
 # v4l2wrapper
-if (NOT EXISTS v4l2wrapper)
-   EXEC_PROGRAM("git submodule init && git submodule update")
-endif()
+EXEC_PROGRAM("git submodule update --init")
 aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
 include_directories("v4l2wrapper/inc")
-add_library(v4l2wrapper ${LIBSRC_FILES})
+add_library(v4l2wrapper STATIC ${LIBSRC_FILES})
 target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 # live555
