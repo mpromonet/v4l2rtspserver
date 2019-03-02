@@ -6,10 +6,13 @@ project(${BASENAME})
 
 option(COVERAGE "Coverage" OFF)
 
-set (CMAKE_CXX_STANDARD 11)
+set(ALSA ON CACHE BOOL "use ALSA is available")
+set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
+set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
+
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS "-Wall")
-SET(CMAKE_FIND_ROOT_PATH "${CMAKE_SOURCE_DIR}/${CMAKE_SYSTEM_PROCESSOR}")
 
 # set version based on git
 find_package(Git)
@@ -35,25 +38,22 @@ endif()
 message(STATUS "CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 message(STATUS "CMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
-message(STATUS "CMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH}")
 
 # v4l2wrapper
+if (NOT EXISTS v4l2wrapper)
+   EXEC_PROGRAM("git submodule init && git submodule update")
+endif()
+aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
 include_directories("v4l2wrapper/inc")
-find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a)
-if (NOT V4L2WRAPPER_LIBRARY)
-        message(STATUS "Installing v4l2wrapper")
-        EXEC_PROGRAM("mkdir -p ${CMAKE_FIND_ROOT_PATH}/include/libv4l2cpp && mkdir -p ${CMAKE_FIND_ROOT_PATH}/lib")
-        EXEC_PROGRAM("git submodule init && git submodule update && make -C v4l2wrapper CC=${CMAKE_C_COMPILER} PREFIX=${CMAKE_FIND_ROOT_PATH} all install")
-	find_library(V4L2WRAPPER_LIBRARY libv4l2wrapper.a)
-        message(STATUS "v4l2wrapper built in V4L2WRAPPER_LIBRARY=${V4L2WRAPPER_LIBRARY}")	
-endif (NOT V4L2WRAPPER_LIBRARY)
-target_link_libraries(${PROJECT_NAME} ${V4L2WRAPPER_LIBRARY})
+add_library(v4l2wrapper ${LIBSRC_FILES})
+target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 #pthread
 find_package (Threads)
 target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}) 
 
 #ALSA
+if (ALSA)
 find_package(ALSA QUIET)
 if (ALSA_LIBRARY)
 	message(STATUS "Alsa available")
@@ -62,6 +62,7 @@ if (ALSA_LIBRARY)
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2-dev,)	
 endif (ALSA_LIBRARY)
+endif()
 
 # LOG4CPP
 find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
@@ -78,28 +79,19 @@ endif (LOG4CPP_INCLUDE_DIR)
 
 
 # live555
-find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh ONLY_CMAKE_FIND_ROOT_PATH)
-if (NOT LIBLIVE555_INCLUDE_DIR)
-        message(STATUS "Installing live555")
-        EXEC_PROGRAM("wget http://www.live555.com/liveMedia/public/live555-latest.tar.gz -O - | tar xzf -")
-        EXEC_PROGRAM("cd live && ./genMakefiles linux-gdb && make CPLUSPLUS_COMPILER='${CMAKE_CXX_COMPILER} -DALLOW_RTSP_SERVER_PORT_REUSE=1' C_COMPILER=${CMAKE_C_COMPILER} LINK='${CMAKE_CXX_COMPILER} -o' PREFIX=${CMAKE_FIND_ROOT_PATH} install")
-endif (NOT LIBLIVE555_INCLUDE_DIR)
+if (NOT EXISTS live)
+    file (DOWNLOAD ${LIVE555URL} ${CMAKE_SOURCE_DIR}/live555-latest.tar.gz )
+    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xvf live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
+    if(NOT unpack_result STREQUAL "0")
+        message(FATAL_ERROR "Fetching and compiling live555 failed!")
+    endif()
+endif(NOT EXISTS live) 
+FILE(GLOB LIVESOURCE live/groupsock/*.c* live/liveMedia/*.c* live/UsageEnvironment/*.c* live/BasicUsageEnvironment/*.c*)
+add_definitions(${LIVE555CFLAGS})
+add_library (live555 STATIC ${LIVESOURCE})	
+target_include_directories(live555 PUBLIC live/groupsock/include live/liveMedia/include live/UsageEnvironment/include live/BasicUsageEnvironment/include)
+target_link_libraries (${PROJECT_NAME} live555) 
 
-find_path(LIBLIVE555_INCLUDE_DIR liveMedia/liveMedia.hh ONLY_CMAKE_FIND_ROOT_PATH)
-foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
-	include_directories(${LIBLIVE555_INCLUDE_DIR}/${LIBLIVE555_module}) 
-endforeach (LIBLIVE555_module)
-message(STATUS "live555 available '${LIBLIVE555_INCLUDE_DIR}'")
-
-set(LIBLIVE555_LIBRARIES "")
-foreach (LIBLIVE555_module groupsock liveMedia UsageEnvironment BasicUsageEnvironment)
-	find_library( ${LIBLIVE555_module}_LIBRARY ${LIBLIVE555_module} ONLY_CMAKE_FIND_ROOT_PATH)
-	if ( ${LIBLIVE555_module}_LIBRARY )
-		set(LIBLIVE555_LIBRARIES ${LIBLIVE555_LIBRARIES} ${${LIBLIVE555_module}_LIBRARY})
-	endif ( ${LIBLIVE555_module}_LIBRARY )
-endforeach (LIBLIVE555_module)
-target_link_libraries(${PROJECT_NAME} ${LIBLIVE555_LIBRARIES})
-message(STATUS "live555 available '${LIBLIVE555_LIBRARIES}'")
 
 #testing
 enable_testing()
