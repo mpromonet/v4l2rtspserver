@@ -56,12 +56,10 @@ endif (ALSA_LIBRARY)
 endif()
 
 # LOG4CPP
-find_path(LOG4CPP_INCLUDE_DIR log4cpp/Category.hh)
-if (LOG4CPP_INCLUDE_DIR)
+find_package(log4cpp QUIET)
         message(STATUS "Log4Cpp available")
 	add_definitions(-DHAVE_LOG4CPP)
 	include_directories(${LOG4CPP_INCLUDE_DIR}) 
-	find_library(LOG4CPP_LIBRARY log4cpp)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
@@ -77,7 +75,7 @@ target_link_libraries (${PROJECT_NAME} v4l2wrapper)
 # live555
 if (NOT EXISTS live)
     file (DOWNLOAD ${LIVE555URL} ${CMAKE_SOURCE_DIR}/live555-latest.tar.gz )
-    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xvf live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
+    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xf live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
     if(NOT unpack_result STREQUAL "0")
         message(FATAL_ERROR "Fetching and compiling live555 failed!")
     endif()
