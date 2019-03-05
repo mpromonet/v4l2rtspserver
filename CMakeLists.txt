@@ -63,7 +63,7 @@ if (LOG4CPP_LIBRARY)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
-endif (LOG4CPP_INCLUDE_DIR)
+endif ()
 
 # v4l2wrapper
 EXEC_PROGRAM("git submodule update --init")
