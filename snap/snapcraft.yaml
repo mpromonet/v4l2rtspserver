@@ -12,7 +12,13 @@
   confinement: devmode # use 'strict' once you have the right plugs and slots
 
   parts:
-    my-part:
-      # See 'snapcraft plugins'
-      plugin: nil
-  
+    plugin: cmake
+    source: https://github.com/mpromonet/v4l2rtspserver
+    source-type: git
+    install: |
+      cmake .
+      make
+      cpack
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin/
+      cp *.deb $SNAPCRAFT_PART_INSTALL/bin/
+   
