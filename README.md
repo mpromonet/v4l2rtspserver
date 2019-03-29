@@ -1,6 +1,7 @@
 [![TravisCI](https://travis-ci.org/mpromonet/v4l2rtspserver.png)](https://travis-ci.org/mpromonet/v4l2rtspserver)
 [![CircleCI](https://circleci.com/gh/mpromonet/v4l2rtspserver.svg?style=shield)](https://circleci.com/gh/mpromonet/v4l2rtspserver)
 [![CirusCI](https://api.cirrus-ci.com/github/mpromonet/v4l2rtspserver.svg?branch=master)](https://cirrus-ci.com/github/mpromonet/v4l2rtspserver)
+[![Snap Status](https://build.snapcraft.io/badge/mpromonet/v4l2rtspserver.svg)](https://build.snapcraft.io/user/mpromonet/v4l2rtspserver)
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/aa0c28514aa843ea9fa7da358d905871)](https://www.codacy.com/app/michelpromonet_2643/v4l2rtspserver?utm_source=github.com&utm_medium=referral&utm_content=mpromonet/v4l2rtspserver&utm_campaign=badger)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
