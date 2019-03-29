@@ -13,9 +13,11 @@
 
   parts:
     live:
-      plugin: tar-content
+      plugin: dump
       source: https://download.videolan.org/pub/contrib/live555/live.2019.03.06.tar.gz
       source-type: tar
+      install: |
+        tar xvf live*.tar.gz
     build:
       plugin: cmake
       source: https://github.com/mpromonet/v4l2rtspserver
