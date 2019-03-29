@@ -12,10 +12,15 @@
   confinement: devmode # use 'strict' once you have the right plugs and slots
 
   parts:
+    live:
+      plugin: tar-content
+      source: https://download.videolan.org/pub/contrib/live555/live.2019.03.06.tar.gz
+      source-type: tar
     build:
       plugin: cmake
       source: https://github.com/mpromonet/v4l2rtspserver
       source-type: git
+      after: [live]
       install: |
         cmake .
         make
