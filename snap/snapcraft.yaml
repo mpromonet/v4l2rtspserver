@@ -31,7 +31,11 @@
       - liblog4cpp5-dev
       - libasound2-dev
       stage-packages:
-      - liblog4cpp5-dev
-      - libasound2-dev
+      - liblog4cpp5v5
+      - libasound2
 
-   
+  apps:
+    v4l2rtspserver:
+      command: $SNAP/v4l2rtspserver -S 
+      daemon: simple   
+      plugs: [network-bind]
