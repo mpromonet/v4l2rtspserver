@@ -205,6 +205,10 @@ bool HTTPServer::HTTPClientConnection::sendFile(char const* urlSuffix)
 		ext = "html";
 	}
 	if (ext=="js") ext ="javascript";
+	HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
+	if (!httpServer->m_webroot.empty()) {
+		url.insert(0, httpServer->m_webroot);
+	}
 	std::ifstream file(url.c_str());
 	if (file.is_open())
 	{

@@ -36,6 +36,6 @@
 
   apps:
     v4l2rtspserver:
-      command: v4l2rtspserver -S 
+      command: v4l2rtspserver -b $SNAP/share/v4l2rtspserver/ -S 
       daemon: simple   
       plugs: [network-bind]

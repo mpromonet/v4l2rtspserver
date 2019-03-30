@@ -86,10 +86,10 @@ UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std
 // -----------------------------------------
 //    create RTSP server
 // -----------------------------------------
-RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment, const std::list<std::string> & userPasswordList, const char* realm)
+RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment, const std::list<std::string> & userPasswordList, const char* realm, const std::string & webroot)
 {
 	UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
-	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, auth, timeout, hlsSegment);
+	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, auth, timeout, hlsSegment, webroot);
 	if (rtspServer != NULL)
 	{
 		// set http tunneling
@@ -418,6 +418,7 @@ int main(int argc, char** argv)
 	unsigned int hlsSegment = 0;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
+	std::string webroot;
 #ifdef HAVE_ALSA	
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
@@ -431,13 +432,14 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
 			case 'v':	verbose    = 1; if (optarg && *optarg=='v') verbose++;  break;
 			case 'Q':	queueSize  = atoi(optarg); break;
 			case 'O':	outputFile = optarg; break;
+			case 'b':	webroot = optarg; break;
 			
 			// RTSP/RTP
 			case 'I':       ReceivingInterfaceAddr  = inet_addr(optarg); break;
@@ -488,6 +490,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -vv              : very verbose"                                                                                     << std::endl;
 				std::cout << "\t -Q <length>      : Number of frame queue  (default "<< queueSize << ")"                                              << std::endl;
 				std::cout << "\t -O <output>      : Copy captured frame to a file or a V4L2 device"                                                   << std::endl;
+				std::cout << "\t -b <webroot>     : path to webroot" << std::endl;
 				
 				std::cout << "\t RTSP/RTP options"                                                                                           << std::endl;
 				std::cout << "\t -I <addr>        : RTSP interface (default autodetect)"                                                              << std::endl;
@@ -567,7 +570,7 @@ int main(int argc, char** argv)
 	decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
 	
 	// create RTSP server
-	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm);
+	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot);
 	if (rtspServer == NULL) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
