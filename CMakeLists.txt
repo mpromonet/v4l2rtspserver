@@ -73,19 +73,19 @@ add_library(v4l2wrapper STATIC ${LIBSRC_FILES})
 target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 # live555
-if (NOT EXISTS live)
-    file (DOWNLOAD ${LIVE555URL} ${CMAKE_SOURCE_DIR}/live555-latest.tar.gz )
-    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xf live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
+set(LIVE ${CMAKE_BINARY_DIR}/live)
+if (NOT EXISTS ${LIVE})
+    file (DOWNLOAD ${LIVE555URL} ${CMAKE_BINARY_DIR}/live555-latest.tar.gz )
+    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xvf ${CMAKE_BINARY_DIR}/live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
     if(NOT unpack_result STREQUAL "0")
         message(FATAL_ERROR "Fetching and compiling live555 failed!")
     endif()
-endif(NOT EXISTS live) 
-FILE(GLOB LIVESOURCE live/groupsock/*.c* live/liveMedia/*.c* live/UsageEnvironment/*.c* live/BasicUsageEnvironment/*.c*)
+endif()
+FILE(GLOB LIVESOURCE ${LIVE}/groupsock/*.c* ${LIVE}/liveMedia/*.c* ${LIVE}/UsageEnvironment/*.c* ${LIVE}/BasicUsageEnvironment/*.c*)
 add_definitions(${LIVE555CFLAGS})
-add_library (live555 STATIC ${LIVESOURCE})	
-target_include_directories(live555 PUBLIC live/groupsock/include live/liveMedia/include live/UsageEnvironment/include live/BasicUsageEnvironment/include)
-target_link_libraries (${PROJECT_NAME} live555) 
-
+add_library (live555 STATIC ${LIVESOURCE})
+target_include_directories(live555 PUBLIC ${LIVE}/groupsock/include ${LIVE}/liveMedia/include ${LIVE}/UsageEnvironment/include ${LIVE}/BasicUsageEnvironment/include)
+target_link_libraries (${PROJECT_NAME} live555)
 
 #testing
 enable_testing()
