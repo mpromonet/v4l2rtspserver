@@ -3,13 +3,21 @@
   version: git
   summary: RTSP Server for V4L2 device capture supporting HEVC/H264/JPEG/VP8/VP9
   description: |
-    This is my-snap's description. You have a paragraph or two to tell the
-    most important story about your snap. Keep it under 100 words though,
-    we live in tweetspace and your description wants to look good in the snap
-    store.
+    This is a lightweight streamer feed from :
+    * an Video4Linux device that support H264, HEVC, JPEG, VP8 or VP9 capture.
+    * an ALSA device that support PCM S16_BE, S16_LE, S32_BE or S32_LE
+    The RTSP server support :
+    * RTP/UDP unicast
+    * RTP/UDP multicast
+    * RTP/TCP
+    * RTP/RTSP/HTTP
+    The HTTP server support (available using -S option for capture format that could be muxed in Transport Stream):
+    * HLS
+    * MPEG-DASH
+    It could run on personnal computer, but also on raspberry-pi, nano-pi or onion-omega2+.
 
-  grade: devel # must be 'stable' to release into candidate/stable channels
-  confinement: devmode # use 'strict' once you have the right plugs and slots
+  grade: stable 
+  confinement: strict
 
   parts:
     v4l2rtspserver:
@@ -20,6 +28,9 @@
       - g++
       - make
       - pkg-config
+      - liblog4cpp5-dev
+      - libasound2-dev
+      stage-packages:
       - liblog4cpp5-dev
       - libasound2-dev
 
