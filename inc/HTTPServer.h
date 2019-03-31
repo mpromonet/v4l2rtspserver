@@ -65,6 +65,9 @@ class HTTPServer : public RTSPServer
 		HTTPServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot)
 		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
 		{
+			if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
+				m_webroot += "/";
+			}
 		}
 
 		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) 
