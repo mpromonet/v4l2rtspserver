@@ -6,15 +6,16 @@ COPY . /v4l2rtspserver
 ARG ARCH=armv7l
 
 RUN apt-get update \
-        && apt-get install -y --no-install-recommends ca-certificates g++ autoconf automake libtool xz-utils cmake make pkg-config git wget \
-        && wget -qO- https://releases.linaro.org/components/toolchain/binaries/6.4-2018.05/arm-linux-gnueabihf/gcc-linaro-6.4.1-2018.05-x86_64_arm-linux-gnueabihf.tar.xz  | tar xJ \
-	&& export PATH=$(pwd)/gcc-linaro-6.4.1-2018.05-x86_64_arm-linux-gnueabihf/bin:$PATH \
+        && apt-get install -y --no-install-recommends ca-certificates xz-utils cmake make pkg-config git wget \
+	&&  git clone --depth 1 https://github.com/raspberrypi/tools.git /rpi_tools \
+        &&  export PATH=/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH \
         && cmake -DCMAKE_SYSTEM_PROCESSOR=${ARCH} -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . \
 	&& make install \
 	&& apt-get clean && rm -rf /var/lib/apt/lists/
 
 
-FROM balenalib/rpi-raspbian
+FROM balenalib/raspberry-pi
+
 WORKDIR /usr/local/share/v4l2rtspserver
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/share/v4l2rtspserver/ /usr/local/share/v4l2rtspserver/
