@@ -138,7 +138,7 @@ jobs:
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-amd64 --os linux --arch amd64
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 --os linux --arch arm --variant v7
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6 --os linux --arch arm --variant v6
-            docker inspect $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}
+            docker manifest inspect $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}
             echo "push manifest"
             docker manifest push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} -p
 
