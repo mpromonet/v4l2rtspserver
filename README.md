@@ -66,7 +66,7 @@ Usage
 		 -W width : V4L2 capture width (default 640)
 		 -H height: V4L2 capture height (default 480)
 		 -F fps   : V4L2 capture framerate (default 25, 0 disable setting framerate)
-                 -G <w>x<h>[x<f>] : V4L2 capture format (default 0x0x25)
+		 -G <w>x<h>[x<f>] : V4L2 capture format (default 0x0x25)
 		 
 		 ALSA options :
 		 -A freq    : ALSA capture frequency and channel (default 44100)
