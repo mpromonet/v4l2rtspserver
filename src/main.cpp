@@ -407,6 +407,7 @@ int main(int argc, char** argv)
 	std::string outputFile;
 	V4l2Access::IoType ioTypeIn  = V4l2Access::IOTYPE_MMAP;
 	V4l2Access::IoType ioTypeOut = V4l2Access::IOTYPE_MMAP;
+	int openflags = O_RDWR | O_NONBLOCK; 
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	std::string tsurl = "ts";
@@ -432,7 +433,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -459,6 +460,7 @@ int main(int argc, char** argv)
 			// V4L2
 			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
+			case 'B':	openflags = O_RDWR; break;	
 			case 's':	useThread =  false; break;
 			case 'f':	format    = decodeVideoFormat(optarg); if (format) {videoformatList.push_back(format);};  break;
 			case 'F':	fps       = atoi(optarg); break;
@@ -508,6 +510,7 @@ int main(int argc, char** argv)
 				std::cout << "\t V4L2 options"                                                                                               << std::endl;
 				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
 				std::cout << "\t -w               : V4L2 capture using write interface (default use memory mapped buffers)"                           << std::endl;
+				std::cout << "\t -B               : V4L2 capture using blocking mode (default use non-blocking mode)"                                 << std::endl;
 				std::cout << "\t -s               : V4L2 capture using live555 mainloop (default use a reader thread)"                                << std::endl;
 				std::cout << "\t -f               : V4L2 capture using current capture format (-W,-H,-F are ignored)"                                 << std::endl;
 				std::cout << "\t -f<format>       : V4L2 capture using format (-W,-H,-F are used)"                                                    << std::endl;
@@ -601,7 +604,7 @@ int main(int argc, char** argv)
 				// Init video capture
 				LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
 				
-				V4L2DeviceParameters param(videoDev.c_str(), videoformatList, width, height, fps, verbose);
+				V4L2DeviceParameters param(videoDev.c_str(), videoformatList, width, height, fps, verbose, openflags);
 				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
 				if (videoCapture)
 				{
