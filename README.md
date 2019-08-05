@@ -169,4 +169,4 @@ The container entry point is the v4l2rtspserver application, then you can :
 
 * run the container specifying some paramters :
 
-        docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver -u "" -H640 -H480 
+        docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver -u "" -H640 -W480 
