@@ -82,11 +82,9 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 		switch (source->getCaptureFormat()) {
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
 			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
+			case V4L2_PIX_FMT_UYVY: sampling = "YCbCr-4:2:2"; break;
 		}
 		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getHeight(), source->getWidth(), 8, sampling.c_str());
-		if (videoSink) {
-			source->setAuxLine(videoSink->auxSDPLine());
-		}
     } 
 #endif	
 	else if (format.find("audio/L16") == 0)
@@ -104,21 +102,25 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	return videoSink;
 }
 
-char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source,unsigned char rtpPayloadType)
+char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source, RTPSink* rtpSink)
 {
 	const char* auxLine = NULL;
-	if (source)
-	{
+	if (rtpSink) {
 		std::ostringstream os; 
-		os << "a=fmtp:" << int(rtpPayloadType) << " ";				
-		os << source->getAuxLine();				
-		int width = source->getWidth();
-		int height = source->getHeight();
-		if ( (width > 0) && (height>0) ) {
-			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
+		if (rtpSink->auxSDPLine()) {
+			os << rtpSink->auxSDPLine();
 		}
+		else if (source) {
+			unsigned char rtpPayloadType = rtpSink->rtpPayloadType();
+			os << "a=fmtp:" << int(rtpPayloadType) << " " << source->getAuxLine() << "\r\n";				
+			int width = source->getWidth();
+			int height = source->getHeight();
+			if ( (width > 0) && (height>0) ) {
+				os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
+			}
+		} 
 		auxLine = strdup(os.str().c_str());
-	} 
+	}
 	return auxLine;
 }
 

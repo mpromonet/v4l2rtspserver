@@ -170,6 +170,7 @@ std::string getVideoRtpFormat(int format)
 		case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
 		case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
 		case V4L2_PIX_FMT_YUYV : rtpFormat = "video/RAW" ; break;
+		case V4L2_PIX_FMT_UYVY : rtpFormat = "video/RAW" ; break;
 	}
 	
 	return rtpFormat;
