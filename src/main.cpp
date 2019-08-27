@@ -547,6 +547,7 @@ int main(int argc, char** argv)
 	if ((videoformatList.empty()) && (format!=0)) {
 		videoformatList.push_back(V4L2_PIX_FMT_H264);
 		videoformatList.push_back(V4L2_PIX_FMT_MJPEG);
+		videoformatList.push_back(V4L2_PIX_FMT_JPEG);
 	}
 
 #ifdef HAVE_ALSA	
