@@ -17,7 +17,6 @@ addons:
   apt:
     sources:
       - deadsnakes
-      - ubuntu-toolchain-r-test
     packages:
       - git
       - cmake 
