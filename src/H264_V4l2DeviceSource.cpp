@@ -59,7 +59,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 
 			std::ostringstream os; 
 			os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
-			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
+			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64 << "\r\n";
 			m_auxLine.assign(os.str());
 			
 			delete [] sps_base64;
