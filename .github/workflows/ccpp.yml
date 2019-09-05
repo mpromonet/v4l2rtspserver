@@ -16,3 +16,7 @@ jobs:
     - name: cpack
       run: cpack
 
+ publish:
+    needs: [build]
+    steps:
+    - uses: actions/github-packages@master
