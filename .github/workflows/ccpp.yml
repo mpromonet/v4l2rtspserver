@@ -1,0 +1,23 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: cmake
+      run: cmake .
+    - name: make
+      run: make
+    - name: cpack
+      run: cpack
+
+  publish:
+    needs: [build]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/github-packages@master

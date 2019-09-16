@@ -1,4 +1,4 @@
-FROM debian as builder
+FROM ubuntu:18.04 as builder
 LABEL maintainer michel.promonet@free.fr
 WORKDIR /v4l2rtspserver
 COPY . /v4l2rtspserver
