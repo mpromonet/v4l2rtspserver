@@ -52,7 +52,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 		if (!m_sps.empty() && !m_pps.empty())
 		{
 			u_int32_t profile_level_id = 0;					
-			if (m_sps.size() >= 4) profile_level_id = (m_sps[1]<<16)|(m_sps[2]<<8)|m_sps[3]; 
+			if (m_sps.size() >= 4) profile_level_id = (((unsigned char)m_sps[1])<<16)|(((unsigned char)m_sps[2])<<8)|((unsigned char)m_sps[3]); 
 		
 			char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
 			char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());		
