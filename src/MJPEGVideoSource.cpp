@@ -65,11 +65,17 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		i+=length+2;	       
 	    }
 	    // SOS
-	    else if ( ((i+1) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDA) ) {            
+	    else if ( ((i+3) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDA) ) {            
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		LOG(DEBUG) << "SOS length:" << length;                
 		
 		headerSize = i+length+2;                
+            // DRI
+	    } else if ( ((i+5) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDD) ) {
+		m_type |= 0x40;
+		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
+		m_restartInterval = (fTo[i+4]<<8)|(fTo[i+5]);
+		i+=length+2;	       
 	    } else {
 		i++;
 	    }

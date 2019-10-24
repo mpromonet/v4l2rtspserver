@@ -45,13 +45,15 @@ class MJPEGVideoSource : public JPEGVideoSource
       virtual u_int8_t qFactor() { return 128; };
       virtual u_int8_t width() { return m_width; };
       virtual u_int8_t height() { return m_height; };
+      virtual u_int16_t restartInterval() { return m_restartInterval; }
+
       u_int8_t const* quantizationTables( u_int8_t& precision, u_int16_t& length );
 
    protected:
       MJPEGVideoSource(UsageEnvironment& env, FramedSource* source) : JPEGVideoSource(env),
          m_inputSource(source),
          m_width(0), m_height(0), m_qTableSize(0), m_precision(0),
-         m_type(0)
+         m_type(0), m_restartInterval(0)
       {
          memset(&m_qTable,0,sizeof(m_qTable));
       }
@@ -68,4 +70,5 @@ class MJPEGVideoSource : public JPEGVideoSource
       unsigned int  m_qTableSize;
       unsigned int  m_precision;
       u_int8_t      m_type;
+      u_int16_t     m_restartInterval;
 };
