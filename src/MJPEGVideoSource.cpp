@@ -75,6 +75,7 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		m_type |= 0x40;
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		m_restartInterval = (fTo[i+4]<<8)|(fTo[i+5]);
+		LOG(DEBUG) << "DRI restartInterval:" << m_restartInterval;                
 		i+=length+2;	       
 	    } else {
 		i++;
