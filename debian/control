@@ -1,0 +1,25 @@
+Source: v4l2rtspserver
+Section: video
+Priority: optional
+Maintainer: mpromonet <michel.promonet@free.fr>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+Homepage: https://github.com/mpromonet/v4l2rtspserver.git
+Vcs-Git: https://github.com/mpromonet/v4l2rtspserver.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/v4l2rtspserver.git
+
+Package: v4l2rtspserver
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: RTSP Server for V4L2 device capture supporting HEVC/H264/JPEG/VP8/VP9
+ This is an streamer feed from :
+ * an Video4Linux device that support H264, HEVC, JPEG, VP8 or VP9 capture.
+ * an ALSA device that support PCM S16_BE, S16_LE, S32_BE or S32_LE
+ The RTSP server support :
+ * RTP/UDP unicast
+ * RTP/UDP multicast
+ * RTP/TCP
+ * RTP/RTSP/HTTP
+ The HTTP server support (available using -S option for capture format that could be muxed in Transport Stream):
+ * HLS
+ * MPEG-DASH 
