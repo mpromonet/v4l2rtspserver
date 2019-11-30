@@ -5,7 +5,7 @@ project(v4l2rtspserver)
 option(COVERAGE "Coverage" OFF)
 
 set(ALSA ON CACHE BOOL "use ALSA is available")
-set(LIVE555URL https://download.videolan.org/pub/contrib/live555/live.2019.03.06.tar.gz CACHE STRING "live555 url")
+set(LIVE555URL http://live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
 
 set(CMAKE_CXX_STANDARD 11)
