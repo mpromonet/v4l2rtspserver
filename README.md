@@ -34,6 +34,9 @@ Dependencies
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
  - libv4l2cpp [Unlicense](https://github.com/mpromonet/libv4l2cpp/blob/master/LICENSE)
  - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license) (optional)
+If liblog4cpp5-dev is not present, a simple log using std::cout is used.
+ - libasound2-dev Licence LGPL (optional)
+If libasound2-dev is not present in the build environment, there will have no audio support.
 
 Usage
 -----
@@ -76,6 +79,8 @@ Usage
 		 -a fmt     : ALSA capture audio format (default S16_LE)
 		 
 		 device   : V4L2 capture device and/or ALSA device (default /dev/video0)
+
+When audio support is not present, ALSA options are not printed running with `-h` argument.
 
 Authentification is enable when almost one user is defined. You can configure credentials :
  * using plain text password: 
