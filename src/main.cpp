@@ -561,6 +561,7 @@ int main(int argc, char** argv)
 	
 	// init logger
 	initLogger(verbose);
+	LOG(NOTICE) << "Version: " << VERSION << " live555 version:" << LIVEMEDIA_LIBRARY_VERSION_STRING;
      
 	// create live555 environment
 	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
