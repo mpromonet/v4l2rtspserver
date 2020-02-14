@@ -82,10 +82,6 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		i++;
 	    }
 	}
-	
-	if (m_restartInterval != 0) {
-		m_type |= 0x40;
-	}
 
 	if (headerSize != 0) {
 	    LOG(DEBUG) << "headerSize:" << headerSize;

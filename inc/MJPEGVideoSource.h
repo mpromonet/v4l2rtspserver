@@ -41,7 +41,7 @@ class MJPEGVideoSource : public JPEGVideoSource
       } 
       
       void afterGettingFrame(unsigned frameSize,unsigned numTruncatedBytes,struct timeval presentationTime,unsigned durationInMicroseconds);
-      virtual u_int8_t type() { return m_type; };
+      virtual u_int8_t type() { return m_restartInterval ? m_type | 0x40 : m_type; };
       virtual u_int8_t qFactor() { return 128; };
       virtual u_int8_t width() { return m_width; };
       virtual u_int8_t height() { return m_height; };
