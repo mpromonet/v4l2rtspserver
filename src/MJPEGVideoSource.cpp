@@ -17,12 +17,11 @@
 void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncatedBytes,struct timeval presentationTime,unsigned durationInMicroseconds)
 {
 	int headerSize = 0;
-	fFrameSize = 0;
 		  
 	unsigned int i = 0; 
 	while ( (i<frameSize) && (headerSize==0) ) {
-	    // SOF
 	    if ( ((i+11) < frameSize)  && (fTo[i] == 0xFF) && (fTo[i+1] == 0xC0) ) {
+		// SOF
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		LOG(DEBUG) << "SOF length:" << length;
 
@@ -43,9 +42,9 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		LOG(INFO) << "width:" << (int)(m_width<<3) << " height:" << (int)(m_height<<3) << " type:"<< (int)m_type << " precision:" << precision;
 
 		i+=length+2;
-	    }
-	    // DQT
-	    else if (((i+5) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDB)) {
+		
+	    } else if (((i+5) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDB)) {
+		// DQT
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		LOG(DEBUG) << "DQT length:" << length;
 
@@ -63,23 +62,29 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		}
 
 		i+=length+2;	       
-	    }
-	    // SOS
-	    else if ( ((i+3) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDA) ) {            
+		
+	    } else if ( ((i+5) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDD) ) {
+		// DRI
+		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
+		m_restartInterval = (fTo[i+4]<<8)|(fTo[i+5]);
+		LOG(DEBUG) << "DRI restartInterval:" << m_restartInterval;              
+		    
+		i+=length+2;	       
+	    
+	    } else if ( ((i+3) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDA) ) {            
+		// SOS
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		LOG(DEBUG) << "SOS length:" << length;                
 		
 		headerSize = i+length+2;                
-            // DRI
-	    } else if ( ((i+5) < frameSize) && (fTo[i] == 0xFF) && (fTo[i+1] == 0xDD) ) {
-		m_type |= 0x40;
-		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
-		m_restartInterval = (fTo[i+4]<<8)|(fTo[i+5]);
-		LOG(DEBUG) << "DRI restartInterval:" << m_restartInterval;                
-		i+=length+2;	       
-	    } else {
+		    
+ 	    } else {
 		i++;
 	    }
+	}
+	
+	if (m_restartInterval != 0) {
+		m_type |= 0x40;
 	}
 
 	if (headerSize != 0) {
@@ -88,6 +93,7 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 	    memmove( fTo, fTo + headerSize, fFrameSize );
 	} else {
 	    LOG(NOTICE) << "Bad header => dropping frame";
+	    fFrameSize = 0;
 	}
 
 	fNumTruncatedBytes = numTruncatedBytes;
