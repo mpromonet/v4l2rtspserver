@@ -8,16 +8,15 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
+    
     - name: cmake
       run: cmake .
     - name: make
       run: make
     - name: cpack
-      run: cpack
+      run: cpack -B $(pwd)/artifact
 
-  publish:
-    needs: [build]
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/github-packages@master
+    - uses: actions/upload-artifact@v1
+      with:
+        name: pkg
+        path: artifact      
