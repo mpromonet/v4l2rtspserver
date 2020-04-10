@@ -20,11 +20,10 @@
 #include "RTSPCommon.hh"
 #include <time.h>
 #include "ByteStreamMemoryBufferSource.hh"
-#include "TCPStreamSink.hh"
 
 #include "HTTPServer.h"
 
-u_int32_t HTTPServer::HTTPClientConnection::fClientSessionId = 0;
+u_int32_t HTTPServer::HTTPClientConnection::m_ClientSessionId = 0;
 
 void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsigned int contentLength)
 {
@@ -56,22 +55,16 @@ void HTTPServer::HTTPClientConnection::streamSource(const std::string & content)
 
 void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 {
-      if (fTCPSink != NULL) 
+      if (m_TCPSink != NULL) 
       {
-		fTCPSink->stopPlaying();			       
-		Medium::close(fTCPSink);
-		fTCPSink = NULL;
-      }
-      if (fSource != NULL) 
-      {
-		Medium::close(fSource);
-		fSource = NULL;
+		m_TCPSink->stopPlaying();			       
+		Medium::close(m_TCPSink);
+		m_TCPSink = NULL;
       }
       if (source != NULL) 
       {
-		fTCPSink = TCPStreamSink::createNew(envir(), fClientOutputSocket);
-		fTCPSink->startPlaying(*source, afterStreaming, this);
-		fSource = source; // we need to keep tracking of source, because sink do not release it
+		m_TCPSink = new TCPStreamSink(envir(), fClientOutputSocket);
+		m_TCPSink->startPlaying(*source, afterStreaming, this);
       }
 }
 		
@@ -322,17 +315,17 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 
 		// Call "getStreamParameters()" to create the stream's source.  (Because we're not actually streaming via RTP/RTCP, most
 		// of the parameters to the call are dummy.)
-		++fClientSessionId;
+		++m_ClientSessionId;
 		Port clientRTPPort(0), clientRTCPPort(0), serverRTPPort(0), serverRTCPPort(0);
 		netAddressBits destinationAddress = 0;
 		u_int8_t destinationTTL = 0;
 		Boolean isMulticast = False;
-		subsession->getStreamParameters(fClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, fStreamToken);
+		subsession->getStreamParameters(m_ClientSessionId, 0, clientRTPPort,clientRTCPPort, -1,0,0, destinationAddress,destinationTTL, isMulticast, serverRTPPort,serverRTCPPort, m_StreamToken);
 
 		// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
 		double dOffsetInSeconds = (double)offsetInSeconds;
 		u_int64_t numBytes = 0;
-		subsession->seekStream(fClientSessionId, fStreamToken, dOffsetInSeconds, 0.0, numBytes);
+		subsession->seekStream(m_ClientSessionId, m_StreamToken, dOffsetInSeconds, 0.0, numBytes);
 
 		if (numBytes == 0) 
 		{
@@ -346,10 +339,10 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 			this->sendHeader("video/mp2t", numBytes);
 
 			// stream body
-			this->streamSource(subsession->getStreamSource(fStreamToken));
+			this->streamSource(subsession->getStreamSource(m_StreamToken));
 			
 			// pointer to subsession to close it
-			fSubsession = subsession;
+			m_Subsession = subsession;
 		}
 	} 
 }
@@ -385,7 +378,7 @@ HTTPServer::HTTPClientConnection::~HTTPClientConnection()
 {
 	this->streamSource(NULL);
 	
-	if (fSubsession) {
-		fSubsession->deleteStream(fClientSessionId,  fStreamToken);
+	if (m_Subsession) {
+		m_Subsession->deleteStream(m_ClientSessionId,  m_StreamToken);
 	}
 }

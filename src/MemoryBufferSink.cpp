@@ -12,7 +12,7 @@
 // -----------------------------------------
 //    MemoryBufferSink
 // -----------------------------------------
-MemoryBufferSink::MemoryBufferSink(UsageEnvironment& env, unsigned bufferSize, unsigned int sliceDuration) : MediaSink(env), m_bufferSize(bufferSize), m_refTime(0), m_sliceDuration(sliceDuration)
+MemoryBufferSink::MemoryBufferSink(UsageEnvironment& env, unsigned bufferSize, unsigned int sliceDuration, unsigned int nbSlices) : MediaSink(env), m_bufferSize(bufferSize), m_refTime(0), m_sliceDuration(sliceDuration), m_nbSlices(nbSlices)
 {
 	m_buffer = new unsigned char[m_bufferSize];
 }
@@ -59,7 +59,7 @@ void MemoryBufferSink::afterGettingFrame(unsigned frameSize, unsigned numTruncat
 		outputBuffer.append((const char*)m_buffer, frameSize);
 		
 		// remove old buffers
-		while (m_outputBuffers.size()>3)
+		while (m_outputBuffers.size()>m_nbSlices)
 		{
 			m_outputBuffers.erase(m_outputBuffers.begin());
 		}

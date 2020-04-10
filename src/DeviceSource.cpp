@@ -102,6 +102,7 @@ void* V4L2DeviceSource::thread()
 		{
 			if (FD_ISSET(fd, &fdset))
 			{
+				LOG(DEBUG) << "waitingFrame\tdelay:" << (1000-(tv.tv_usec/1000)) << "ms"; 
 				if (this->getNextFrame() <= 0)
 				{
 					LOG(ERROR) << "error:" << strerror(errno); 						
@@ -213,6 +214,7 @@ int V4L2DeviceSource::getNextFrame()
 		timersub(&tv,&ref,&diff);
 		m_in.notify(tv.tv_sec, frameSize);
 		LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
+		
 		processFrame(buffer,frameSize,ref);
 		if (m_outfd != -1) 
 		{
@@ -238,9 +240,9 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 		char* buf = new char[size];
 		memcpy(buf, frame.first, size);
 		queueFrame(buf,size,ref);
+		frameList.pop_front();
 
 		LOG(DEBUG) << "queueFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << size <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";		
-		frameList.pop_front();
 	}			
 }	
 

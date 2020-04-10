@@ -19,13 +19,13 @@
 class MemoryBufferSink : public MediaSink
 {
 	public:
-		static MemoryBufferSink* createNew(UsageEnvironment& env, unsigned int bufferSize, unsigned int sliceDuration) 
+		static MemoryBufferSink* createNew(UsageEnvironment& env, unsigned int bufferSize, unsigned int sliceDuration, unsigned int nbSlices = 5) 
 		{
-			return new MemoryBufferSink(env, bufferSize, sliceDuration);
+			return new MemoryBufferSink(env, bufferSize, sliceDuration, nbSlices);
 		}
 		
 	protected:
-		MemoryBufferSink(UsageEnvironment& env, unsigned bufferSize, unsigned int sliceDuration);
+		MemoryBufferSink(UsageEnvironment& env, unsigned bufferSize, unsigned int sliceDuration, unsigned int nbSlices);
 		virtual ~MemoryBufferSink(); 
 		
 		virtual Boolean continuePlaying();
@@ -53,5 +53,6 @@ class MemoryBufferSink : public MediaSink
 		std::map<unsigned int,std::string> m_outputBuffers;
 		unsigned int                       m_refTime;
 		unsigned int                       m_sliceDuration;
+		unsigned int                       m_nbSlices;
 };
 	
