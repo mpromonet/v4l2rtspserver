@@ -16,8 +16,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include <dirent.h>
 
 #include <sstream>
@@ -53,7 +55,7 @@
 char quit = 0;
 void sighandler(int n)
 { 
-	printf("SIGINT\n");
+	perror("SIGINT\n");
 	quit =1;
 }
 
@@ -432,6 +434,10 @@ int main(int argc, char** argv)
 		rtspPort = atoi(defaultPort);
 	}
 
+	//redirect stdout output to stderr
+	int newstdout = dup(STDOUT_FILENO);
+	dup2(STDERR_FILENO, STDOUT_FILENO);
+
 	// decode parameters
 	int c = 0;     
 	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m:u:M:ct:S::" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
@@ -615,11 +621,23 @@ int main(int argc, char** argv)
 					
 					if (!outputFile.empty())
 					{
-						V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-						out = V4l2Output::create(outparam, ioTypeOut);
-						if (out != NULL)
+						if (outputFile == "stdout")
 						{
-							outfd = out->getFd();
+							outfd = newstdout;
+						}
+						else
+						{
+							V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
+							out = V4l2Output::create(outparam, ioTypeOut);
+							if (out != NULL)
+							{
+								outfd = out->getFd();
+							}
+							else
+							{
+								LOG(NOTICE) << "Open outputFile as V4L2 device failed. Try opening as normal file...";
+								outfd = open(outputFile.c_str(), O_WRONLY | O_CREAT, 0644);
+							}
 						}
 					}
 					

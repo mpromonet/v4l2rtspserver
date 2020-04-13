@@ -12,3 +12,4 @@ install_manifest.txt
 *.deb
 .vs
 out/
+live/
