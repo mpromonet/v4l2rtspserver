@@ -20,14 +20,14 @@
 #define TCP_STREAM_SINK_MIN_READ_SIZE 1000
 #define TCP_STREAM_SINK_BUFFER_SIZE 10000
 
-class TCPStreamSink: public MediaSink {
+class TCPSink: public MediaSink {
 	public:
-		TCPStreamSink(UsageEnvironment& env, int socketNum) : MediaSink(env), fUnwrittenBytesStart(0), fUnwrittenBytesEnd(0), fInputSourceIsOpen(False), fOutputSocketIsWritable(True),fOutputSocketNum(socketNum) {
+		TCPSink(UsageEnvironment& env, int socketNum) : MediaSink(env), fUnwrittenBytesStart(0), fUnwrittenBytesEnd(0), fInputSourceIsOpen(False), fOutputSocketIsWritable(True),fOutputSocketNum(socketNum) {
 			ignoreSigPipeOnSocket(socketNum);
 		}
 
 	protected:
-		virtual ~TCPStreamSink() {
+		virtual ~TCPSink() {
 			envir().taskScheduler().disableBackgroundHandling(fOutputSocketNum);
 			if (fSource != NULL) {
 				Medium::close(fSource);
@@ -72,7 +72,7 @@ class TCPStreamSink: public MediaSink {
 			}
 		}
 
-		static void socketWritableHandler(void* clientData, int mask) { ((TCPStreamSink*)clientData)->socketWritableHandler(); }
+		static void socketWritableHandler(void* clientData, int mask) { ((TCPSink*)clientData)->socketWritableHandler(); }
 		void socketWritableHandler() {
 			envir().taskScheduler().disableBackgroundHandling(fOutputSocketNum); // disable this handler until the next time it's needed
 			fOutputSocketIsWritable = True;
@@ -81,7 +81,7 @@ class TCPStreamSink: public MediaSink {
 
 		static void afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes,
 						struct timeval presentationTime, unsigned durationInMicroseconds) {
-			((TCPStreamSink*)clientData)->afterGettingFrame(frameSize, numTruncatedBytes);
+			((TCPSink*)clientData)->afterGettingFrame(frameSize, numTruncatedBytes);
 		}
 
 
@@ -95,7 +95,7 @@ class TCPStreamSink: public MediaSink {
 			processBuffer();
 		}
 
-		static void ourOnSourceClosure(void* clientData) { ((TCPStreamSink*)clientData)->ourOnSourceClosure(); }
+		static void ourOnSourceClosure(void* clientData) { ((TCPSink*)clientData)->ourOnSourceClosure(); }
 
 		void ourOnSourceClosure() {
 			// The input source has closed:
@@ -142,7 +142,7 @@ class HTTPServer : public RTSPServer
 		
 		private:
 			static u_int32_t       m_ClientSessionId;
-			TCPStreamSink*         m_TCPSink;
+			TCPSink*               m_TCPSink;
 			void*                  m_StreamToken;
 			ServerMediaSubsession* m_Subsession;
 	};

@@ -63,7 +63,7 @@ void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
       }
       if (source != NULL) 
       {
-		m_TCPSink = new TCPStreamSink(envir(), fClientOutputSocket);
+		m_TCPSink = new TCPSink(envir(), fClientOutputSocket);
 		m_TCPSink->startPlaying(*source, afterStreaming, this);
       }
 }
