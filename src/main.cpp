@@ -177,20 +177,6 @@ std::string getVideoRtpFormat(int format)
 }
 
 // -----------------------------------------
-//    convert string video format to fourcc 
-// -----------------------------------------
-int decodeVideoFormat(const char* fmt)
-{
-	char fourcc[4];
-	memset(&fourcc, 0, sizeof(fourcc));
-	if (fmt != NULL)
-	{
-		strncpy(fourcc, fmt, 4);	
-	}
-	return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
-}
-
-// -----------------------------------------
 //    convert string audio format to pcm
 // -----------------------------------------
 #ifdef HAVE_ALSA
@@ -463,7 +449,7 @@ int main(int argc, char** argv)
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 'B':	openflags = O_RDWR; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = decodeVideoFormat(optarg); if (format) {videoformatList.push_back(format);};  break;
+			case 'f':	format    = V4l2Device::fourcc(optarg); if (format) {videoformatList.push_back(format);};  break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
 			case 'H':	height    = atoi(optarg); break;
