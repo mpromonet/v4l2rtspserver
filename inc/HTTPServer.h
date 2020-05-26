@@ -154,6 +154,7 @@ class HTTPServer : public RTSPServer
 			int ourSocket = setUpOurSocket(env, rtspPort);
 			if (ourSocket != -1) 
 			{
+				increaseSendBufferTo(env, ourSocket, 150 * 1024);
 				httpServer = new HTTPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot);
 			}
 			return httpServer;
