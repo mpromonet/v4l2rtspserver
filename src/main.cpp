@@ -36,7 +36,7 @@
 #include "V4l2Capture.h"
 #include "V4l2Output.h"
 
-#include "H264_V4l2DeviceSource.h"
+#include "DeviceSourceFactory.h"
 #include "ServerMediaSubsession.h"
 #include "UnicastServerMediaSubsession.h"
 #include "MulticastServerMediaSubsession.h"
@@ -101,27 +101,6 @@ RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, uns
 	return rtspServer;
 }
 
-
-// -----------------------------------------
-//    create FramedSource server
-// -----------------------------------------
-FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* videoCapture, int outfd, int queueSize, bool useThread, bool repeatConfig)
-{
-	FramedSource* source = NULL;
-	if (format == V4L2_PIX_FMT_H264)
-	{
-		source = H264_V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread, repeatConfig, false);
-	}
-	else if (format == V4L2_PIX_FMT_HEVC)
-	{
-		source = H265_V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread, repeatConfig, false);
-	}
-	else 
-	{
-		source = V4L2DeviceSource::createNew(*env, videoCapture, outfd, queueSize, useThread);
-	}
-	return source;
-}
 	
 // -----------------------------------------
 //    add an RTSP session
@@ -587,7 +566,7 @@ int main(int argc, char** argv)
 				baseUrl.append("/");
 			}	
 			StreamReplicator* videoReplicator = NULL;
-			std::string rtpFormat;
+			std::string rtpVideoFormat;
 			if (!videoDev.empty())
 			{
 				// Init video capture
@@ -609,26 +588,17 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					rtpFormat.assign(getVideoRtpFormat(videoCapture->getFormat()));
-					if (rtpFormat.empty()) {
+					rtpVideoFormat.assign(getVideoRtpFormat(videoCapture->getFormat()));
+					if (rtpVideoFormat.empty()) {
 						LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 						delete videoCapture;
 					} else {
 						LOG(NOTICE) << "Create Source ..." << videoDev;
-						FramedSource* videoSource = createFramedSource(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), outfd, queueSize, useThread, repeatConfig);
-						if (videoSource == NULL) 
+						videoReplicator = DeviceSourceFactory::createStreamReplicator(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), queueSize, useThread, outfd, repeatConfig);
+						if (videoReplicator == NULL) 
 						{
 							LOG(FATAL) << "Unable to create source for device " << videoDev;
 							delete videoCapture;
-						}
-						else
-						{	
-							// extend buffer size if needed
-							if (videoCapture->getBufferSize() > OutPacketBuffer::maxSize)
-							{
-								OutPacketBuffer::maxSize = videoCapture->getBufferSize();
-							}
-							videoReplicator = StreamReplicator::createNew(*env, videoSource, false);
 						}
 					}
 				}
@@ -650,22 +620,13 @@ int main(int argc, char** argv)
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{
-					FramedSource* audioSource = V4L2DeviceSource::createNew(*env, new DeviceCaptureAccess<ALSACapture>(audioCapture), -1, queueSize, useThread);
-					if (audioSource == NULL) 
+					rtpAudioFormat.assign(getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
+
+					audioReplicator = DeviceSourceFactory::createStreamReplicator(env, 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
+					if (audioReplicator == NULL) 
 					{
 						LOG(FATAL) << "Unable to create source for device " << audioDev;
 						delete audioCapture;
-					}
-					else
-					{
-						rtpAudioFormat.assign(getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
-						
-						// extend buffer size if needed
-						if (audioCapture->getBufferSize() > OutPacketBuffer::maxSize)
-						{
-							OutPacketBuffer::maxSize = audioCapture->getBufferSize();
-						}						
-						audioReplicator = StreamReplicator::createNew(*env, audioSource, false);
 					}
 				}
 			}		
@@ -681,7 +642,7 @@ int main(int argc, char** argv)
 				std::list<ServerMediaSubsession*> subSession;						
 				if (videoReplicator)
 				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpFormat));					
+					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
 					// increment ports for next sessions
 					rtpPortNum+=2;
 					rtcpPortNum+=2;
@@ -704,7 +665,7 @@ int main(int argc, char** argv)
 				std::list<ServerMediaSubsession*> subSession;
 				if (videoReplicator)
 				{
-					subSession.push_back(TSServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
+					subSession.push_back(TSServerMediaSubsession::createNew(*env, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
 				}
 				nbSource += addSession(rtspServer, baseUrl+tsurl, subSession);
 				
@@ -718,7 +679,7 @@ int main(int argc, char** argv)
 			std::list<ServerMediaSubsession*> subSession;
 			if (videoReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpVideoFormat));				
 			}
 			if (audioReplicator)
 			{

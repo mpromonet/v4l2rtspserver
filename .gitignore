@@ -10,3 +10,5 @@ v4l2rtspserver
 _CPack_Packages
 install_manifest.txt
 *.deb
+#live
+live/
