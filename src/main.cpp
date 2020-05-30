@@ -25,10 +25,6 @@
 // libv4l2
 #include <linux/videodev2.h>
 
-// live555
-#include <BasicUsageEnvironment.hh>
-#include <GroupsockHelper.hh>
-
 // project
 #include "logger.h"
 
@@ -42,6 +38,7 @@
 #include "MulticastServerMediaSubsession.h"
 #include "TSServerMediaSubsession.h"
 #include "HTTPServer.h"
+#include "V4l2RTSPServer.h"
 
 #ifdef HAVE_ALSA
 #include "ALSACapture.h"
@@ -55,83 +52,6 @@ void sighandler(int n)
 { 
 	printf("SIGINT\n");
 	quit =1;
-}
-
-
-// -----------------------------------------
-//    create UserAuthenticationDatabase for RTSP server
-// -----------------------------------------
-UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
-{
-	UserAuthenticationDatabase* auth = NULL;
-	if (userPasswordList.size() > 0)
-	{
-		auth = new UserAuthenticationDatabase(realm, (realm != NULL) );
-		
-		std::list<std::string>::const_iterator it;
-		for (it = userPasswordList.begin(); it != userPasswordList.end(); ++it)
-		{
-			std::istringstream is(*it);
-			std::string user;
-			getline(is, user, ':');	
-			std::string password;
-			getline(is, password);	
-			auth->addUserRecord(user.c_str(), password.c_str());
-		}
-	}
-	
-	return auth;
-}
-
-// -----------------------------------------
-//    create RTSP server
-// -----------------------------------------
-RTSPServer* createRTSPServer(UsageEnvironment& env, unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment, const std::list<std::string> & userPasswordList, const char* realm, const std::string & webroot)
-{
-	UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
-	RTSPServer* rtspServer = HTTPServer::createNew(env, rtspPort, auth, timeout, hlsSegment, webroot);
-	if (rtspServer != NULL)
-	{
-		// set http tunneling
-		if (rtspOverHTTPPort)
-		{
-			rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
-		}
-	}
-	return rtspServer;
-}
-
-	
-// -----------------------------------------
-//    add an RTSP session
-// -----------------------------------------
-int addSession(RTSPServer* rtspServer, const std::string & sessionName, const std::list<ServerMediaSubsession*> & subSession)
-{
-	int nbSubsession = 0;
-	if (subSession.empty() == false)
-	{
-		UsageEnvironment& env(rtspServer->envir());
-		ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName.c_str());
-		if (sms != NULL)
-		{
-			std::list<ServerMediaSubsession*>::const_iterator subIt;
-			for (subIt = subSession.begin(); subIt != subSession.end(); ++subIt)
-			{
-				sms->addSubsession(*subIt);
-				nbSubsession++;
-			}
-			
-			rtspServer->addServerMediaSession(sms);
-
-			char* url = rtspServer->rtspURL(sms);
-			if (url != NULL)
-			{
-				LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
-				delete[] url;			
-			}
-		}
-	}
-	return nbSubsession;
 }
 
 // -----------------------------------------
@@ -527,27 +447,24 @@ int main(int argc, char** argv)
 	// init logger
 	initLogger(verbose);
 	LOG(NOTICE) << "Version: " << VERSION << " live555 version:" << LIVEMEDIA_LIBRARY_VERSION_STRING;
-     
-	// create live555 environment
-	TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-	UsageEnvironment* env = BasicUsageEnvironment::createNew(*scheduler);	
-
-	// split multicast info
-	struct in_addr destinationAddress;
-	destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*env);
-	unsigned short rtpPortNum = 20000;
-	unsigned short rtcpPortNum = rtpPortNum+1;
-	unsigned char ttl = 5;
-	decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
+     	
 	
 	// create RTSP server
-	RTSPServer* rtspServer = createRTSPServer(*env, rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot);
-	if (rtspServer == NULL) 
+	V4l2RTSPServer rtspServer(rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot);
+	if (!rtspServer.available()) 
 	{
-		LOG(ERROR) << "Failed to create RTSP server: " << env->getResultMsg();
+		LOG(ERROR) << "Failed to create RTSP server: " << rtspServer.getResultMsg();
 	}
 	else
-	{			
+	{		
+		// decode multicast info
+		struct in_addr destinationAddress;
+		destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*rtspServer.env());
+		unsigned short rtpPortNum = 20000;
+		unsigned short rtcpPortNum = rtpPortNum+1;
+		unsigned char ttl = 5;
+		decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
+
 		V4l2Output* out = NULL;
 		int nbSource = 0;
 		std::list<std::string>::iterator devIt;
@@ -594,7 +511,7 @@ int main(int argc, char** argv)
 						delete videoCapture;
 					} else {
 						LOG(NOTICE) << "Create Source ..." << videoDev;
-						videoReplicator = DeviceSourceFactory::createStreamReplicator(env, videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), queueSize, useThread, outfd, repeatConfig);
+						videoReplicator = DeviceSourceFactory::createStreamReplicator(rtspServer.env(), videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), queueSize, useThread, outfd, repeatConfig);
 						if (videoReplicator == NULL) 
 						{
 							LOG(FATAL) << "Unable to create source for device " << videoDev;
@@ -622,7 +539,7 @@ int main(int argc, char** argv)
 				{
 					rtpAudioFormat.assign(getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
 
-					audioReplicator = DeviceSourceFactory::createStreamReplicator(env, 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
+					audioReplicator = DeviceSourceFactory::createStreamReplicator(rtspServer.env(), 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
 					if (audioReplicator == NULL) 
 					{
 						LOG(FATAL) << "Unable to create source for device " << audioDev;
@@ -642,7 +559,7 @@ int main(int argc, char** argv)
 				std::list<ServerMediaSubsession*> subSession;						
 				if (videoReplicator)
 				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
+					subSession.push_back(MulticastServerMediaSubsession::createNew(*rtspServer.env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
 					// increment ports for next sessions
 					rtpPortNum+=2;
 					rtcpPortNum+=2;
@@ -650,13 +567,13 @@ int main(int argc, char** argv)
 				
 				if (audioReplicator)
 				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*env, destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
+					subSession.push_back(MulticastServerMediaSubsession::createNew(*rtspServer.env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
 					
 					// increment ports for next sessions
 					rtpPortNum+=2;
 					rtcpPortNum+=2;
 				}
-				nbSource += addSession(rtspServer, baseUrl+murl, subSession);																
+				nbSource += rtspServer.addSession(baseUrl+murl, subSession);																
 			}
 			
 			// Create HLS Session					
@@ -665,12 +582,12 @@ int main(int argc, char** argv)
 				std::list<ServerMediaSubsession*> subSession;
 				if (videoReplicator)
 				{
-					subSession.push_back(TSServerMediaSubsession::createNew(*env, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
+					subSession.push_back(TSServerMediaSubsession::createNew(*rtspServer.env(), videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
 				}
-				nbSource += addSession(rtspServer, baseUrl+tsurl, subSession);
+				nbSource += rtspServer.addSession(baseUrl+tsurl, subSession);
 				
 				struct in_addr ip;
-				ip.s_addr = ourIPAddress(*env);
+				ip.s_addr = ourIPAddress(*rtspServer.env());
 				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".m3u8";
 				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".mpd";
 			}
@@ -679,33 +596,28 @@ int main(int argc, char** argv)
 			std::list<ServerMediaSubsession*> subSession;
 			if (videoReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpVideoFormat));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*rtspServer.env(), videoReplicator, rtpVideoFormat));				
 			}
 			if (audioReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*env, audioReplicator, rtpAudioFormat));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*rtspServer.env(), audioReplicator, rtpAudioFormat));				
 			}
-			nbSource += addSession(rtspServer, baseUrl+url, subSession);				
+			nbSource += rtspServer.addSession(baseUrl+url, subSession);				
 		}
 
 		if (nbSource>0)
 		{
 			// main loop
 			signal(SIGINT,sighandler);
-			env->taskScheduler().doEventLoop(&quit); 
+			rtspServer.eventLoop(&quit); 
 			LOG(NOTICE) << "Exiting....";			
 		}
-		
-		Medium::close(rtspServer);
 
 		if (out)
 		{
 			delete out;
 		}
 	}
-	
-	env->reclaim();
-	delete scheduler;	
 	
 	return 0;
 }
