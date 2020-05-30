@@ -35,7 +35,7 @@ class DeviceSourceFactory {
             return source;
         }
 
-        static StreamReplicator* createStreamReplicator(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize, bool useThread, int outfd = -1, bool repeatConfig = false) {
+        static StreamReplicator* createStreamReplicator(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, bool useThread = true, int outfd = -1, bool repeatConfig = true) {
             StreamReplicator* replicator = NULL;
             FramedSource* framedSource = DeviceSourceFactory::createFramedSource(env, format, devCapture, queueSize, useThread, outfd, repeatConfig);
             if (framedSource != NULL) 
