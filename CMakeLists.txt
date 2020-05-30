@@ -51,9 +51,9 @@ endif (ALSA_LIBRARY)
 endif()
 
 # LOG4CPP
-find_package(log4cpp QUIET)
+find_library(LOG4CPP_LIBRARY NAMES log4cpp)
 if (LOG4CPP_LIBRARY)
-        message(STATUS "Log4Cpp available")
+	message(STATUS "Log4Cpp available ${LOG4CPP_LIBRARY}")
 	add_definitions(-DHAVE_LOG4CPP)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
