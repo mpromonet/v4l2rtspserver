@@ -35,8 +35,10 @@ message(STATUS "CMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
 #pthread
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package (Threads)
-target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT}) 
+target_link_libraries (${PROJECT_NAME} Threads::Threads) 
 
 #ALSA
 if (ALSA)
