@@ -15,9 +15,13 @@
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
+#ifdef HAVE_ALSA
+#include <alsa/asoundlib.h>
+#endif
+
 class V4l2RTSPServer {
     public:
-        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort, int timeout, unsigned int hlsSegment, const std::list<std::string> & userPasswordList, const char* realm, const std::string & webroot) {
+        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "") {
             m_env = BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew());
             UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
             m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot);
@@ -84,6 +88,65 @@ class V4l2RTSPServer {
         UsageEnvironment* env() {
             return m_env; 
         }
+
+        // -----------------------------------------
+        //    convert V4L2 pix format to RTP mime
+        // -----------------------------------------
+        static std::string getVideoRtpFormat(int format)
+        {
+            std::string rtpFormat;
+            switch(format)
+            {	
+                case V4L2_PIX_FMT_HEVC : rtpFormat = "video/H265"; break;
+                case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
+                case V4L2_PIX_FMT_MJPEG: rtpFormat = "video/JPEG"; break;
+                case V4L2_PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
+                case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
+                case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
+                case V4L2_PIX_FMT_YUYV : rtpFormat = "video/RAW" ; break;
+                case V4L2_PIX_FMT_UYVY : rtpFormat = "video/RAW" ; break;
+            }
+            
+            return rtpFormat;
+        }
+
+#ifdef HAVE_ALSA
+        // -----------------------------------------
+        //    convert string audio format to pcm
+        // -----------------------------------------
+        static std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
+        {
+            std::ostringstream os;
+            os << "audio/";
+            switch (format) {
+                case SND_PCM_FORMAT_A_LAW:
+                    os << "PCMA";
+                    break;
+                case SND_PCM_FORMAT_MU_LAW:
+                    os << "PCMU";
+                    break;
+                case SND_PCM_FORMAT_S8:
+                    os << "L8";
+                    break;
+                case SND_PCM_FORMAT_S24_BE:
+                case SND_PCM_FORMAT_S24_LE:
+                    os << "L24";
+                    break;
+                case SND_PCM_FORMAT_S32_BE:
+                case SND_PCM_FORMAT_S32_LE:
+                    os << "L32";
+                    break;
+                case SND_PCM_FORMAT_MPEG:
+                    os << "MPEG";
+                    break;
+                default:
+                    os << "L16";
+                    break;
+            }
+            os << "/" << sampleRate << "/" << channels;
+            return os.str();
+        }
+#endif
 
     protected:
         UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)

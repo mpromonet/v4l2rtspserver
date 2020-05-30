@@ -54,91 +54,6 @@ void sighandler(int n)
 	quit =1;
 }
 
-// -----------------------------------------
-//    convert V4L2 pix format to RTP mime
-// -----------------------------------------
-std::string getVideoRtpFormat(int format)
-{
-	std::string rtpFormat;
-	switch(format)
-	{	
-		case V4L2_PIX_FMT_HEVC : rtpFormat = "video/H265"; break;
-		case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
-		case V4L2_PIX_FMT_MJPEG: rtpFormat = "video/JPEG"; break;
-		case V4L2_PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
-		case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
-		case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
-		case V4L2_PIX_FMT_YUYV : rtpFormat = "video/RAW" ; break;
-		case V4L2_PIX_FMT_UYVY : rtpFormat = "video/RAW" ; break;
-	}
-	
-	return rtpFormat;
-}
-
-// -----------------------------------------
-//    convert string audio format to pcm
-// -----------------------------------------
-#ifdef HAVE_ALSA
-snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
-{
-	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
-	if (fmt == "S16_BE") {
-		audioFmt = SND_PCM_FORMAT_S16_BE;
-	} else if (fmt == "S16_LE") {
-		audioFmt = SND_PCM_FORMAT_S16_LE;
-	} else if (fmt == "S24_BE") {
-		audioFmt = SND_PCM_FORMAT_S24_BE;
-	} else if (fmt == "S24_LE") {
-		audioFmt = SND_PCM_FORMAT_S24_LE;
-	} else if (fmt == "S32_BE") {
-		audioFmt = SND_PCM_FORMAT_S32_BE;
-	} else if (fmt == "S32_LE") {
-		audioFmt = SND_PCM_FORMAT_S32_LE;
-	} else if (fmt == "ALAW") {
-		audioFmt = SND_PCM_FORMAT_A_LAW;
-	} else if (fmt == "MULAW") {
-		audioFmt = SND_PCM_FORMAT_MU_LAW;
-	} else if (fmt == "S8") {
-		audioFmt = SND_PCM_FORMAT_S8;
-	} else if (fmt == "MPEG") {
-		audioFmt = SND_PCM_FORMAT_MPEG;
-	}
-	return audioFmt;
-}
-std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
-{
-	std::ostringstream os;
-	os << "audio/";
-	switch (format) {
-		case SND_PCM_FORMAT_A_LAW:
-			os << "PCMA";
-			break;
-		case SND_PCM_FORMAT_MU_LAW:
-			os << "PCMU";
-			break;
-		case SND_PCM_FORMAT_S8:
-			os << "L8";
-			break;
-		case SND_PCM_FORMAT_S24_BE:
-		case SND_PCM_FORMAT_S24_LE:
-			os << "L24";
-			break;
-		case SND_PCM_FORMAT_S32_BE:
-		case SND_PCM_FORMAT_S32_LE:
-			os << "L32";
-			break;
-		case SND_PCM_FORMAT_MPEG:
-			os << "MPEG";
-			break;
-		default:
-			os << "L16";
-			break;
-	}
-	os << "/" << sampleRate << "/" << channels;
-	return os.str();
-}
-#endif
-
 // -------------------------------------------------------
 //    decode multicast url <group>:<rtp_port>:<rtcp_port>
 // -------------------------------------------------------
@@ -182,11 +97,37 @@ std::string getDeviceName(const std::string & devicePath)
 	return deviceName;
 }
 
+#ifdef HAVE_ALSA
+snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
+{
+	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
+	if (fmt == "S16_BE") {
+		audioFmt = SND_PCM_FORMAT_S16_BE;
+	} else if (fmt == "S16_LE") {
+		audioFmt = SND_PCM_FORMAT_S16_LE;
+	} else if (fmt == "S24_BE") {
+		audioFmt = SND_PCM_FORMAT_S24_BE;
+	} else if (fmt == "S24_LE") {
+		audioFmt = SND_PCM_FORMAT_S24_LE;
+	} else if (fmt == "S32_BE") {
+		audioFmt = SND_PCM_FORMAT_S32_BE;
+	} else if (fmt == "S32_LE") {
+		audioFmt = SND_PCM_FORMAT_S32_LE;
+	} else if (fmt == "ALAW") {
+		audioFmt = SND_PCM_FORMAT_A_LAW;
+	} else if (fmt == "MULAW") {
+		audioFmt = SND_PCM_FORMAT_MU_LAW;
+	} else if (fmt == "S8") {
+		audioFmt = SND_PCM_FORMAT_S8;
+	} else if (fmt == "MPEG") {
+		audioFmt = SND_PCM_FORMAT_MPEG;
+	}
+	return audioFmt;
+}
 
 /* ---------------------------------------------------------------------------
 **  get a "deviceid" from uevent sys file
 ** -------------------------------------------------------------------------*/
-#ifdef HAVE_ALSA	
 std::string getDeviceId(const std::string& evt) {
     std::string deviceid;
     std::istringstream f(evt);
@@ -505,7 +446,7 @@ int main(int argc, char** argv)
 						}
 					}
 					
-					rtpVideoFormat.assign(getVideoRtpFormat(videoCapture->getFormat()));
+					rtpVideoFormat.assign(V4l2RTSPServer::getVideoRtpFormat(videoCapture->getFormat()));
 					if (rtpVideoFormat.empty()) {
 						LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 						delete videoCapture;
@@ -537,7 +478,7 @@ int main(int argc, char** argv)
 				ALSACapture* audioCapture = ALSACapture::createNew(param);
 				if (audioCapture) 
 				{
-					rtpAudioFormat.assign(getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
+					rtpAudioFormat.assign(V4l2RTSPServer::getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
 
 					audioReplicator = DeviceSourceFactory::createStreamReplicator(rtspServer.env(), 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
 					if (audioReplicator == NULL) 
