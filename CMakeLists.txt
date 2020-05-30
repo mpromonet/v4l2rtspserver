@@ -9,8 +9,6 @@ set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CAC
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 CACHE STRING "live555 CFGLAGS")
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_C_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS "-Wall")
 
 # set version based on git
 find_package(Git)
@@ -23,8 +21,7 @@ endif()
 
 # define executable to build
 include_directories("inc")
-aux_source_directory(src SRC_FILES)
-add_executable(${PROJECT_NAME} ${SRC_FILES})
+add_executable(${PROJECT_NAME} main.cpp)
 
 if (COVERAGE)
 	set(COVERAGE_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
@@ -72,6 +69,7 @@ target_link_libraries (${PROJECT_NAME} v4l2wrapper)
 
 # live555
 set(LIVE ${CMAKE_BINARY_DIR}/live)
+set(LIVEINCLUDE ${LIVE}/groupsock/include ${LIVE}/liveMedia/include ${LIVE}/UsageEnvironment/include ${LIVE}/BasicUsageEnvironment/include)
 if (NOT EXISTS ${LIVE})
     file (DOWNLOAD ${LIVE555URL} ${CMAKE_BINARY_DIR}/live555-latest.tar.gz )
     EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xvf ${CMAKE_BINARY_DIR}/live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
@@ -81,9 +79,12 @@ if (NOT EXISTS ${LIVE})
 endif()
 FILE(GLOB LIVESOURCE ${LIVE}/groupsock/*.c* ${LIVE}/liveMedia/*.c* ${LIVE}/UsageEnvironment/*.c* ${LIVE}/BasicUsageEnvironment/*.c*)
 add_definitions(${LIVE555CFLAGS})
-add_library (live555 STATIC ${LIVESOURCE})
-target_include_directories(live555 PUBLIC ${LIVE}/groupsock/include ${LIVE}/liveMedia/include ${LIVE}/UsageEnvironment/include ${LIVE}/BasicUsageEnvironment/include)
-target_link_libraries (${PROJECT_NAME} live555)
+
+# librtsp
+aux_source_directory(src SRC_FILES)
+add_library (libv4l2rtspserver STATIC ${LIVESOURCE} ${SRC_FILES})	
+target_include_directories(libv4l2rtspserver PUBLIC ${LIVEINCLUDE} inc)
+target_link_libraries (${PROJECT_NAME} libv4l2rtspserver) 
 
 #testing
 enable_testing()
