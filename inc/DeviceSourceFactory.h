@@ -18,7 +18,7 @@
 
 class DeviceSourceFactory {
     public:
-		static FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize, bool useThread, int outfd = -1, bool repeatConfig = false) {
+		static FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, bool useThread = true, int outfd = -1, bool repeatConfig = true) {
             FramedSource* source = NULL;
             if (format == V4L2_PIX_FMT_H264)
             {

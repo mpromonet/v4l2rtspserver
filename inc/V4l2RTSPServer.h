@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <list>
+
 // live555
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -18,6 +20,12 @@
 #ifdef HAVE_ALSA
 #include <alsa/asoundlib.h>
 #endif
+
+#include "ServerMediaSubsession.h"
+#include "UnicastServerMediaSubsession.h"
+#include "MulticastServerMediaSubsession.h"
+#include "TSServerMediaSubsession.h"
+#include "HTTPServer.h"
 
 class V4l2RTSPServer {
     public:

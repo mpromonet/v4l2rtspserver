@@ -33,11 +33,6 @@
 #include "V4l2Output.h"
 
 #include "DeviceSourceFactory.h"
-#include "ServerMediaSubsession.h"
-#include "UnicastServerMediaSubsession.h"
-#include "MulticastServerMediaSubsession.h"
-#include "TSServerMediaSubsession.h"
-#include "HTTPServer.h"
 #include "V4l2RTSPServer.h"
 
 #ifdef HAVE_ALSA
