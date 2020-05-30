@@ -42,6 +42,15 @@ class V4l2RTSPServer {
             delete scheduler;	
         }
 
+        int addSession(const std::string & sessionName, ServerMediaSubsession* subSession)
+        {
+            std::list<ServerMediaSubsession*> subSessionList;
+            if (subSession) {
+                subSessionList.push_back(subSession);
+            }
+            return this->addSession(sessionName, subSessionList);
+        }
+
         int addSession(const std::string & sessionName, const std::list<ServerMediaSubsession*> & subSession)
         {
             int nbSubsession = 0;
