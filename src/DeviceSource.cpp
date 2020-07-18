@@ -235,10 +235,10 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 	std::list< std::pair<unsigned char*,size_t> > frameList = this->splitFrames((unsigned char*)frame, frameSize);
 	while (!frameList.empty())
 	{
-		std::pair<unsigned char*,size_t>& frame = frameList.front();
-		size_t size = frame.second;
+		std::pair<unsigned char*,size_t>& item = frameList.front();
+		size_t size = item.second;
 		char* buf = new char[size];
-		memcpy(buf, frame.first, size);
+		memcpy(buf, item.first, size);
 		queueFrame(buf,size,ref);
 		frameList.pop_front();
 

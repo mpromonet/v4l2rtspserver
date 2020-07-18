@@ -11,6 +11,8 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
+#pragma once
+
 #include "logger.h"
 #include "JPEGVideoSource.hh"
 

@@ -14,7 +14,7 @@
 			hls.attachMedia(video);
 			hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
 		} else {
-			document.write("HLS not supported");
+			alert("HLS not supported");
 		}
 	</script>
     </body>
