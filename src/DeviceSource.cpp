@@ -126,13 +126,6 @@ void V4L2DeviceSource::doGetNextFrame()
 	deliverFrame();
 }
 
-// stopping FrameSource callback
-void V4L2DeviceSource::doStopGettingFrames()
-{
-	LOG(NOTICE) << "V4L2DeviceSource::doStopGettingFrames";	
-	FramedSource::doStopGettingFrames();
-}
-
 // deliver frame to the sink
 void V4L2DeviceSource::deliverFrame()
 {			
@@ -171,6 +164,10 @@ void V4L2DeviceSource::deliverFrame()
 			fPresentationTime = frame->m_timestamp;
 			memcpy(fTo, frame->m_buffer, fFrameSize);
 			delete frame;
+
+			if (!m_captureQueue.empty()) {
+				envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
+			}
 		}
 		pthread_mutex_unlock (&m_mutex);
 		
@@ -196,7 +193,7 @@ int V4L2DeviceSource::getNextFrame()
 {
 	timeval ref;
 	gettimeofday(&ref, NULL);											
-	char buffer[m_device->getBufferSize()];	
+	char* buffer = new char[m_device->getBufferSize()];	
 	int frameSize = m_device->read(buffer,  m_device->getBufferSize());	
 	if (frameSize < 0)
 	{
@@ -237,9 +234,12 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 	{
 		std::pair<unsigned char*,size_t>& item = frameList.front();
 		size_t size = item.second;
-		char* buf = new char[size];
-		memcpy(buf, item.first, size);
-		queueFrame(buf,size,ref);
+		char* allocatedBuffer = NULL;
+		if (frameList.size() == 1) {
+			// last frame will release buffer
+			allocatedBuffer = frame;
+		}
+		queueFrame((char*)item.first,size,ref,allocatedBuffer);
 		frameList.pop_front();
 
 		LOG(DEBUG) << "queueFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << size <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";		
@@ -247,7 +247,7 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 }	
 
 // post a frame to fifo
-void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv) 
+void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv, char * allocatedBuffer) 
 {
 	pthread_mutex_lock (&m_mutex);
 	while (m_captureQueue.size() >= m_queueSize)
@@ -256,7 +256,7 @@ void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv
 		delete m_captureQueue.front();
 		m_captureQueue.pop_front();
 	}
-	m_captureQueue.push_back(new Frame(frame, frameSize, tv));	
+	m_captureQueue.push_back(new Frame(frame, frameSize, tv, allocatedBuffer));	
 	pthread_mutex_unlock (&m_mutex);
 	
 	// post an event to ask to deliver the frame

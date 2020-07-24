@@ -33,14 +33,15 @@ class V4L2DeviceSource: public FramedSource
 		// ---------------------------------
 		struct Frame
 		{
-			Frame(char* buffer, int size, timeval timestamp) : m_buffer(buffer), m_size(size), m_timestamp(timestamp) {};
+			Frame(char* buffer, int size, timeval timestamp, char * allocatedBuffer = NULL) : m_buffer(buffer), m_size(size), m_timestamp(timestamp), m_allocatedBuffer(allocatedBuffer) {};
 			Frame(const Frame&);
 			Frame& operator=(const Frame&);
-			~Frame()  { delete [] m_buffer; };
+			~Frame()  { delete [] m_allocatedBuffer; };
 			
 			char* m_buffer;
 			unsigned int m_size;
 			timeval m_timestamp;
+			char* m_allocatedBuffer;
 		};
 		
 		// ---------------------------------
@@ -82,14 +83,13 @@ class V4L2DeviceSource: public FramedSource
 		void incomingPacketHandler();
 		int getNextFrame();
 		void processFrame(char * frame, int frameSize, const timeval &ref);
-		void queueFrame(char * frame, int frameSize, const timeval &tv);
+		void queueFrame(char * frame, int frameSize, const timeval &tv, char * allocatedBuffer = NULL);
 
 		// split packet in frames
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);
 		
 		// overide FramedSource
 		virtual void doGetNextFrame();	
-		virtual void doStopGettingFrames();
 					
 	protected:
 		std::list<Frame*> m_captureQueue;
