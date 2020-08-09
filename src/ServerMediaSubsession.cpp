@@ -75,7 +75,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
     } 
-#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1536192000	
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1596931200	
 	else if (format =="video/RAW") 
 	{ 
 		std::string sampling;
@@ -84,7 +84,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
 			case V4L2_PIX_FMT_UYVY: sampling = "YCbCr-4:2:2"; break;
 		}
-		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getHeight(), source->getWidth(), 8, sampling.c_str());
+		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getWidth(), source->getHeight(), 8, sampling.c_str(),"BT709-2");
     } 
 #endif	
 	else if (format.find("audio/L16") == 0)
