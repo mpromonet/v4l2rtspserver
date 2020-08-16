@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+rtsp_port="$(snapctl get rtsp-port)"
+echo "rtsp_port:$rtsp_port"
