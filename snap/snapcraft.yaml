@@ -36,6 +36,6 @@
 
   apps:
     v4l2rtspserver:
-      command: v4l2rtspserver -b $SNAP/share/v4l2rtspserver/ -S -P $(snapctl get rtsp_port)
+      command: v4l2rtspserver -b $SNAP/share/v4l2rtspserver/ -S -P "$(snapctl get rtsp-port)"
       daemon: simple   
       plugs: [network-bind]
