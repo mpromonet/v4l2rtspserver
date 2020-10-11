@@ -29,8 +29,10 @@
 
 class V4l2RTSPServer {
     public:
-        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "") {
-            m_env = BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew());
+        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "")
+            : m_stop(0)
+            , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
+        {     
             UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
             m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot);
            	if (m_rtspServer != NULL)
@@ -98,8 +100,16 @@ class V4l2RTSPServer {
             return result;
         }
 
-        void eventLoop(char * quit) {
-            m_env->taskScheduler().doEventLoop(quit); 
+        void eventLoop(char * stop) {
+            m_env->taskScheduler().doEventLoop(stop); 
+        }
+
+        void eventLoop() {
+            m_env->taskScheduler().doEventLoop(&m_stop); 
+        }
+
+        void stopLoop() {
+            m_stop = 1;
         }
 
         UsageEnvironment* env() {
@@ -189,6 +199,7 @@ class V4l2RTSPServer {
         }
 
     protected:
+        char              m_stop;
         UsageEnvironment* m_env;	
         RTSPServer*       m_rtspServer;
 };

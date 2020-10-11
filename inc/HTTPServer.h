@@ -29,9 +29,6 @@ class TCPSink: public MediaSink {
 	protected:
 		virtual ~TCPSink() {
 			envir().taskScheduler().disableBackgroundHandling(fOutputSocketNum);
-			if (fSource != NULL) {
-				Medium::close(fSource);
-			}	
 		}
 
 	protected:
@@ -123,7 +120,7 @@ class HTTPServer : public RTSPServer
 	{
 		public:
 			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
-		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL) {
+		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
 			}
 			virtual ~HTTPClientConnection();
 
@@ -145,6 +142,7 @@ class HTTPServer : public RTSPServer
 			TCPSink*               m_TCPSink;
 			void*                  m_StreamToken;
 			ServerMediaSubsession* m_Subsession;
+			FramedSource*          m_Source;
 	};
 	
 	public:

@@ -57,14 +57,18 @@ void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 {
       if (m_TCPSink != NULL) 
       {
-		m_TCPSink->stopPlaying();			       
+		m_TCPSink->stopPlaying();
 		Medium::close(m_TCPSink);
-		m_TCPSink = NULL;
+      }
+      if (m_Source != NULL) 	
+      {	
+		Medium::close(m_Source);	
       }
       if (source != NULL) 
       {
 		m_TCPSink = new TCPSink(envir(), fClientOutputSocket);
 		m_TCPSink->startPlaying(*source, afterStreaming, this);
+		m_Source = source;
       }
 }
 		
@@ -226,6 +230,9 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		std::string content(os.str());
 		this->sendHeader("text/plain", content.size());
 		this->streamSource(content);
+	}
+	else if (strncmp(urlSuffix, "getSnapshot", strlen("getSnapshot")) == 0) 
+	{
 	}
 	else if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{
