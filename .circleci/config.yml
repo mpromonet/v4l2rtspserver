@@ -30,8 +30,8 @@ jobs:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
       - run: 
-        command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
-        no_output_timeout: 30m
+          command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
+          no_output_timeout: 30m
       - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
       - run: cpack .
@@ -52,8 +52,8 @@ jobs:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
       - run: 
-        command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
-        no_output_timeout: 30m
+          command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
+          no_output_timeout: 30m
       - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
       - run: cpack .
