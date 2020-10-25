@@ -184,9 +184,9 @@ workflows:
             tags:
               only: /.*/   
       - build_rpi_armv7:
-        filters:
-          tags:
-            only: /.*/                    
+          filters:
+            tags:
+              only: /.*/                    
       - build_mips:
           filters:
             tags:
