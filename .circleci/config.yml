@@ -179,10 +179,14 @@ workflows:
           filters:
             tags:
               only: /.*/      
-      - build_rpi:
+      - build_rpi_armv6:
           filters:
             tags:
-              only: /.*/      
+              only: /.*/   
+      - build_rpi_armv7:
+        filters:
+          tags:
+            only: /.*/                    
       - build_mips:
           filters:
             tags:
