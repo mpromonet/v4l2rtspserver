@@ -19,14 +19,42 @@ jobs:
           paths:
             - distrib 
 
-  build_rpi:
+  build_rpi_armv6:
     <<: *defaults
+
+    environment:
+      TAR_OPTIONS: --no-same-owner
+      CROSSCOMPILER: https://sourceforge.net/projects/raspberry-pi-cross-compilers/files/Raspberry%20Pi%20GCC%20Cross-Compiler%20Toolchains/Buster/GCC%2010.1.0/Raspberry%20Pi%201%2C%20Zero/cross-gcc-10.1.0-pi_0-1.tar.gz
 
     steps:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
-      - run: git clone --depth 1 https://github.com/raspberrypi/tools.git rpi_tools 
-      - run: echo 'export PATH=${CIRCLE_WORKING_DIRECTORY}/rpi_tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH' >> $BASH_ENV
+      - run: 
+        command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
+        no_output_timeout: 30m
+      - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
+      - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
+      - run: cpack .
+      - run: mkdir -p /distrib && cp *.deb /distrib 
+      - persist_to_workspace:
+          root: /
+          paths:
+            - distrib 
+
+  build_rpi_armv7:
+    <<: *defaults
+
+    environment:
+      TAR_OPTIONS: --no-same-owner
+      CROSSCOMPILER: https://sourceforge.net/projects/raspberry-pi-cross-compilers/files/Raspberry%20Pi%20GCC%20Cross-Compiler%20Toolchains/Buster/GCC%2010.1.0/Raspberry%20Pi%202%2C%203/cross-gcc-10.1.0-pi_2-3.tar.gz
+
+    steps:
+      - checkout
+      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
+      - run: 
+        command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
+        no_output_timeout: 30m
+      - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
@@ -162,7 +190,8 @@ workflows:
       - store_artifact:
           requires:
             - build_x86_64
-            - build_rpi
+            - build_rpi_armv6
+            - build_rpi_armv7
             - build_mips
           filters:
             tags:
@@ -170,7 +199,8 @@ workflows:
       - github_release:
           requires:
             - build_x86_64
-            - build_rpi
+            - build_rpi_armv6
+            - build_rpi_armv7
             - build_mips
           filters:
             branches:
