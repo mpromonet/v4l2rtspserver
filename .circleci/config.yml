@@ -33,7 +33,7 @@ jobs:
           command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
           no_output_timeout: 30m
       - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
-      - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
+      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=armv6l -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
       - persist_to_workspace:
