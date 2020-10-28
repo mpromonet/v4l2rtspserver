@@ -18,11 +18,16 @@
 
 #include <alsa/asoundlib.h>
 #include "logger.h"
+#include <lame.h>
+
+
+#define COMPRESSED_AUDIO_FMT_NONE 0
+#define COMPRESSED_AUDIO_FMT_MP3 1
 
 struct ALSACaptureParameters 
 {
-	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels, int verbose) : 
-		m_devName(devname), m_formatList(formatList), m_sampleRate(sampleRate), m_channels(channels), m_verbose(verbose) {
+	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels, int verbose, int compressedAudioFmt) : 
+		m_devName(devname), m_formatList(formatList), m_sampleRate(sampleRate), m_channels(channels), m_verbose(verbose), m_compressedAudioFmt(compressedAudioFmt) {
 			
 	}
 		
@@ -31,6 +36,7 @@ struct ALSACaptureParameters
 	unsigned int     m_sampleRate;
 	unsigned int     m_channels;
 	int              m_verbose;
+	int				 m_compressedAudioFmt;
 };
 
 class ALSACapture 
@@ -63,6 +69,8 @@ class ALSACapture
 		unsigned long         m_periodSize;
 		ALSACaptureParameters m_params;
 		snd_pcm_format_t      m_fmt;
+		lame_global_flags*    gfp;
+
 };
 
 #endif
