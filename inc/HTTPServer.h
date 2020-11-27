@@ -113,13 +113,18 @@ class TCPSink: public MediaSink {
 // ---------------------------------------------------------
 //  Extend RTSP server to add support for HLS and MPEG-DASH
 // ---------------------------------------------------------
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1606435200
+#define SOCKETCLIENT sockaddr_in 
+#else
+#define SOCKETCLIENT sockaddr_storage 
+#endif
 class HTTPServer : public RTSPServer
 {
 
 	class HTTPClientConnection : public RTSPServer::RTSPClientConnection
 	{
 		public:
-			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr)
+			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct SOCKETCLIENT clientAddr)
 		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
 			}
 			virtual ~HTTPClientConnection();
@@ -165,7 +170,7 @@ class HTTPServer : public RTSPServer
                        }
 		}
 
-		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr) 
+		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
 		{
 			return new HTTPClientConnection(*this, clientSocket, clientAddr);
 		}
