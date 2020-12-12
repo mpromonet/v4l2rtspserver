@@ -25,8 +25,15 @@ MulticastServerMediaSubsession* MulticastServerMediaSubsession::createNew(UsageE
 	FramedSource* videoSource = createSource(env, source, format);
 
 	// Create RTP/RTCP groupsock
-	Groupsock* rtpGroupsock = new Groupsock(env, destinationAddress, rtpPortNum, ttl);
-	Groupsock* rtcpGroupsock = new Groupsock(env, destinationAddress, rtcpPortNum, ttl);
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1607644800
+	struct in_addr groupAddress = destinationAddress;
+#else
+	struct sockaddr_storage groupAddress;
+	groupAddress.ss_family = AF_INET;
+  	((struct sockaddr_in&)groupAddress).sin_addr = destinationAddress;
+#endif
+	Groupsock* rtpGroupsock = new Groupsock(env, groupAddress, rtpPortNum, ttl);
+	Groupsock* rtcpGroupsock = new Groupsock(env, groupAddress, rtcpPortNum, ttl);
 
 	// Create a RTP sink
 	RTPSink* videoSink = createSink(env, rtpGroupsock, 96, format, dynamic_cast<V4L2DeviceSource*>(replicator->inputSource()));
