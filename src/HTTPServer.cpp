@@ -32,7 +32,7 @@ void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsig
 	   "HTTP/1.1 200 OK\r\n"
 	   "%s"
 	   "Server: LIVE555 Streaming Media v%s\r\n"
-           "Access-Control-Allow-Origin: *\r\n" 
+	   "Access-Control-Allow-Origin: *\r\n" 
 	   "Content-Type: %s\r\n"
 	   "Content-Length: %d\r\n"
 	   "\r\n",
@@ -40,10 +40,14 @@ void HTTPServer::HTTPClientConnection::sendHeader(const char* contentType, unsig
 	   LIVEMEDIA_LIBRARY_VERSION_STRING,
 	   contentType,
 	   contentLength);
-
-	  // Send the response header 
-	  send(fClientOutputSocket, (char const*)fResponseBuffer, strlen((char*)fResponseBuffer), 0);
-	  fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
+	   
+	// Send the response header
+	size_t responeLength = strlen((char*)fResponseBuffer);
+	ssize_t responseRetval = send(fClientOutputSocket, (char const*)fResponseBuffer, responeLength, 0);
+	if (responeLength != -1 && (size_t)responseRetval == responeLength)
+	{
+		fResponseBuffer[0] = '\0'; // We've already sent the response.  This tells the calling code not to send it again.
+	}
 }
 		
 void HTTPServer::HTTPClientConnection::streamSource(const std::string & content)
