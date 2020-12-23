@@ -55,7 +55,7 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 	if ((err = snd_pcm_open (&m_pcm, m_params.m_devName.c_str(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
 		LOG(ERROR) << "cannot open audio device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
 	}
-				
+
 	// configure hw_params
 	else if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0) {
 		LOG(ERROR) << "cannot allocate hardware parameter structure device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
@@ -84,13 +84,13 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 		LOG(ERROR) << "cannot set parameters device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
 		this->close();
 	}
-	
+
 	// get buffer size
 	else if ((err = snd_pcm_get_params(m_pcm, &m_bufferSize, &m_periodSize)) < 0) {
 		LOG(ERROR) << "cannot get parameters device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
 		this->close();
 	}
-	
+
 	// start capture
 	else if ((err = snd_pcm_prepare (m_pcm)) < 0) {
 		LOG(ERROR) << "cannot prepare audio interface for use device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
@@ -99,11 +99,13 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 	else if ((err = snd_pcm_start (m_pcm)) < 0) {
 		LOG(ERROR) << "cannot start audio interface for use device: " << m_params.m_devName << " error:" <<  snd_strerror (err);
 		this->close();
-	}			
+	}
 	
-	LOG(NOTICE) << "ALSA device: \"" << m_params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize << " rate:" << m_params.m_sampleRate;
+	if (err >= 0) {
+        LOG(NOTICE) << "ALSA device: \"" << m_params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize << " rate:" << m_params.m_sampleRate;
+    }
 }
-			
+
 int ALSACapture::configureFormat(snd_pcm_hw_params_t *hw_params) {
 	
 	// try to set format, widht, height
