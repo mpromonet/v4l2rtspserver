@@ -260,43 +260,59 @@ int main(int argc, char** argv)
 		switch (c)
 		{
 			case 'v':	verbose    = 1; if (optarg && *optarg=='v') verbose++;  break;
-			case 'Q':	queueSize  = atoi(optarg); break;
-			case 'O':	outputFile = optarg; break;
-			case 'b':	webroot = optarg; break;
-			
+			case 'Q':	if (optarg) {	queueSize				= atoi(optarg); }		else { exit(1); } break;
+			case 'O':	if (optarg) {	outputFile				= optarg; }				else { exit(1); } break;
+			case 'b':	if (optarg) {	webroot					= optarg; } 			else { exit(1); } break;
+
 			// RTSP/RTP
-			case 'I':       ReceivingInterfaceAddr  = inet_addr(optarg); break;
-			case 'P':	rtspPort                = atoi(optarg); break;
-			case 'p':	rtspOverHTTPPort        = atoi(optarg); break;
-			case 'u':	url                     = optarg; break;
+			case 'I':	if (optarg) {	ReceivingInterfaceAddr 	= inet_addr(optarg); }	else { exit(1); } break;
+			case 'P':	if (optarg) {	rtspPort 				= atoi(optarg); }		else { exit(1); } break;
+			case 'p':	if (optarg) {	rtspOverHTTPPort		= atoi(optarg); }		else { exit(1); } break;
+			case 'u':	if (optarg) {	url 					= optarg; }				else { exit(1); } break;
 			case 'm':	multicast = true; murl  = optarg ? optarg : murl; break;
-			case 'M':	multicast = true; maddr = optarg; break;
-			case 'c':	repeatConfig            = false; break;
-			case 't':	timeout                 = atoi(optarg); break;
-			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
-			
+			case 'M':	multicast = true; if (optarg) { maddr = optarg; } else { exit(1); } break;
+			case 'c':	repeatConfig = false; break;
+			case 't':	if (optarg) {					timeout = atoi(optarg); }		else { exit(1); } break;
+			case 'S':	hlsSegment = optarg ? atoi(optarg) : defaultHlsSegment; break;
+
 			// users
-			case 'R':       realm                   = optarg; break;
-			case 'U':       userPasswordList.push_back(optarg); break;
-			
+			case 'R':	if (optarg) {	realm					= optarg;} 				else { exit(1); } break;
+			case 'U':	userPasswordList.push_back(optarg); break;
+
 			// V4L2
 			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
 			case 'B':	openflags = O_RDWR; break;	
 			case 's':	useThread =  false; break;
-			case 'f':	format    = V4l2Device::fourcc(optarg); if (format) {videoformatList.push_back(format);};  break;
-			case 'F':	fps       = atoi(optarg); break;
-			case 'W':	width     = atoi(optarg); break;
-			case 'H':	height    = atoi(optarg); break;
-			case 'G':   sscanf(optarg,"%dx%dx%d", &width, &height, &fps); break;
-			
+			case 'f':	
+				if (optarg) {
+					format    = V4l2Device::fourcc(optarg); 
+					if (format) {
+						videoformatList.push_back(format);
+					}
+					break;
+				}
+				else { 
+					exit(1);
+				}
+			case 'F':	if (optarg) { fps       = atoi(optarg); } else { exit(1); } break;
+			case 'W':	if (optarg) { width     = atoi(optarg); } else { exit(1); } break;
+			case 'H':	if (optarg) { height    = atoi(optarg); } else { exit(1); } break;
+			case 'G':   if (optarg) { sscanf(optarg,"%dx%dx%d", &width, &height, &fps); } else { exit(1); } break;
+
 			// ALSA
 #ifdef HAVE_ALSA	
-			case 'A':	audioFreq = atoi(optarg); break;
-			case 'C':	audioNbChannels = atoi(optarg); break;
-			case 'a':	audioFmt = decodeAudioFormat(optarg); if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {audioFmtList.push_back(audioFmt);} ; break;
-#endif			
-			
+			case 'A':	if (optarg) { audioFreq = atoi(optarg); break;
+			case 'C':	if (optarg) { audioNbChannels = atoi(optarg); break;
+			case 'a':	
+				if (optarg) {
+					audioFmt = decodeAudioFormat(optarg); 
+					if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {
+						audioFmtList.push_back(audioFmt);
+					}
+					break;
+#endif
+
 			// version
 			case 'V':	
 				std::cout << VERSION << std::endl;
