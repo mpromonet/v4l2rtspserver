@@ -71,11 +71,21 @@ void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
 		m_Source = source;
       }
 }
-		
+
+void lookupServerMediaSessionCompletionFuncCallback(void* clientData, ServerMediaSession* sessionLookedUp) {
+	ServerMediaSession** ptr = (ServerMediaSession**)clientData;
+	*ptr = sessionLookedUp;
+}
+
 ServerMediaSubsession* HTTPServer::HTTPClientConnection::getSubsesion(const char* urlSuffix)
 {
 	ServerMediaSubsession* subsession = NULL;
-	ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlSuffix);
+	ServerMediaSession* session = NULL;
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1610582400	
+	session = fOurServer.lookupServerMediaSession(urlSuffix);
+#else
+	fOurServer.lookupServerMediaSession(urlSuffix, lookupServerMediaSessionCompletionFuncCallback, &session);
+#endif	
 	if (session != NULL) 
 	{
 		ServerMediaSubsessionIterator iter(*session);
