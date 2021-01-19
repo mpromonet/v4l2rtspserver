@@ -242,11 +242,16 @@ workflows:
           filters:
             tags:
               only: /.*/            
+      - publish_docker_linuxarm64:
+          filters:
+            tags:
+              only: /.*/            
       - publish_docker_multiarch:
           requires:
             - publish_docker_linuxamd64
             - publish_docker_linuxarm32v7
             - publish_docker_linuxarm32v6
+            - publish_docker_linuxarm64
           filters:
             tags:
               only: /.*/        
