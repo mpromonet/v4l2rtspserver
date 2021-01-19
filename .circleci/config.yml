@@ -147,6 +147,22 @@ jobs:
             docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6
 
   # -------------------------------------
+  # publish docker arm
+  # -------------------------------------
+  publish_docker_linuxarm64:
+    machine:
+      docker_layer_caching: false
+    steps:
+      - checkout  
+      - run: git submodule update --init
+      - run:
+          command: |
+            export TAG=${CIRCLE_TAG:-latest}
+            docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
+            docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64 -f Dockerfile.arm64 . 
+            docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64
+
+  # -------------------------------------
   # publish docker manifest
   # -------------------------------------
   publish_docker_multiarch:
@@ -161,10 +177,11 @@ jobs:
             docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
             export TAG=${CIRCLE_TAG:-latest}
             echo "create manifest"
-            docker manifest create --amend $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-amd64 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6
+            docker manifest create --amend $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-amd64 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6 $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-amd64 --os linux --arch amd64
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 --os linux --arch arm --variant v7
             docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6 --os linux --arch arm --variant v6l
+            docker manifest annotate $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64 --os linux --arch arm64
             docker manifest inspect $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}
             echo "push manifest"
             docker manifest push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG} -p
