@@ -20,6 +20,5 @@ WORKDIR /usr/local/share/v4l2rtspserver
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/share/v4l2rtspserver/ /usr/local/share/v4l2rtspserver/
 
-EXPOSE 8554
 ENTRYPOINT [ "/usr/local/bin/v4l2rtspserver" ]
 CMD [ "-S" ]

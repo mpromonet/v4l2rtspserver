@@ -5,7 +5,9 @@ COPY . /v4l2rtspserver
 
 ARG ARCH=arm64
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
         && apt-get install -y --no-install-recommends ca-certificates xz-utils cmake make pkg-config git wget gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
         && cmake -DCMAKE_SYSTEM_PROCESSOR=${ARCH} -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . \
 	&& make install \
@@ -18,6 +20,5 @@ WORKDIR /usr/local/share/v4l2rtspserver
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/share/v4l2rtspserver/ /usr/local/share/v4l2rtspserver/
 
-EXPOSE 8554
 ENTRYPOINT [ "/usr/local/bin/v4l2rtspserver" ]
 CMD [ "-S" ]
