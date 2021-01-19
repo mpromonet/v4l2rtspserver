@@ -154,7 +154,11 @@ class HTTPServer : public RTSPServer
 		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string webroot) 
 		{
 			HTTPServer* httpServer = NULL;
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
 			int ourSocket = setUpOurSocket(env, rtspPort);
+#else
+			int ourSocket = setUpOurSocket(env, rtspPort, AF_INET);
+#endif			
 			if (ourSocket != -1) 
 			{
 				httpServer = new HTTPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot);

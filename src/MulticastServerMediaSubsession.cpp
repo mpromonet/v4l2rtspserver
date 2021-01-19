@@ -55,8 +55,12 @@ char const* MulticastServerMediaSubsession::sdpLines()
 {
 	if (m_SDPLines.empty())
 	{
-		// Ugly workaround to give SPS/PPS that are get from the RTPSink 
+		// Ugly workaround to give SPS/PPS that are get from the RTPSink
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
 		m_SDPLines.assign(PassiveServerMediaSubsession::sdpLines());
+#else		 
+		m_SDPLines.assign(PassiveServerMediaSubsession::sdpLines(AF_INET));
+#endif		
 		m_SDPLines.append(getAuxSDPLine(m_rtpSink,NULL));
 	}
 	return m_SDPLines.c_str();
