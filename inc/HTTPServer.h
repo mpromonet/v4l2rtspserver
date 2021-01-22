@@ -155,19 +155,25 @@ class HTTPServer : public RTSPServer
 		{
 			HTTPServer* httpServer = NULL;
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
-			int ourSocket = setUpOurSocket(env, rtspPort);
+			int ourSocketIPv4 = setUpOurSocket(env, rtspPort);
 #else
-			int ourSocket = setUpOurSocket(env, rtspPort, AF_INET);
+			int ourSocketIPv4 = setUpOurSocket(env, rtspPort, AF_INET);
 #endif			
-			if (ourSocket != -1) 
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
+		  	int ourSocketIPv6 = -1;
+#else
+		  	int ourSocketIPv6 = setUpOurSocket(env, rtspPort, AF_INET6);
+#endif		  
+
+			if (ourSocketIPv4 != -1) 
 			{
-				httpServer = new HTTPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot);
+				httpServer = new HTTPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot);
 			}
 			return httpServer;
 		}
 
-		HTTPServer(UsageEnvironment& env, int ourSocket, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot)
-		  : RTSPServer(env, ourSocket, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot)
+		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
 		{
                        if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
                                m_webroot += "/";
