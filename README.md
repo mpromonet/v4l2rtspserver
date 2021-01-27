@@ -135,7 +135,7 @@ For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/
 This workflow could be set using :
 
 	modprobe v4l2loopback video_nr=10
-	v4l2compress_h264 /dev/video0 /dev/video10 &
+	v4l2compress -fH264 /dev/video0 /dev/video10 &
 	v4l2rtspserver /dev/video10 &
 
 
