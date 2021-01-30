@@ -523,7 +523,7 @@ int main(int argc, char** argv)
 				nbSource += rtspServer.addSession(baseUrl+tsurl, subSession);
 				
 				struct in_addr ip;
-				ip.s_addr = ourIPAddress(*rtspServer.env());
+				ip.s_addr = ourIPv4Address(*rtspServer.env());
 				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".m3u8";
 				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".mpd";
 			}
