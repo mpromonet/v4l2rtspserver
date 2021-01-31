@@ -523,7 +523,11 @@ int main(int argc, char** argv)
 				nbSource += rtspServer.addSession(baseUrl+tsurl, subSession);
 				
 				struct in_addr ip;
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
 				ip.s_addr = ourIPAddress(*rtspServer.env());
+#else
+				ip.s_addr = ourIPv4Address(*rtspServer.env());
+#endif
 				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".m3u8";
 				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".mpd";
 			}
