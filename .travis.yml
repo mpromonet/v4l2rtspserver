@@ -22,9 +22,8 @@ addons:
       - cmake 
       - libasound2-dev
       - g++-mips-linux-gnu
+      - g++-aarch64-linux-gnu
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install g++-mips-linux-gnu
   - pip install --user cpp-coveralls pyYaml
 language: cpp
 compiler: gcc
@@ -39,15 +38,15 @@ script:
   - if [ "$COVERAGE" != "" ]; then cmake -DCOVERAGE=ON . && make && make test; fi
 after_success:
   - if [ "$COVERAGE" != "" ]; then coveralls --gcov-options '\-lp'; fi
-before_deploy:
-  - export RELEASE_DEB_FILE=$(ls *.deb)
-deploy:
-  provider: releases
-  api_key:
-    secure: gcQy7QO09vfGtcRMi8D+6VykDfK1tuz1jEZRmJER6eZ0p2gRi4F6mtsMRJWt3QsKkZQWkJpPTvCfv9GyNmWTrZV746y5QVnd+mjPx+6K/LgroK4LWgOgzJ6zQ6qfDKU80GbxJOnNv9/HmIcxSCiactxS50tbvntqpBGCmiIL+4U=
-  file: 
-    - "${RELEASE_DEB_FILE}"
-  skip_cleanup: true
-  on:
-    repo: mpromonet/v4l2rtspserver
-    tags: true
+#before_deploy:
+#  - export RELEASE_DEB_FILE=$(ls *.deb)
+#deploy:
+#  provider: releases
+#  api_key:
+#    secure: gcQy7QO09vfGtcRMi8D+6VykDfK1tuz1jEZRmJER6eZ0p2gRi4F6mtsMRJWt3QsKkZQWkJpPTvCfv9GyNmWTrZV746y5QVnd+mjPx+6K/LgroK4LWgOgzJ6zQ6qfDKU80GbxJOnNv9/HmIcxSCiactxS50tbvntqpBGCmiIL+4U=
+#  file: 
+#    - "${RELEASE_DEB_FILE}"
+#  skip_cleanup: true
+#  on:
+#    repo: mpromonet/v4l2rtspserver
+#    tags: true
