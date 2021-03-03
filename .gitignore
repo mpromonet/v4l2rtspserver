@@ -4,7 +4,8 @@ CMakeCache.txt
 *.cmake
 Makefile
 # build
-libv4l2wrapper.a
+*.a
+*.service
 v4l2rtspserver
 # cpack
 _CPack_Packages
