@@ -309,7 +309,7 @@ int main(int argc, char** argv)
 		unsigned short rtcpPortNum = rtpPortNum+1;
 		decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
 
-		V4l2Output* out = NULL;
+		std::list<V4l2Output*> outList;
 		int nbSource = 0;
 		std::list<std::string>::iterator devIt;
 		for ( devIt=devList.begin() ; devIt!=devList.end() ; ++devIt)
@@ -325,16 +325,19 @@ int main(int argc, char** argv)
 			{
 				baseUrl = getDeviceName(videoDev);
 				baseUrl.append("/");
-			}	
+			}
 
+			V4l2Output* out = NULL;
 			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, verbose, openflags);
 			std::string rtpVideoFormat;
 			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
 					inParam,
 					queueSize, useThread, repeatConfig,
-					outputFile, ioTypeOut, out,
+					outputFile + getDeviceName(videoDev), ioTypeOut, out,
 					rtpVideoFormat);
-
+			if (out != NULL) {
+				outList.push_back(out);
+			}
 					
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
@@ -371,9 +374,11 @@ int main(int argc, char** argv)
 			LOG(NOTICE) << "Exiting....";			
 		}
 
-		if (out)
+		while (!outList.empty())
 		{
+			V4l2Output* out = outList.back();
 			delete out;
+			outList.pop_back();
 		}
 	}
 	
