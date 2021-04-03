@@ -24,27 +24,27 @@
 #endif
 
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
-					const std::string& videoDev, const std::list<unsigned int>& videoformatList, int width, int height, int fps, int verbose, int openflags, V4l2Access::IoType ioTypeIn,
+					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2Access::IoType ioTypeOut, V4l2Output* out,
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output* out,
 					std::string& rtpVideoFormat) {
 
 	StreamReplicator* videoReplicator = NULL;
+    std::string videoDev(inParam.m_devName);
 	if (!videoDev.empty())
 	{
 		// Init video capture
 		LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
 		
-		V4L2DeviceParameters param(videoDev.c_str(), videoformatList, width, height, fps, verbose, openflags);
-		V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
+		V4l2Capture* videoCapture = V4l2Capture::create(inParam);
 		if (videoCapture)
 		{
 			int outfd = -1;
 			
 			if (!outputFile.empty())
 			{
-				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-				out = V4l2Output::create(outparam, ioTypeOut);
+				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut, inParam.m_verbose);
+				out = V4l2Output::create(outparam);
 				if (out != NULL)
 				{
 					outfd = out->getFd();

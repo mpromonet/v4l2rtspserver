@@ -136,8 +136,8 @@ int main(int argc, char** argv)
 	bool multicast = false;
 	int verbose = 0;
 	std::string outputFile;
-	V4l2Access::IoType ioTypeIn  = V4l2Access::IOTYPE_MMAP;
-	V4l2Access::IoType ioTypeOut = V4l2Access::IOTYPE_MMAP;
+	V4l2IoType ioTypeIn  = IOTYPE_MMAP;
+	V4l2IoType ioTypeOut = IOTYPE_MMAP;
 	int openflags = O_RDWR | O_NONBLOCK; 
 	std::string url = "unicast";
 	std::string murl = "multicast";
@@ -189,8 +189,8 @@ int main(int argc, char** argv)
 			case 'U':       userPasswordList.push_back(optarg); break;
 			
 			// V4L2
-			case 'r':	ioTypeIn  = V4l2Access::IOTYPE_READWRITE; break;
-			case 'w':	ioTypeOut = V4l2Access::IOTYPE_READWRITE; break;	
+			case 'r':	ioTypeIn  = IOTYPE_READWRITE; break;
+			case 'w':	ioTypeOut = IOTYPE_READWRITE; break;	
 			case 'B':	openflags = O_RDWR; break;	
 			case 's':	useThread =  false; break;
 			case 'f':	format    = V4l2Device::fourcc(optarg); if (format) {videoformatList.push_back(format);};  break;
@@ -328,9 +328,10 @@ int main(int argc, char** argv)
 				baseUrl.append("/");
 			}	
 
+			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, verbose, openflags);
 			std::string rtpVideoFormat;
 			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
-					videoDev, videoformatList,  width,  height,  fps,  verbose,  openflags, ioTypeIn,
+					inParam,
 					queueSize, useThread, repeatConfig,
 					outputFile, ioTypeOut, out,
 					rtpVideoFormat);

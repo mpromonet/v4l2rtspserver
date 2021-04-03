@@ -141,9 +141,9 @@ class V4l2RTSPServer {
         //    create video capture & replicator
         // -----------------------------------------
         StreamReplicator* CreateVideoReplicator( 
-					const std::string& videoDev, const std::list<unsigned int>& videoformatList, int width, int height, int fps, int verbose, int openflags, V4l2Access::IoType ioTypeIn,
+					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2Access::IoType ioTypeOut, V4l2Output* out,
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output* out,
 					std::string& rtpVideoFormat);
 
 #ifdef HAVE_ALSA
@@ -182,7 +182,7 @@ class V4l2RTSPServer {
             os << "/" << sampleRate << "/" << channels;
             return os.str();
         }
-        
+
         StreamReplicator* CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
 			int queueSize, int useThread,
