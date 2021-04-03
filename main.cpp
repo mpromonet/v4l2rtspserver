@@ -307,7 +307,6 @@ int main(int argc, char** argv)
 		destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*rtspServer.env());
 		unsigned short rtpPortNum = 20000;
 		unsigned short rtcpPortNum = rtpPortNum+1;
-		unsigned char ttl = 5;
 		decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
 
 		V4l2Output* out = NULL;
@@ -351,60 +350,17 @@ int main(int argc, char** argv)
 			// Create Multicast Session
 			if (multicast)						
 			{		
-				LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
-				LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
-			
-				std::list<ServerMediaSubsession*> subSession;						
-				if (videoReplicator)
-				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*rtspServer.env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
-					// increment ports for next sessions
-					rtpPortNum+=2;
-					rtcpPortNum+=2;
-				}
-				
-				if (audioReplicator)
-				{
-					subSession.push_back(MulticastServerMediaSubsession::createNew(*rtspServer.env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
-					
-					// increment ports for next sessions
-					rtpPortNum+=2;
-					rtcpPortNum+=2;
-				}
-				nbSource += rtspServer.addSession(baseUrl+murl, subSession);																
+				nbSource += rtspServer.AddMulticastSession(baseUrl+murl, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
 			}
 			
 			// Create HLS Session					
 			if (hlsSegment > 0)
 			{
-				std::list<ServerMediaSubsession*> subSession;
-				if (videoReplicator)
-				{
-					subSession.push_back(TSServerMediaSubsession::createNew(*rtspServer.env(), videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
-				}
-				nbSource += rtspServer.addSession(baseUrl+tsurl, subSession);
-				
-				struct in_addr ip;
-#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
-				ip.s_addr = ourIPAddress(*rtspServer.env());
-#else
-				ip.s_addr = ourIPv4Address(*rtspServer.env());
-#endif
-				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".m3u8";
-				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << rtspPort << "/" << baseUrl+tsurl << ".mpd";
+				nbSource += rtspServer.AddHlsSession(baseUrl+url, hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
 			}
 			
-			// Create Unicast Session					
-			std::list<ServerMediaSubsession*> subSession;
-			if (videoReplicator)
-			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*rtspServer.env(), videoReplicator, rtpVideoFormat));				
-			}
-			if (audioReplicator)
-			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*rtspServer.env(), audioReplicator, rtpAudioFormat));				
-			}
-			nbSource += rtspServer.addSession(baseUrl+url, subSession);				
+			// Create Unicast Session
+			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);		
 		}
 
 		if (nbSource>0)

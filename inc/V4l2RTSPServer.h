@@ -32,6 +32,7 @@ class V4l2RTSPServer {
         V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "")
             : m_stop(0)
             , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
+            , m_rtspPort(rtspPort)
         {     
             UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
             m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot);
@@ -189,6 +190,75 @@ class V4l2RTSPServer {
 			std::string& rtpAudioFormat);
 #endif
 
+        // -----------------------------------------
+        //    Add unicast Session
+        // -----------------------------------------
+        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+			// Create Unicast Session					
+			std::list<ServerMediaSubsession*> subSession;
+			if (videoReplicator)
+			{
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), videoReplicator, rtpVideoFormat));				
+			}
+			if (audioReplicator)
+			{
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), audioReplicator, rtpAudioFormat));				
+			}
+			return this->addSession(url, subSession);	    
+        }
+
+        // -----------------------------------------
+        //    Add HLS & MPEG# Session
+        // -----------------------------------------
+        int AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+				std::list<ServerMediaSubsession*> subSession;
+				if (videoReplicator)
+				{
+					subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
+				}
+				int nbSource = this->addSession(url, subSession);
+				
+				struct in_addr ip;
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
+				ip.s_addr = ourIPAddress(*this->env());
+#else
+				ip.s_addr = ourIPv4Address(*this->env());
+#endif
+				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".m3u8";
+				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".mpd";	
+			
+			return nbSource;	    
+        }        
+
+
+        // -----------------------------------------
+        //    Add multicats Session
+        // -----------------------------------------
+        int AddMulticastSession(const std::string& url, in_addr destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+
+            LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
+            LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
+        	unsigned char ttl = 5;
+            std::list<ServerMediaSubsession*> subSession;						
+            if (videoReplicator)
+            {
+                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
+                // increment ports for next sessions
+                rtpPortNum+=2;
+                rtcpPortNum+=2;
+            }
+            
+            if (audioReplicator)
+            {
+                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
+                
+                // increment ports for next sessions
+                rtpPortNum+=2;
+                rtcpPortNum+=2;
+            }
+            return this->addSession(url, subSession);
+        }	
+
     protected:
         UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
         {
@@ -216,4 +286,5 @@ class V4l2RTSPServer {
         char              m_stop;
         UsageEnvironment* m_env;	
         RTSPServer*       m_rtspServer;
+        int               m_rtspPort;
 };
