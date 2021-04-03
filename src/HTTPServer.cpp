@@ -247,15 +247,14 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 	else if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{
 		std::ostringstream os;
-		HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
-		ServerMediaSessionIterator it(*httpServer);
-		ServerMediaSession* serverSession = NULL;
 		if (questionMarkPos != NULL) {
 			questionMarkPos++;
 			os << "var " << questionMarkPos << "=";
 		}
 		os << "[\n";
 		bool first = true;
+		ServerMediaSessionIterator it(fOurServer);
+		ServerMediaSession* serverSession = NULL;
 		while ( (serverSession = it.next()) != NULL) {
 			if (serverSession->duration() > 0) {
 				if (first) 
@@ -372,8 +371,7 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 
 void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
 	std::ostringstream os;
-	HTTPServer* httpServer = (HTTPServer*)(&fOurServer);
-	ServerMediaSessionIterator it(*httpServer);
+	ServerMediaSessionIterator it(fOurServer);
 	ServerMediaSession* serverSession = NULL;
 	while ( (serverSession = it.next()) != NULL) {
 		os << serverSession->streamName() << "\n";
