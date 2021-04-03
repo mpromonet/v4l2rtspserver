@@ -116,7 +116,7 @@ class TCPSink: public MediaSink {
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1606435200
 #define SOCKETCLIENT sockaddr_in 
 #else
-#define SOCKETCLIENT sockaddr_storage 
+#define SOCKETCLIENT sockaddr_storage const&
 #endif
 class HTTPServer : public RTSPServer
 {

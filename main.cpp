@@ -361,7 +361,7 @@ int main(int argc, char** argv)
 			// Create HLS Session					
 			if (hlsSegment > 0)
 			{
-				nbSource += rtspServer.AddHlsSession(baseUrl+url, hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
+				nbSource += rtspServer.AddHlsSession(baseUrl+"ts", hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
 			}
 			
 			// Create Unicast Session
