@@ -42,17 +42,6 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package (Threads)
 target_link_libraries (${PROJECT_NAME} Threads::Threads) 
 
-#ALSA
-if (ALSA)
-find_package(ALSA QUIET)
-if (ALSA_LIBRARY)
-	message(STATUS "Alsa available")
-	add_definitions(-DHAVE_ALSA)
-        target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
-	
-	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
-endif (ALSA_LIBRARY)
-endif()
 
 # LOG4CPP
 find_library(LOG4CPP_LIBRARY NAMES log4cpp)
@@ -64,12 +53,6 @@ if (LOG4CPP_LIBRARY)
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
 endif ()
 
-# v4l2wrapper
-EXEC_PROGRAM("git submodule update --init")
-aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
-include_directories("v4l2wrapper/inc")
-add_library(v4l2wrapper STATIC ${LIBSRC_FILES})
-target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 # live555
 find_package(LiveMedia)
@@ -100,6 +83,25 @@ aux_source_directory(src SRC_FILES)
 add_library (libv4l2rtspserver STATIC ${LIVESOURCE} ${SRC_FILES})	
 target_include_directories(libv4l2rtspserver PUBLIC inc ${LIVEINCLUDE})
 target_link_libraries (${PROJECT_NAME} libv4l2rtspserver) 
+
+#ALSA
+if (ALSA)
+find_package(ALSA QUIET)
+if (ALSA_LIBRARY)
+	message(STATUS "Alsa available")
+	add_definitions(-DHAVE_ALSA)
+    target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
+	
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
+endif (ALSA_LIBRARY)
+endif()
+
+# v4l2wrapper
+EXEC_PROGRAM("git submodule update --init")
+aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
+include_directories("v4l2wrapper/inc")
+add_library(v4l2wrapper STATIC ${LIBSRC_FILES})
+target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 #testing
 enable_testing()

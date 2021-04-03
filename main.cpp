@@ -29,15 +29,11 @@
 #include "logger.h"
 
 #include "V4l2Device.h"
-#include "V4l2Capture.h"
 #include "V4l2Output.h"
 
 #include "DeviceSourceFactory.h"
 #include "V4l2RTSPServer.h"
 
-#ifdef HAVE_ALSA
-#include "ALSACapture.h"
-#endif
 
 // -----------------------------------------
 //    signal handler
@@ -119,96 +115,9 @@ snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
 	}
 	return audioFmt;
 }
-
-/* ---------------------------------------------------------------------------
-**  get a "deviceid" from uevent sys file
-** -------------------------------------------------------------------------*/
-std::string getDeviceId(const std::string& evt) {
-    std::string deviceid;
-    std::istringstream f(evt);
-    std::string key;
-    while (getline(f, key, '=')) {
-            std::string value;
-	    if (getline(f, value)) {
-		    if ( (key =="PRODUCT") || (key == "PCI_SUBSYS_ID") ) {
-			    deviceid = value;
-			    break;
-		    }
-	    }
-    }
-    return deviceid;
-}
-
-std::string  getV4l2Alsa(const std::string& v4l2device) {
-	std::string audioDevice(v4l2device);
-	
-	std::map<std::string,std::string> videodevices;
-	std::string video4linuxPath("/sys/class/video4linux");
-	DIR *dp = opendir(video4linuxPath.c_str());
-	if (dp != NULL) {
-		struct dirent *entry = NULL;
-		while((entry = readdir(dp))) {
-			std::string devicename;
-			std::string deviceid;
-			if (strstr(entry->d_name,"video") == entry->d_name) {
-				std::string ueventPath(video4linuxPath);
-				ueventPath.append("/").append(entry->d_name).append("/device/uevent");
-				std::ifstream ifsd(ueventPath.c_str());
-				deviceid = std::string(std::istreambuf_iterator<char>{ifsd}, {});
-				deviceid.erase(deviceid.find_last_not_of("\n")+1);
-			}
-
-			if (!deviceid.empty()) {
-				videodevices[entry->d_name] = getDeviceId(deviceid);
-			}
-		}
-		closedir(dp);
-	}
-
-	std::map<std::string,std::string> audiodevices;
-	int rcard = -1;
-	while ( (snd_card_next(&rcard) == 0) && (rcard>=0) ) {
-		void **hints = NULL;
-		if (snd_device_name_hint(rcard, "pcm", &hints) >= 0) {
-			void **str = hints;
-			while (*str) {				
-				std::ostringstream os;
-				os << "/sys/class/sound/card" << rcard << "/device/uevent";
-
-				std::ifstream ifs(os.str().c_str());
-				std::string deviceid = std::string(std::istreambuf_iterator<char>{ifs}, {});
-				deviceid.erase(deviceid.find_last_not_of("\n")+1);
-				deviceid = getDeviceId(deviceid);
-
-				if (!deviceid.empty()) {
-					if (audiodevices.find(deviceid) == audiodevices.end()) {
-						std::string audioname = snd_device_name_get_hint(*str, "NAME");
-						audiodevices[deviceid] = audioname;
-					}
-				}
-
-				str++;
-			}
-
-			snd_device_name_free_hint(hints);
-		}
-	}
-
-	auto deviceId  = videodevices.find(getDeviceName(v4l2device));
-	if (deviceId != videodevices.end()) {
-		auto audioDeviceIt = audiodevices.find(deviceId->second);
-		
-		if (audioDeviceIt != audiodevices.end()) {
-			audioDevice = audioDeviceIt->second;
-			std::cout <<  v4l2device << "=>" << audioDevice << std::endl;			
-		}
-	}
-	
-	
-	return audioDevice;
-}
 #endif
 
+		
 // -----------------------------------------
 //    entry point
 // -----------------------------------------
@@ -418,71 +327,23 @@ int main(int argc, char** argv)
 				baseUrl = getDeviceName(videoDev);
 				baseUrl.append("/");
 			}	
-			StreamReplicator* videoReplicator = NULL;
+
 			std::string rtpVideoFormat;
-			if (!videoDev.empty())
-			{
-				// Init video capture
-				LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
-				
-				V4L2DeviceParameters param(videoDev.c_str(), videoformatList, width, height, fps, verbose, openflags);
-				V4l2Capture* videoCapture = V4l2Capture::create(param, ioTypeIn);
-				if (videoCapture)
-				{
-					int outfd = -1;
-					
-					if (!outputFile.empty())
-					{
-						V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0,verbose);
-						out = V4l2Output::create(outparam, ioTypeOut);
-						if (out != NULL)
-						{
-							outfd = out->getFd();
-						}
-					}
-					
-					rtpVideoFormat.assign(V4l2RTSPServer::getVideoRtpFormat(videoCapture->getFormat()));
-					if (rtpVideoFormat.empty()) {
-						LOG(FATAL) << "No Streaming format supported for device " << videoDev;
-						delete videoCapture;
-					} else {
-						LOG(NOTICE) << "Create Source ..." << videoDev;
-						videoReplicator = DeviceSourceFactory::createStreamReplicator(rtspServer.env(), videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), queueSize, useThread, outfd, repeatConfig);
-						if (videoReplicator == NULL) 
-						{
-							LOG(FATAL) << "Unable to create source for device " << videoDev;
-							delete videoCapture;
-						}
-					}
-				}
-			}
+			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
+					videoDev, videoformatList,  width,  height,  fps,  verbose,  openflags, ioTypeIn,
+					queueSize, useThread, repeatConfig,
+					outputFile, ioTypeOut, out,
+					rtpVideoFormat);
+
 					
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
 			std::string rtpAudioFormat;
 #ifdef HAVE_ALSA
-			if (!audioDev.empty())
-			{
-				// find the ALSA device associated with the V4L2 device
-				audioDev = getV4l2Alsa(audioDev);
-			
-				// Init audio capture
-				LOG(NOTICE) << "Create ALSA Source..." << audioDev;
-				
-				ALSACaptureParameters param(audioDev.c_str(), audioFmtList, audioFreq, audioNbChannels, verbose);
-				ALSACapture* audioCapture = ALSACapture::createNew(param);
-				if (audioCapture) 
-				{
-					rtpAudioFormat.assign(V4l2RTSPServer::getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
-
-					audioReplicator = DeviceSourceFactory::createStreamReplicator(rtspServer.env(), 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
-					if (audioReplicator == NULL) 
-					{
-						LOG(FATAL) << "Unable to create source for device " << audioDev;
-						delete audioCapture;
-					}
-				}
-			}		
+			audioReplicator = rtspServer.CreateAudioReplicator(
+					audioDev, audioFmtList, audioFreq, audioNbChannels, verbose,
+					queueSize, useThread,
+					rtpAudioFormat);		
 #endif
 					
 										

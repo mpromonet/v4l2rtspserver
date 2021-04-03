@@ -137,6 +137,15 @@ class V4l2RTSPServer {
             return rtpFormat;
         }
 
+        // -----------------------------------------
+        //    create video capture & replicator
+        // -----------------------------------------
+        StreamReplicator* CreateVideoReplicator( 
+					const std::string& videoDev, const std::list<unsigned int>& videoformatList, int width, int height, int fps, int verbose, int openflags, V4l2Access::IoType ioTypeIn,
+					int queueSize, int useThread, int repeatConfig,
+					const std::string& outputFile, V4l2Access::IoType ioTypeOut, V4l2Output* out,
+					std::string& rtpVideoFormat);
+
 #ifdef HAVE_ALSA
         // -----------------------------------------
         //    convert string audio format to pcm
@@ -173,6 +182,11 @@ class V4l2RTSPServer {
             os << "/" << sampleRate << "/" << channels;
             return os.str();
         }
+        
+        StreamReplicator* CreateAudioReplicator(
+			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
+			int queueSize, int useThread,
+			std::string& rtpAudioFormat);
 #endif
 
     protected:
