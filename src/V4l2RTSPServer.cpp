@@ -26,7 +26,7 @@
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output* out,
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out,
 					std::string& rtpVideoFormat) {
 
 	StreamReplicator* videoReplicator = NULL;
@@ -48,6 +48,9 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				if (out != NULL)
 				{
 					outfd = out->getFd();
+					LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
+				} else {
+					LOG(WARN) << "Cannot open output:" << outputFile;
 				}
 			}
 			

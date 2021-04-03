@@ -321,10 +321,12 @@ int main(int argc, char** argv)
 			decodeDevice(deviceName, videoDev, audioDev);
 			
 			std::string baseUrl;
+			std::string output(outputFile);
 			if (devList.size() > 1)
 			{
 				baseUrl = getDeviceName(videoDev);
 				baseUrl.append("/");
+				output.append(getDeviceName(videoDev));
 			}
 
 			V4l2Output* out = NULL;
@@ -333,7 +335,7 @@ int main(int argc, char** argv)
 			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
 					inParam,
 					queueSize, useThread, repeatConfig,
-					outputFile + getDeviceName(videoDev), ioTypeOut, out,
+					output, ioTypeOut, out,
 					rtpVideoFormat);
 			if (out != NULL) {
 				outList.push_back(out);

@@ -144,7 +144,7 @@ class V4l2RTSPServer {
         StreamReplicator* CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output* out,
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out,
 					std::string& rtpVideoFormat);
 
 #ifdef HAVE_ALSA
