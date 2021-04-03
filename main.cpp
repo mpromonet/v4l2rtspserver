@@ -325,7 +325,7 @@ int main(int argc, char** argv)
 			if (devList.size() > 1)
 			{
 				baseUrl = getDeviceName(videoDev);
-				baseUrl.append("/");
+				baseUrl.append("_");
 				output.append(getDeviceName(videoDev));
 			}
 
@@ -361,7 +361,7 @@ int main(int argc, char** argv)
 			// Create HLS Session					
 			if (hlsSegment > 0)
 			{
-				nbSource += rtspServer.AddHlsSession(baseUrl+"ts", hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
+				nbSource += rtspServer.AddHlsSession(baseUrl+tsurl, hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
 			}
 			
 			// Create Unicast Session
