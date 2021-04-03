@@ -4,15 +4,23 @@
 	<!--fill streamList variable with the list of streams -->
 	<script src="/getStreamList?streamList" ></script>
 	<h3>HLS</h3>
-	<video controls id="hlsvideo"></video>
+	<div id="videos"></div>
 	<script src="hls.js/dist/hls.light.min.js" ></script>
 	<script>
 		if (Hls.isSupported()) {
-			var video = document.getElementById("hlsvideo");
-			var hls = new Hls();
-			hls.loadSource(streamList[0]+".m3u8");
-			hls.attachMedia(video);
-			hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+			var videos = document.getElementById("videos")
+			streamList.forEach( (stream) => {
+				var title = document.createElement("h3");
+				title.innerText = stream
+				videos.appendChild(title)
+				var video = document.createElement("video");
+				video.style = "margin: 0 auto"
+				videos.appendChild(video)
+				var hls = new Hls();
+				hls.loadSource(stream+".m3u8");
+				hls.attachMedia(video);
+				hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+			})
 		} else {
 			alert("HLS not supported");
 		}
