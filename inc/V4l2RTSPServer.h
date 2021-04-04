@@ -152,21 +152,21 @@ class V4l2RTSPServer {
         //    Add HLS & MPEG# Session
         // -----------------------------------------
         int AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
-				std::list<ServerMediaSubsession*> subSession;
-				if (videoReplicator)
-				{
-					subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, audioReplicator, hlsSegment));				
-				}
-				int nbSource = this->addSession(url, subSession);
-				
-				struct in_addr ip;
+            std::list<ServerMediaSubsession*> subSession;
+            if (videoReplicator)
+            {
+                subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, audioReplicator, hlsSegment));				
+            }
+            int nbSource = this->addSession(url, subSession);
+            
+            struct in_addr ip;
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
-				ip.s_addr = ourIPAddress(*this->env());
+            ip.s_addr = ourIPAddress(*this->env());
 #else
-				ip.s_addr = ourIPv4Address(*this->env());
+            ip.s_addr = ourIPv4Address(*this->env());
 #endif
-				LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".m3u8";
-				LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".mpd";	
+            LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".m3u8";
+            LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".mpd";	
 			
 			return nbSource;	    
         }        

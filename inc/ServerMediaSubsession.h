@@ -39,8 +39,8 @@ class BaseServerMediaSubsession
     	            m_format = BaseServerMediaSubsession::getVideoRtpFormat(device->getVideoFormat());		
                 } else {
     	            m_format = BaseServerMediaSubsession::getAudioRtpFormat(device->getAudioFormat(), device->getSampleRate(), device->getChannels());						
-
                 }
+                LOG(NOTICE) << "format:" << m_format;
 			}
 	    }
 
