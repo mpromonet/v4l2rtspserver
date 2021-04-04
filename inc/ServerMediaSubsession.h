@@ -68,7 +68,7 @@ class BaseServerMediaSubsession
         static std::string getAudioRtpFormat(int format, int sampleRate, int channels)
         {
             std::ostringstream os;
-#ifdef HAVE_SOUND            
+#ifdef HAVE_ALSA            
             os << "audio/";
             switch (format) {                
                 case SND_PCM_FORMAT_A_LAW:
