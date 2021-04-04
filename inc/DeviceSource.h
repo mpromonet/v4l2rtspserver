@@ -3,9 +3,9 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** V4l2DeviceSource.h
+** DeviceSource.h
 ** 
-** V4L2 live555 source 
+**  live555 source 
 **
 ** -------------------------------------------------------------------------*/
 
@@ -24,6 +24,27 @@
 #include <liveMedia.hh>
 
 #include "DeviceInterface.h"
+#include "V4l2Capture.h"
+
+// -----------------------------------------
+//    Video Device Capture Interface 
+// -----------------------------------------
+class VideoCaptureAccess : public DeviceInterface
+{
+	public:
+		VideoCaptureAccess(V4l2Capture* device) : m_device(device) {}
+		virtual ~VideoCaptureAccess()                              { delete m_device; }
+			
+		virtual size_t read(char* buffer, size_t bufferSize)       { return m_device->read(buffer, bufferSize); }
+		virtual int getFd()                                        { return m_device->getFd(); }
+		virtual unsigned long getBufferSize()                      { return m_device->getBufferSize(); }
+		virtual int getWidth()                                     { return m_device->getWidth(); }
+		virtual int getHeight()                                    { return m_device->getHeight(); }
+		virtual int getVideoFormat()                               { return m_device->getFormat(); }
+			
+	protected:
+		V4l2Capture* m_device;
+};
 
 class V4L2DeviceSource: public FramedSource
 {
@@ -64,11 +85,9 @@ class V4L2DeviceSource: public FramedSource
 		
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) ;
-		std::string getAuxLine() { return m_auxLine; };	
-		void setAuxLine(const std::string auxLine) { m_auxLine = auxLine; };	
-		int getWidth() { return m_device->getWidth(); };	
-		int getHeight() { return m_device->getHeight(); };	
-		int getCaptureFormat() { return m_device->getCaptureFormat(); };	
+		std::string getAuxLine()                   { return m_auxLine;    }
+		void setAuxLine(const std::string auxLine) { m_auxLine = auxLine; }	
+		DeviceInterface* getDevice()               { return m_device;     }		
 
 	protected:
 		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread);

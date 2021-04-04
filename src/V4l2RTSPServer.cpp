@@ -26,8 +26,7 @@
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out,
-					std::string& rtpVideoFormat) {
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
 
 	StreamReplicator* videoReplicator = NULL;
     std::string videoDev(inParam.m_devName);
@@ -54,13 +53,13 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				}
 			}
 			
-			rtpVideoFormat.assign(V4l2RTSPServer::getVideoRtpFormat(videoCapture->getFormat()));
+			std::string rtpVideoFormat(BaseServerMediaSubsession::getVideoRtpFormat(videoCapture->getFormat()));
 			if (rtpVideoFormat.empty()) {
 				LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 				delete videoCapture;
 			} else {
 				LOG(NOTICE) << "Create Source ..." << videoDev;
-				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new DeviceCaptureAccess<V4l2Capture>(videoCapture), queueSize, useThread, outfd, repeatConfig);
+				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, useThread, outfd, repeatConfig);
 				if (videoReplicator == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << videoDev;
@@ -173,8 +172,7 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 
 StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread,
-			std::string& rtpAudioFormat) {
+			int queueSize, int useThread) {
 	StreamReplicator* audioReplicator = NULL;
 	if (!audioDev.empty())
 	{
@@ -188,9 +186,7 @@ StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 		ALSACapture* audioCapture = ALSACapture::createNew(param);
 		if (audioCapture) 
 		{
-			rtpAudioFormat.assign(V4l2RTSPServer::getAudioRtpFormat(audioCapture->getFormat(),audioCapture->getSampleRate(), audioCapture->getChannels()));
-
-			audioReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), 0, new DeviceCaptureAccess<ALSACapture>(audioCapture), queueSize, useThread);
+			audioReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), 0, audioCapture, queueSize, useThread);
 			if (audioReplicator == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << audioDevice;

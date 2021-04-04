@@ -79,12 +79,13 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	else if (format =="video/RAW") 
 	{ 
 		std::string sampling;
-		switch (source->getCaptureFormat()) {
+		DeviceInterface* device = source->getDevice();
+		switch (device->getVideoFormat()) {
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
 			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
 			case V4L2_PIX_FMT_UYVY: sampling = "YCbCr-4:2:2"; break;
 		}
-		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, source->getWidth(), source->getHeight(), 8, sampling.c_str(),"BT709-2");
+		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, device->getWidth(), device->getHeight(), 8, sampling.c_str(),"BT709-2");
     } 
 #endif	
 	else if (format.find("audio/L16") == 0)
@@ -112,9 +113,10 @@ char const* BaseServerMediaSubsession::getAuxLine(V4L2DeviceSource* source, RTPS
 		}
 		else if (source) {
 			unsigned char rtpPayloadType = rtpSink->rtpPayloadType();
+			DeviceInterface* device = source->getDevice();
 			os << "a=fmtp:" << int(rtpPayloadType) << " " << source->getAuxLine() << "\r\n";				
-			int width = source->getWidth();
-			int height = source->getHeight();
+			int width = device->getWidth();
+			int height = device->getHeight();
 			if ( (width > 0) && (height>0) ) {
 				os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
 			}

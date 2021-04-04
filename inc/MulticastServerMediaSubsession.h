@@ -21,19 +21,30 @@ class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , pub
 								, struct in_addr destinationAddress
 								, Port rtpPortNum, Port rtcpPortNum
 								, int ttl
-								, StreamReplicator* replicator
-								, const std::string& format);
+								, StreamReplicator* replicator);
 		
 	protected:
-		MulticastServerMediaSubsession(StreamReplicator* replicator, RTPSink* rtpSink, RTCPInstance* rtcpInstance) 
-				: PassiveServerMediaSubsession(*rtpSink, rtcpInstance), BaseServerMediaSubsession(replicator), m_rtpSink(rtpSink) {};			
+		MulticastServerMediaSubsession(UsageEnvironment& env
+								, struct in_addr destinationAddress
+								, Port rtpPortNum, Port rtcpPortNum
+								, int ttl
+								, StreamReplicator* replicator) 
+				: PassiveServerMediaSubsession(*this->createRtpSink(env, destinationAddress, rtpPortNum, rtcpPortNum, ttl, replicator)
+											  , m_rtcpInstance)
+				, BaseServerMediaSubsession(replicator) {};			
 
 		virtual char const* sdpLines() ;
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
+		RTPSink* createRtpSink(UsageEnvironment& env
+								, struct in_addr destinationAddress
+								, Port rtpPortNum, Port rtcpPortNum
+								, int ttl
+								, StreamReplicator* replicator);
 		
 	protected:
-		RTPSink* m_rtpSink;
-		std::string m_SDPLines;
+		RTPSink*      m_rtpSink;
+		RTCPInstance* m_rtcpInstance;
+		std::string   m_SDPLines;
 };
 
 

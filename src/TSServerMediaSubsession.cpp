@@ -10,31 +10,31 @@
 #include "TSServerMediaSubsession.h"
 #include "AddH26xMarkerFilter.h"
 
-TSServerMediaSubsession::TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* videoreplicator, const std::string& videoformat, StreamReplicator* audioreplicator, const std::string& audioformat, unsigned int sliceDuration) 
-		: UnicastServerMediaSubsession(env, videoreplicator, "video/MP2T"), m_slice(0)
+TSServerMediaSubsession::TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* videoreplicator, StreamReplicator* audioreplicator, unsigned int sliceDuration) 
+		: UnicastServerMediaSubsession(env, videoreplicator), m_slice(0)
 {
 	// Create a source
 	FramedSource* source = videoreplicator->createStreamReplica();
 	MPEG2TransportStreamFromESSource* muxer = MPEG2TransportStreamFromESSource::createNew(env);
 	
-	if (videoformat == "video/H264") {
+	if (m_format == "video/H264") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		
 		muxer->addNewVideoSource(filter, 5);
-	} else if (videoformat == "video/H265") {
+	} else if (m_format == "video/H265") {
 		// add marker
 		FramedSource* filter = new AddH26xMarkerFilter(env, source);
 		// mux to TS		
 		muxer->addNewVideoSource(filter, 6);
 	}
 
-	if (audioformat == "audio/MPEG") {
+	if (m_format == "audio/MPEG") {
 		// mux to TS		
 		muxer->addNewAudioSource(source, 1);
 	}
 	
-	FramedSource* tsSource = createSource(env, muxer, m_format);
+	FramedSource* tsSource = createSource(env, muxer, "video/MP2T");
 	
 	// Start Playing the HLS Sink
 	m_hlsSink = MemoryBufferSink::createNew(env, OutPacketBuffer::maxSize, sliceDuration);

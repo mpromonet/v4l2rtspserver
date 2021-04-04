@@ -331,41 +331,37 @@ int main(int argc, char** argv)
 
 			V4l2Output* out = NULL;
 			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, verbose, openflags);
-			std::string rtpVideoFormat;
 			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
 					inParam,
 					queueSize, useThread, repeatConfig,
-					output, ioTypeOut, out,
-					rtpVideoFormat);
+					output, ioTypeOut, out);
 			if (out != NULL) {
 				outList.push_back(out);
 			}
 					
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
-			std::string rtpAudioFormat;
 #ifdef HAVE_ALSA
 			audioReplicator = rtspServer.CreateAudioReplicator(
 					audioDev, audioFmtList, audioFreq, audioNbChannels, verbose,
-					queueSize, useThread,
-					rtpAudioFormat);		
+					queueSize, useThread);		
 #endif
 					
 										
 			// Create Multicast Session
 			if (multicast)						
 			{		
-				nbSource += rtspServer.AddMulticastSession(baseUrl+murl, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
+				nbSource += rtspServer.AddMulticastSession(baseUrl+murl, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, audioReplicator);
 			}
 			
 			// Create HLS Session					
 			if (hlsSegment > 0)
 			{
-				nbSource += rtspServer.AddHlsSession(baseUrl+tsurl, hlsSegment, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);
+				nbSource += rtspServer.AddHlsSession(baseUrl+tsurl, hlsSegment, videoReplicator, audioReplicator);
 			}
 			
 			// Create Unicast Session
-			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat);		
+			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, audioReplicator);		
 		}
 
 		if (nbSource>0)

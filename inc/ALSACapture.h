@@ -19,6 +19,8 @@
 #include <alsa/asoundlib.h>
 #include "logger.h"
 
+#include "DeviceInterface.h"
+
 struct ALSACaptureParameters 
 {
 	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels, int verbose) : 
@@ -33,7 +35,7 @@ struct ALSACaptureParameters
 	int              m_verbose;
 };
 
-class ALSACapture 
+class ALSACapture  : public DeviceInterface
 {
 	public:
 		static ALSACapture* createNew(const ALSACaptureParameters & params) ;
@@ -47,15 +49,11 @@ class ALSACapture
 	public:
 		virtual size_t read(char* buffer, size_t bufferSize);		
 		virtual int getFd();
+		virtual unsigned long getBufferSize()   { return m_bufferSize;          }	
 		
-		virtual unsigned long getBufferSize() { return m_bufferSize; };
-		virtual int getWidth()  {return -1;}
-		virtual int getHeight() {return -1;}	
-		virtual int getCaptureFormat() {return -1;}	
-		
-		unsigned long getSampleRate() { return m_params.m_sampleRate; }
-		unsigned long getChannels  () { return m_params.m_channels;   }
-		snd_pcm_format_t getFormat () { return m_fmt;                 }
+		virtual unsigned long getSampleRate()   { return m_params.m_sampleRate; }
+		virtual unsigned long getChannels  ()   { return m_params.m_channels;   }
+		virtual int           getAudioFormat () { return m_fmt;                 }
 		
 	private:
 		snd_pcm_t*            m_pcm;
