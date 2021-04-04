@@ -17,18 +17,16 @@
 class UnicastServerMediaSubsession : public OnDemandServerMediaSubsession , public BaseServerMediaSubsession
 {
 	public:
-		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format);
+		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator);
 		
 	protected:
-		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, const std::string& format) 
-				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator), m_format(format) {};
+		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator) 
+				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator) {}
 			
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
 		virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);		
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);	
 					
-	protected:
-		const std::string m_format;
 };
 
 

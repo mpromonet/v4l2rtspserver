@@ -118,91 +118,32 @@ class V4l2RTSPServer {
         }
 
         // -----------------------------------------
-        //    convert V4L2 pix format to RTP mime
-        // -----------------------------------------
-        static std::string getVideoRtpFormat(int format)
-        {
-            std::string rtpFormat;
-            switch(format)
-            {	
-                case V4L2_PIX_FMT_HEVC : rtpFormat = "video/H265"; break;
-                case V4L2_PIX_FMT_H264 : rtpFormat = "video/H264"; break;
-                case V4L2_PIX_FMT_MJPEG: rtpFormat = "video/JPEG"; break;
-                case V4L2_PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
-                case V4L2_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
-                case V4L2_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
-                case V4L2_PIX_FMT_YUYV : rtpFormat = "video/RAW" ; break;
-                case V4L2_PIX_FMT_UYVY : rtpFormat = "video/RAW" ; break;
-            }
-            
-            return rtpFormat;
-        }
-
-        // -----------------------------------------
         //    create video capture & replicator
         // -----------------------------------------
         StreamReplicator* CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
 					int queueSize, int useThread, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out,
-					std::string& rtpVideoFormat);
+					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out);
 
 #ifdef HAVE_ALSA
-        // -----------------------------------------
-        //    convert string audio format to pcm
-        // -----------------------------------------
-        static std::string getAudioRtpFormat(snd_pcm_format_t format, int sampleRate, int channels)
-        {
-            std::ostringstream os;
-            os << "audio/";
-            switch (format) {
-                case SND_PCM_FORMAT_A_LAW:
-                    os << "PCMA";
-                    break;
-                case SND_PCM_FORMAT_MU_LAW:
-                    os << "PCMU";
-                    break;
-                case SND_PCM_FORMAT_S8:
-                    os << "L8";
-                    break;
-                case SND_PCM_FORMAT_S24_BE:
-                case SND_PCM_FORMAT_S24_LE:
-                    os << "L24";
-                    break;
-                case SND_PCM_FORMAT_S32_BE:
-                case SND_PCM_FORMAT_S32_LE:
-                    os << "L32";
-                    break;
-                case SND_PCM_FORMAT_MPEG:
-                    os << "MPEG";
-                    break;
-                default:
-                    os << "L16";
-                    break;
-            }
-            os << "/" << sampleRate << "/" << channels;
-            return os.str();
-        }
-
         StreamReplicator* CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread,
-			std::string& rtpAudioFormat);
+			int queueSize, int useThread);
 #endif
 
         // -----------------------------------------
         //    Add unicast Session
         // -----------------------------------------
-        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 			// Create Unicast Session					
 			std::list<ServerMediaSubsession*> subSession;
 			if (videoReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), videoReplicator, rtpVideoFormat));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), videoReplicator));				
 			}
 			if (audioReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), audioReplicator, rtpAudioFormat));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), audioReplicator));				
 			}
 			return this->addSession(url, subSession);	    
         }
@@ -210,11 +151,11 @@ class V4l2RTSPServer {
         // -----------------------------------------
         //    Add HLS & MPEG# Session
         // -----------------------------------------
-        int AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+        int AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 				std::list<ServerMediaSubsession*> subSession;
 				if (videoReplicator)
 				{
-					subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, rtpVideoFormat, audioReplicator, rtpAudioFormat, hlsSegment));				
+					subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, audioReplicator, hlsSegment));				
 				}
 				int nbSource = this->addSession(url, subSession);
 				
@@ -234,7 +175,7 @@ class V4l2RTSPServer {
         // -----------------------------------------
         //    Add multicats Session
         // -----------------------------------------
-        int AddMulticastSession(const std::string& url, in_addr destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum, StreamReplicator* videoReplicator, const std::string& rtpVideoFormat, StreamReplicator* audioReplicator, const std::string & rtpAudioFormat) {
+        int AddMulticastSession(const std::string& url, in_addr destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 
             LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
             LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
@@ -242,7 +183,7 @@ class V4l2RTSPServer {
             std::list<ServerMediaSubsession*> subSession;						
             if (videoReplicator)
             {
-                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator, rtpVideoFormat));					
+                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, videoReplicator));					
                 // increment ports for next sessions
                 rtpPortNum+=2;
                 rtcpPortNum+=2;
@@ -250,7 +191,7 @@ class V4l2RTSPServer {
             
             if (audioReplicator)
             {
-                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator, rtpAudioFormat));				
+                subSession.push_back(MulticastServerMediaSubsession::createNew(*this->env(), destinationAddress, Port(rtpPortNum), Port(rtcpPortNum), ttl, audioReplicator));				
                 
                 // increment ports for next sessions
                 rtpPortNum+=2;
