@@ -23,7 +23,11 @@
 #include <linux/videodev2.h>
 
 #include "DeviceSource.h"
+#include "logger.h"
+
+#ifdef HAVE_ALSA   
 #include "ALSACapture.h"
+#endif
 
 // ---------------------------------
 //   BaseServerMediaSubsession

@@ -17,10 +17,6 @@
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
-#ifdef HAVE_ALSA
-#include <alsa/asoundlib.h>
-#endif
-
 #include "ServerMediaSubsession.h"
 #include "UnicastServerMediaSubsession.h"
 #include "MulticastServerMediaSubsession.h"
