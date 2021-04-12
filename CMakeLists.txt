@@ -50,7 +50,7 @@ if (LOG4CPP_LIBRARY)
 	add_definitions(-DHAVE_LOG4CPP)
 	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
 	
-	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5-dev,)
+	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5,)
 endif ()
 
 
@@ -86,14 +86,14 @@ target_link_libraries (${PROJECT_NAME} libv4l2rtspserver)
 
 #ALSA
 if (ALSA)
-find_package(ALSA QUIET)
-if (ALSA_LIBRARY)
-	message(STATUS "Alsa available")
-	add_definitions(-DHAVE_ALSA)
-    target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
-	
-	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
-endif (ALSA_LIBRARY)
+    find_package(ALSA QUIET)
+    MESSAGE("ALSA_FOUND = ${ALSA_FOUND}")
+    if (ALSA_LIBRARY)
+        add_definitions(-DHAVE_ALSA)
+        target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
+        
+        SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
+    endif ()
 endif()
 
 # v4l2wrapper
