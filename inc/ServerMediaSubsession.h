@@ -36,16 +36,20 @@ class BaseServerMediaSubsession
 {
 	public:
 		BaseServerMediaSubsession(StreamReplicator* replicator): m_replicator(replicator) {
+
 			V4L2DeviceSource* deviceSource = dynamic_cast<V4L2DeviceSource*>(replicator->inputSource());
+
 			if (deviceSource) {
                 DeviceInterface* device = deviceSource->getDevice();
                 if (device->getVideoFormat() >= 0) {
     	            m_format = BaseServerMediaSubsession::getVideoRtpFormat(device->getVideoFormat());		
                 } else {
-    	            m_format = BaseServerMediaSubsession::getAudioRtpFormat(device->getAudioFormat(), device->getSampleRate(), device->getChannels());						
+    	            m_format = BaseServerMediaSubsession::getAudioRtpFormat(device->getAudioFormat(), device->getSampleRate(), device->getChannels());
                 }
                 LOG(NOTICE) << "format:" << m_format;
 			}
+
+
 	    }
 
 		// -----------------------------------------
@@ -69,9 +73,13 @@ class BaseServerMediaSubsession
             return rtpFormat;
         }
 
+        /*
+         * Return the format for the audio part of the RTP session.
+         */
         static std::string getAudioRtpFormat(int format, int sampleRate, int channels)
         {
             std::ostringstream os;
+
 #ifdef HAVE_ALSA            
             os << "audio/";
             switch (format) {                
@@ -100,6 +108,8 @@ class BaseServerMediaSubsession
                     break;
             }
             os << "/" << sampleRate << "/" << channels;
+
+
 #endif            
             return os.str();
         }        
@@ -111,6 +121,8 @@ class BaseServerMediaSubsession
 		
 	protected:
 		StreamReplicator* m_replicator;
-		std::string m_format;        
+		std::string m_format;
+        int m_compressedAudioFmt;
+
 };
 

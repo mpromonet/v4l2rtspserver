@@ -49,6 +49,8 @@ FramedSource* BaseServerMediaSubsession::createSource(UsageEnvironment& env, Fra
 RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format, V4L2DeviceSource* source)
 {
 	RTPSink* videoSink = NULL;
+
+	
 	if (format == "video/MP2T")
 	{
 		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, True, False); 
@@ -99,6 +101,14 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 		std::string channels("2");
 		getline(is, channels);	
 		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic, atoi(sampleRate.c_str()), "audio", "L16", atoi(channels.c_str()), True, False); 
+    }
+    else if (format.find("audio/MPEG") == 0)
+    {
+        videoSink = MPEG1or2AudioRTPSink::createNew(env, rtpGroupsock);
+    }
+	else
+	{
+		LOG(ERROR) << "Unable to create sink due to unknown format: " << format;
 	}
 	return videoSink;
 }

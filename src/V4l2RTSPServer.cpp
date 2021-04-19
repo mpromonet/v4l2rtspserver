@@ -172,7 +172,7 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 
 StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread) {
+			int queueSize, int useThread, AudioCompressor* audioCompressor) {
 	StreamReplicator* audioReplicator = NULL;
 	if (!audioDev.empty())
 	{
@@ -182,7 +182,7 @@ StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 		// Init audio capture
 		LOG(NOTICE) << "Create ALSA Source..." << audioDevice;
 		
-		ALSACaptureParameters param(audioDevice.c_str(), audioFmtList, audioFreq, audioNbChannels, verbose);
+		ALSACaptureParameters param(audioDevice.c_str(), audioFmtList, audioFreq, audioNbChannels, verbose, audioCompressor);
 		ALSACapture* audioCapture = ALSACapture::createNew(param);
 		if (audioCapture) 
 		{
