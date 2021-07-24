@@ -150,6 +150,12 @@ class HTTPServer : public RTSPServer
 			FramedSource*          m_Source;
 	};
 	
+	class HTTPClientSession : public RTSPServer::RTSPClientSession {
+		public:
+			HTTPClientSession(HTTPServer& ourServer, u_int32_t sessionId) : RTSPServer::RTSPClientSession(ourServer, sessionId)  {}
+			virtual void handleCmd_SETUP(RTSPServer::RTSPClientConnection* ourClientConnection, char const* urlPreSuffix, char const* urlSuffix, char const* fullRequestStr);
+	};
+
 	public:
 		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string webroot) 
 		{
@@ -185,13 +191,16 @@ class HTTPServer : public RTSPServer
                        }
 		}
 
-		RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
+		virtual RTSPServer::ClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
 		{
 			return new HTTPClientConnection(*this, clientSocket, clientAddr);
 		}
 		
+		virtual RTSPServer::ClientSession* createNewClientSession(u_int32_t sessionId) {
+			return new HTTPClientSession(*this, sessionId);
+		}
         private:
-		const unsigned int m_hlsSegment;
-		std::string  m_webroot;
+			const unsigned int m_hlsSegment;
+			std::string  m_webroot;
 };
 

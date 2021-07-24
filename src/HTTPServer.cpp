@@ -369,6 +369,11 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 	} 
 }
 
+void HTTPServer::HTTPClientSession::handleCmd_SETUP(RTSPServer::RTSPClientConnection* ourClientConnection, char const* urlPreSuffix, char const* urlSuffix, char const* fullRequestStr) {
+	envir() << "handleCmd_SETUP:" << fullRequestStr;
+	RTSPServer::RTSPClientSession::handleCmd_SETUP(ourClientConnection, urlPreSuffix, urlSuffix, fullRequestStr);
+}
+
 void HTTPServer::HTTPClientConnection::handleCmd_notFound() {
 	std::ostringstream os;
 	ServerMediaSessionIterator it(fOurServer);
