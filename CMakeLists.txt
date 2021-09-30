@@ -6,7 +6,7 @@ option(COVERAGE "Coverage" OFF)
 
 set(ALSA ON CACHE BOOL "use ALSA is available")
 set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
-set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_OPENSSL=1 CACHE STRING "live555 CFGLAGS")
+set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -53,6 +53,9 @@ if (LOG4CPP_LIBRARY)
 	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5,)
 endif ()
 
+# openssl ?
+find_package(OpenSSL QUIET)
+MESSAGE("OpenSSL_FOUND = ${OpenSSL_FOUND}")
 
 # live555
 find_package(LiveMedia)
@@ -75,6 +78,12 @@ else()
         endif()
     endif()
     FILE(GLOB LIVESOURCE ${LIVE}/groupsock/*.c* ${LIVE}/liveMedia/*.c* ${LIVE}/UsageEnvironment/*.c* ${LIVE}/BasicUsageEnvironment/*.c*)
+    if (OpenSSL_FOUND)
+        target_link_libraries(${PROJECT_NAME} OpenSSL::SSL)
+    else ()
+        set(LIVE555CFLAGS ${LIVE555CFLAGS} -DNO_OPENSSL=1)
+        STRING(REGEX REPLACE "${LIVE}/liveMedia/HMAC_SHA1.cpp" "" LIVESOURCE "${LIVESOURCE}")
+    endif()
     add_definitions(${LIVE555CFLAGS})
 endif()
 
