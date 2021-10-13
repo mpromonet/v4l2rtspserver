@@ -86,8 +86,8 @@ else()
 endif()
 
 # librtsp
-aux_source_directory(src SRC_FILES)
-add_library (libv4l2rtspserver STATIC ${LIVESOURCE} ${SRC_FILES})	
+aux_source_directory(src LIBV4L2RTSP_SRC_FILES)
+add_library (libv4l2rtspserver STATIC ${LIVESOURCE} ${LIBV4L2RTSP_SRC_FILES})	
 target_include_directories(libv4l2rtspserver PUBLIC inc ${LIVEINCLUDE})
 target_link_libraries (${PROJECT_NAME} libv4l2rtspserver) 
 if (OpenSSL_FOUND)
@@ -108,9 +108,8 @@ endif()
 
 # v4l2wrapper
 EXEC_PROGRAM("git submodule update --init")
-aux_source_directory(v4l2wrapper/src LIBSRC_FILES)
+add_subdirectory(v4l2wrapper)
 include_directories("v4l2wrapper/inc")
-add_library(v4l2wrapper STATIC ${LIBSRC_FILES})
 target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
 #testing
