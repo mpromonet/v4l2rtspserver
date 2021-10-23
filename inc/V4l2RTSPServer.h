@@ -22,6 +22,7 @@
 #include "MulticastServerMediaSubsession.h"
 #include "TSServerMediaSubsession.h"
 #include "HTTPServer.h"
+#include "AudioCompressor.h"
 
 class V4l2RTSPServer {
     public:
@@ -124,13 +125,13 @@ class V4l2RTSPServer {
 #ifdef HAVE_ALSA
         StreamReplicator* CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread);
+			int queueSize, int useThread, AudioCompressor* compressor);
 #endif
 
         // -----------------------------------------
         //    Add unicast Session
         // -----------------------------------------
-        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator, int compressedAudioFmt) {
 			// Create Unicast Session					
 			std::list<ServerMediaSubsession*> subSession;
 			if (videoReplicator)
@@ -139,7 +140,7 @@ class V4l2RTSPServer {
 			}
 			if (audioReplicator)
 			{
-				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), audioReplicator));				
+				subSession.push_back(UnicastServerMediaSubsession::createNew(*this->env(), audioReplicator, compressedAudioFmt));				
 			}
 			return this->addSession(url, subSession);	    
         }

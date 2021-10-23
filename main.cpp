@@ -33,6 +33,9 @@
 
 #include "DeviceSourceFactory.h"
 #include "V4l2RTSPServer.h"
+#include "AudioCompressor.h"
+#include "NullAudioCompressor.h"
+#include "MP3AudioCompressor.h"
 
 
 // -----------------------------------------
@@ -156,6 +159,12 @@ int main(int argc, char** argv)
 	int audioNbChannels = 2;
 	std::list<snd_pcm_format_t> audioFmtList;
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
+	int compressedAudioFmt = COMPRESSED_AUDIO_FMT_NONE;
+
+	AudioCompressor *compressor;
+	std::list<AudioCompressor *> audioCompressors;
+
+
 #endif	
 	const char* defaultPort = getenv("PORT");
 	if (defaultPort != NULL) {
@@ -164,7 +173,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:l:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -204,6 +213,10 @@ int main(int argc, char** argv)
 			case 'A':	audioFreq = atoi(optarg); break;
 			case 'C':	audioNbChannels = atoi(optarg); break;
 			case 'a':	audioFmt = decodeAudioFormat(optarg); if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {audioFmtList.push_back(audioFmt);} ; break;
+
+			case 'l':	compressedAudioFmt = atoi(optarg); break;
+
+
 #endif			
 			
 			// version
@@ -255,6 +268,8 @@ int main(int argc, char** argv)
 				std::cout << "\t -A freq          : ALSA capture frequency and channel (default " << audioFreq << ")"                                << std::endl;
 				std::cout << "\t -C channels      : ALSA capture channels (default " << audioNbChannels << ")"                                       << std::endl;
 				std::cout << "\t -a fmt           : ALSA capture audio format (default S16_BE)"                                                      << std::endl;
+				std::cout << "\t -l [number]      : Compresssed audio format: 0 - None, 1 - MP3"                                                                 << std::endl;
+
 #endif
 				
 				std::cout << "\t Devices :"                                                                                                    << std::endl;
@@ -342,9 +357,26 @@ int main(int argc, char** argv)
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
 #ifdef HAVE_ALSA
+
+
+
+			if (compressedAudioFmt == COMPRESSED_AUDIO_FMT_NONE) {
+				compressor = new NullAudioCompressor();
+				audioCompressors.push_back(compressor);
+			}
+
+			if (compressedAudioFmt == COMPRESSED_AUDIO_FMT_MP3) {
+				compressor = new MP3AudioCompressor(audioNbChannels, audioFreq);
+				audioCompressors.push_back(compressor);
+			}
+
+			LOG(NOTICE) << "Using AudioCompressor: " << compressor;		
+
+
 			audioReplicator = rtspServer.CreateAudioReplicator(
 					audioDev, audioFmtList, audioFreq, audioNbChannels, verbose,
-					queueSize, useThread);		
+					queueSize, useThread, compressor);
+		
 #endif
 					
 										
@@ -361,7 +393,8 @@ int main(int argc, char** argv)
 			}
 			
 			// Create Unicast Session
-			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, audioReplicator);		
+			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, audioReplicator, compressedAudioFmt);		
+			
 		}
 
 		if (nbSource>0)

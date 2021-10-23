@@ -18,11 +18,12 @@ class UnicastServerMediaSubsession : public OnDemandServerMediaSubsession , publ
 {
 	public:
 		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator);
+		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator, int compressedAudioFmt);
 		
 	protected:
 		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator) 
 				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator) {}
-			
+
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
 		virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);		
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);	

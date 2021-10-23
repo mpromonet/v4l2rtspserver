@@ -14,10 +14,12 @@
 #ifdef HAVE_ALSA
 
 #include "ALSACapture.h"
-
+#include "NullAudioCompressor.h"
 
 ALSACapture* ALSACapture::createNew(const ALSACaptureParameters & params) 
 { 
+	LOG(NOTICE) << "params.m_audioCompressor: " << params.m_audioCompressor;
+
 	ALSACapture* capture = new ALSACapture(params);
 	if (capture) 
 	{
@@ -43,7 +45,10 @@ void ALSACapture::close()
 		m_pcm = NULL;
 	}
 }
-	
+
+
+
+
 ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_bufferSize(0), m_periodSize(0), m_params(params)
 {
 	LOG(NOTICE) << "Open ALSA device: \"" << params.m_devName << "\"";
@@ -102,8 +107,18 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 	}			
 	
 	LOG(NOTICE) << "ALSA device: \"" << m_params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize << " rate:" << m_params.m_sampleRate;
+
+
+	// m_params.m_audioCompressor->init(
+	// 	m_params.m_channels,
+	// 	m_params.m_sampleRate
+	// );
+
 }
-			
+
+/*
+ * Attempts to set the ALSA hardware device to the format specified.
+ */
 int ALSACapture::configureFormat(snd_pcm_hw_params_t *hw_params) {
 	
 	// try to set format, widht, height
@@ -116,8 +131,9 @@ int ALSACapture::configureFormat(snd_pcm_hw_params_t *hw_params) {
 		} else {
 			LOG(NOTICE) << "set sample format device: " << m_params.m_devName << " to:" << format << " ok";
 			m_fmt = format;
+			// m_fmt = SND_PCM_FORMAT_MPEG;
 			return 0;
-		}		
+		}
 	}
 	return -1;
 }
@@ -126,34 +142,66 @@ size_t ALSACapture::read(char* buffer, size_t bufferSize)
 {
 	size_t size = 0;
 	int fmt_phys_width_bytes = 0;
-	if (m_pcm != 0)
-	{
-		int fmt_phys_width_bits = snd_pcm_format_physical_width(m_fmt);
-		fmt_phys_width_bytes = fmt_phys_width_bits / 8;
 
-		snd_pcm_sframes_t ret = snd_pcm_readi (m_pcm, buffer, m_periodSize*fmt_phys_width_bytes);
-		LOG(DEBUG) << "ALSA buffer in_size:" << m_periodSize*fmt_phys_width_bytes << " read_size:" << ret;
-		if (ret > 0) {
-			size = ret;				
-			
-			// swap if capture in not in network order
-			if (!snd_pcm_format_big_endian(m_fmt)) {
-				for(unsigned int i = 0; i < size; i++){
-					char * ptr = &buffer[i * fmt_phys_width_bytes * m_params.m_channels];
-					
-					for(unsigned int j = 0; j < m_params.m_channels; j++){
-						ptr += j * fmt_phys_width_bytes;
-						for (int k = 0; k < fmt_phys_width_bytes/2; k++) {
-							char byte = ptr[k];
-							ptr[k] = ptr[fmt_phys_width_bytes - 1 - k];
-							ptr[fmt_phys_width_bytes - 1 - k] = byte; 
-						}
+    // Worst case estimate of how big the MP3 encoded size will be
+    // Based on http://www.mit.edu/afs.new/sipb/user/golem/tmp/lame3.70/API
+    int mp3buf_size = 1.25 * m_periodSize + 7200;
+    int bytescopied = 0;
+
+    char encoded_mp3_data[mp3buf_size];
+
+	// If there is no ALSA capture device for some reason just return 0 bytes read
+	if (m_pcm == 0) {
+		return 0;
+	}
+
+	int fmt_phys_width_bits = snd_pcm_format_physical_width(m_fmt);
+	fmt_phys_width_bytes = fmt_phys_width_bits / 8;
+
+	snd_pcm_sframes_t num_pcm_frames = snd_pcm_readi (m_pcm, buffer, m_periodSize*fmt_phys_width_bytes);
+	LOG(DEBUG) << "ALSA buffer in_size:" << m_periodSize*fmt_phys_width_bytes << " read_size:" << num_pcm_frames;
+
+	if (num_pcm_frames <= 0) {
+		return 0;
+	}
+
+	size = num_pcm_frames;
+
+
+	if (m_params.m_audioCompressor != NULL) {
+		// LOG(NOTICE) << "m_params.m_audioCompressor: " << m_params.m_audioCompressor;
+		bytescopied = m_params.m_audioCompressor->compress(
+			(short *)buffer,
+			num_pcm_frames,
+			(char *)encoded_mp3_data,
+			mp3buf_size
+		);
+
+		memcpy(buffer, encoded_mp3_data, bytescopied);
+		return bytescopied;
+	}
+	else {
+
+		// swap if capture in not in network order
+		if (!snd_pcm_format_big_endian(m_fmt)) {
+			for(unsigned int i = 0; i < size; i++){
+				char * ptr = &buffer[i * fmt_phys_width_bytes * m_params.m_channels];
+				
+				for(unsigned int j = 0; j < m_params.m_channels; j++){
+					ptr += j * fmt_phys_width_bytes;
+					for (int k = 0; k < fmt_phys_width_bytes/2; k++) {
+						char byte = ptr[k];
+						ptr[k] = ptr[fmt_phys_width_bytes - 1 - k];
+						ptr[fmt_phys_width_bytes - 1 - k] = byte; 
 					}
 				}
 			}
 		}
+		return size * m_params.m_channels * fmt_phys_width_bytes;
+
 	}
-	return size * m_params.m_channels * fmt_phys_width_bytes;
+
+	return 0;
 }
 		
 int ALSACapture::getFd()
