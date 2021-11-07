@@ -20,8 +20,10 @@
 // live555
 #include <liveMedia.hh>
 
-#include <linux/videodev2.h>
+// libv4l2cpp
+#include "V4l2Device.h"
 
+// v4l2rtspserver
 #include "V4L2DeviceSource.h"
 #include "logger.h"
 
