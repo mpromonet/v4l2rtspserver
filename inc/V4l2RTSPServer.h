@@ -117,13 +117,13 @@ class V4l2RTSPServer {
         // -----------------------------------------
         StreamReplicator* CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
-					int queueSize, int useThread, int repeatConfig,
+					int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
 					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out);
 
 #ifdef HAVE_ALSA
         StreamReplicator* CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread);
+			int queueSize, V4L2DeviceSource::CaptureMode captureMode);
 #endif
 
         // -----------------------------------------

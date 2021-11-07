@@ -64,14 +64,26 @@ class V4L2DeviceSource: public FramedSource
 				const std::string m_msg;
 		};
 		
+		// ---------------------------------
+		// Capture Mode
+		// ---------------------------------
+		enum CaptureMode
+		{
+			CAPTURE_LIVE555_THREAD = 0,
+			CAPTURE_INTERNAL_THREAD,
+			NOCAPTURE
+		};
+
 	public:
-		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) ;
+		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) ;
 		std::string getAuxLine()                   { return m_auxLine;    }
 		void setAuxLine(const std::string auxLine) { m_auxLine = auxLine; }	
-		DeviceInterface* getDevice()               { return m_device;     }		
+		DeviceInterface* getDevice()               { return m_device;     }	
+		void postFrame(char * frame, int frameSize, const timeval &ref);
+	
 
 	protected:
-		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread);
+		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode);
 		virtual ~V4L2DeviceSource();
 
 	protected:	

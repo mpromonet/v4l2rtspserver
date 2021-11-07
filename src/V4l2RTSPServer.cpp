@@ -26,7 +26,7 @@
 
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
 					const V4L2DeviceParameters& inParam,
-					int queueSize, int useThread, int repeatConfig,
+					int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
 					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
 
 	StreamReplicator* videoReplicator = NULL;
@@ -60,7 +60,7 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				delete videoCapture;
 			} else {
 				LOG(NOTICE) << "Create Source ..." << videoDev;
-				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, useThread, outfd, repeatConfig);
+				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, captureMode, outfd, repeatConfig);
 				if (videoReplicator == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << videoDev;
@@ -173,7 +173,7 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 
 StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, int useThread) {
+			int queueSize, V4L2DeviceSource::CaptureMode captureMode) {
 	StreamReplicator* audioReplicator = NULL;
 	if (!audioDev.empty())
 	{
@@ -187,7 +187,7 @@ StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 		ALSACapture* audioCapture = ALSACapture::createNew(param);
 		if (audioCapture) 
 		{
-			audioReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), 0, audioCapture, queueSize, useThread);
+			audioReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), 0, audioCapture, queueSize, captureMode);
 			if (audioReplicator == NULL) 
 			{
 				LOG(FATAL) << "Unable to create source for device " << audioDevice;

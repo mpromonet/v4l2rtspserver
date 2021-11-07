@@ -24,8 +24,8 @@ const char H264shortmarker[] = {0,0,1};
 class H26X_V4L2DeviceSource : public V4L2DeviceSource
 {
 	protected:
-		H26X_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker)
-			: V4L2DeviceSource(env, device, outputFd, queueSize, useThread), m_repeatConfig(repeatConfig), m_keepMarker(keepMarker) {}
+		H26X_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode, bool repeatConfig, bool keepMarker)
+			: V4L2DeviceSource(env, device, outputFd, queueSize, captureMode), m_repeatConfig(repeatConfig), m_keepMarker(keepMarker) {}
 				
 		virtual ~H26X_V4L2DeviceSource() {}
 
@@ -41,13 +41,13 @@ class H26X_V4L2DeviceSource : public V4L2DeviceSource
 class H264_V4L2DeviceSource : public H26X_V4L2DeviceSource
 {
 	public:				
-		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) {
-			return new H264_V4L2DeviceSource(env, device, outputFd, queueSize, useThread, repeatConfig, keepMarker);
+		static H264_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode, bool repeatConfig, bool keepMarker) {
+			return new H264_V4L2DeviceSource(env, device, outputFd, queueSize, captureMode, repeatConfig, keepMarker);
 		}
 
 	protected:
-		H264_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
-			: H26X_V4L2DeviceSource(env, device, outputFd, queueSize, useThread, repeatConfig, keepMarker) {} 
+		H264_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode, bool repeatConfig, bool keepMarker) 
+			: H26X_V4L2DeviceSource(env, device, outputFd, queueSize, captureMode, repeatConfig, keepMarker) {} 
 	
 		// overide V4L2DeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);			
@@ -56,13 +56,13 @@ class H264_V4L2DeviceSource : public H26X_V4L2DeviceSource
 class H265_V4L2DeviceSource : public H26X_V4L2DeviceSource
 {
 	public:				
-		static H265_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) {
-			return new H265_V4L2DeviceSource(env, device, outputFd, queueSize, useThread, repeatConfig, keepMarker);
+		static H265_V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode, bool repeatConfig, bool keepMarker) {
+			return new H265_V4L2DeviceSource(env, device, outputFd, queueSize, captureMode, repeatConfig, keepMarker);
 		}
 
 	protected:
-		H265_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker) 
-			: H26X_V4L2DeviceSource(env, device, outputFd, queueSize, useThread, repeatConfig, keepMarker) {} 
+		H265_V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode, bool repeatConfig, bool keepMarker) 
+			: H26X_V4L2DeviceSource(env, device, outputFd, queueSize, captureMode, repeatConfig, keepMarker) {} 
 	
 		// overide V4L2DeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);			

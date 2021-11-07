@@ -37,18 +37,18 @@ int  V4L2DeviceSource::Stats::notify(int tv_sec, int framesize)
 // ---------------------------------
 // V4L2 FramedSource
 // ---------------------------------
-V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource* V4L2DeviceSource::createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) 
 { 	
 	V4L2DeviceSource* source = NULL;
 	if (device)
 	{
-		source = new V4L2DeviceSource(env, device, outputFd, queueSize, useThread);
+		source = new V4L2DeviceSource(env, device, outputFd, queueSize, captureMode);
 	}
 	return source;
 }
 
 // Constructor
-V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, bool useThread) 
+V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) 
 	: FramedSource(env), 
 	m_in("in"), 
 	m_out("out") , 
@@ -59,16 +59,19 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * devi
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(V4L2DeviceSource::deliverFrameStub);
 	memset(&m_thid, 0, sizeof(m_thid));
 	memset(&m_mutex, 0, sizeof(m_mutex));
+	pthread_mutex_init(&m_mutex, NULL);
 	if (m_device)
 	{
-		if (useThread)
-		{
-			pthread_mutex_init(&m_mutex, NULL);
-			pthread_create(&m_thid, NULL, threadStub, this);		
-		}
-		else
-		{
-			envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
+		switch (captureMode) {
+			case CAPTURE_INTERNAL_THREAD:
+				pthread_create(&m_thid, NULL, threadStub, this);		
+			break;
+			case CAPTURE_LIVE555_THREAD:
+				envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
+			break;
+			case NOCAPTURE:
+			default:
+			break;
 		}
 	}
 }
@@ -205,20 +208,26 @@ int V4L2DeviceSource::getNextFrame()
 	}
 	else
 	{
-		timeval tv;
-		gettimeofday(&tv, NULL);												
-		timeval diff;
-		timersub(&tv,&ref,&diff);
-		m_in.notify(tv.tv_sec, frameSize);
-		LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
-		
-		processFrame(buffer,frameSize,ref);
-		if (m_outfd != -1) 
-		{
-			write(m_outfd, buffer, frameSize);
-		}		
+		this->postFrame(buffer,frameSize,ref);
 	}			
 	return frameSize;
+}	
+
+// post frame to queue
+void V4L2DeviceSource::postFrame(char * frame, int frameSize, const timeval &ref) 
+{
+	timeval tv;
+	gettimeofday(&tv, NULL);												
+	timeval diff;
+	timersub(&tv,&ref,&diff);
+	m_in.notify(tv.tv_sec, frameSize);
+	LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
+	
+	processFrame(frame,frameSize,ref);
+	if (m_outfd != -1) 
+	{
+		write(m_outfd, frame, frameSize);
+	}		
 }	
 
 		

@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 	std::string url = "unicast";
 	std::string murl = "multicast";
 	std::string tsurl = "ts";
-	bool useThread = true;
+	V4L2DeviceSource::CaptureMode captureMode = V4L2DeviceSource::CAPTURE_INTERNAL_THREAD;
 	std::string maddr;
 	bool repeatConfig = true;
 	int timeout = 65;
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 			case 'r':	ioTypeIn  = IOTYPE_READWRITE; break;
 			case 'w':	ioTypeOut = IOTYPE_READWRITE; break;	
 			case 'B':	openflags = O_RDWR; break;	
-			case 's':	useThread =  false; break;
+			case 's':	captureMode = V4L2DeviceSource::CAPTURE_LIVE555_THREAD; break;
 			case 'f':	format    = V4l2Device::fourcc(optarg); if (format) {videoformatList.push_back(format);};  break;
 			case 'F':	fps       = atoi(optarg); break;
 			case 'W':	width     = atoi(optarg); break;
@@ -333,7 +333,7 @@ int main(int argc, char** argv)
 			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, verbose, openflags);
 			StreamReplicator* videoReplicator = rtspServer.CreateVideoReplicator( 
 					inParam,
-					queueSize, useThread, repeatConfig,
+					queueSize, captureMode, repeatConfig,
 					output, ioTypeOut, out);
 			if (out != NULL) {
 				outList.push_back(out);
@@ -344,7 +344,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_ALSA
 			audioReplicator = rtspServer.CreateAudioReplicator(
 					audioDev, audioFmtList, audioFreq, audioNbChannels, verbose,
-					queueSize, useThread);		
+					queueSize, captureMode);		
 #endif
 					
 										
