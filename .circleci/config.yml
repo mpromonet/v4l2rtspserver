@@ -83,7 +83,7 @@ jobs:
     steps:
       - checkout
       - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make gcc-aarch64-linux-gnu g++-aarch64-linux-gnu pkg-config
-      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=arm64 -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
+      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=arm64 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
       - persist_to_workspace:

@@ -4,7 +4,8 @@ project(v4l2rtspserver)
 
 option(COVERAGE "Coverage" OFF)
 
-set(ALSA ON CACHE BOOL "use ALSA is available")
+set(ALSA ON CACHE BOOL "use ALSA if available")
+set(LOG4CPP OFF CACHE BOOL "use log4cpp if available")
 set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
 
@@ -44,13 +45,15 @@ target_link_libraries (${PROJECT_NAME} Threads::Threads)
 
 
 # LOG4CPP
-find_library(LOG4CPP_LIBRARY NAMES log4cpp)
-if (LOG4CPP_LIBRARY)
-	message(STATUS "Log4Cpp available ${LOG4CPP_LIBRARY}")
-	add_definitions(-DHAVE_LOG4CPP)
-	target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
-	
-	SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5,)
+if (LOG4CPP) 
+    find_library(LOG4CPP_LIBRARY NAMES log4cpp)
+    if (LOG4CPP_LIBRARY)
+        message(STATUS "Log4Cpp available ${LOG4CPP_LIBRARY}")
+        add_definitions(-DHAVE_LOG4CPP)
+        target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
+        
+        SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5v5,)
+    endif ()
 endif ()
 
 # openssl ?
