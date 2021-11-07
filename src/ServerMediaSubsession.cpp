@@ -11,9 +11,8 @@
 #include <linux/videodev2.h>
 
 // project
-#include "ServerMediaSubsession.h"
+#include "BaseServerMediaSubsession.h"
 #include "MJPEGVideoSource.h"
-#include "DeviceSource.h"
 
 // ---------------------------------
 //   BaseServerMediaSubsession

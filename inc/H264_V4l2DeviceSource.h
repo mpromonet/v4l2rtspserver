@@ -10,11 +10,10 @@
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef H264_V4L2_DEVICE_SOURCE
-#define H264_V4L2_DEVICE_SOURCE
+#pragma once
 
 // project
-#include "DeviceSource.h"
+#include "V4L2DeviceSource.h"
 
 // ---------------------------------
 // H264 V4L2 FramedSource
@@ -72,4 +71,3 @@ class H265_V4L2DeviceSource : public H26X_V4L2DeviceSource
 		std::string m_vps;
 };
 
-#endif

@@ -9,7 +9,6 @@
 
 
 #include "UnicastServerMediaSubsession.h"
-#include "DeviceSource.h"
 
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast

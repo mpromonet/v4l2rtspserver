@@ -15,7 +15,7 @@
 
 // project
 #include "logger.h"
-#include "DeviceSource.h"
+#include "V4L2DeviceSource.h"
 
 // ---------------------------------
 // V4L2 FramedSource Stats

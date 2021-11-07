@@ -8,7 +8,6 @@
 ** -------------------------------------------------------------------------*/
 
 #include "MulticastServerMediaSubsession.h"
-#include "DeviceSource.h"
 
 // -----------------------------------------
 //    ServerMediaSubsession for Multicast

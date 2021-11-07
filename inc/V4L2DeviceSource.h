@@ -3,15 +3,14 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** DeviceSource.h
+** V4L2DeviceSource.h
 ** 
 **  live555 source 
 **
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef DEVICE_SOURCE
-#define DEVICE_SOURCE
+#pragma once
 
 #include <string>
 #include <list> 
@@ -24,28 +23,10 @@
 #include <liveMedia.hh>
 
 #include "DeviceInterface.h"
-#include "V4l2Capture.h"
 
 // -----------------------------------------
-//    Video Device Capture Interface 
+//    Video Device Source 
 // -----------------------------------------
-class VideoCaptureAccess : public DeviceInterface
-{
-	public:
-		VideoCaptureAccess(V4l2Capture* device) : m_device(device) {}
-		virtual ~VideoCaptureAccess()                              { delete m_device; }
-			
-		virtual size_t read(char* buffer, size_t bufferSize)       { return m_device->read(buffer, bufferSize); }
-		virtual int getFd()                                        { return m_device->getFd(); }
-		virtual unsigned long getBufferSize()                      { return m_device->getBufferSize(); }
-		virtual int getWidth()                                     { return m_device->getWidth(); }
-		virtual int getHeight()                                    { return m_device->getHeight(); }
-		virtual int getVideoFormat()                               { return m_device->getFormat(); }
-			
-	protected:
-		V4l2Capture* m_device;
-};
-
 class V4L2DeviceSource: public FramedSource
 {
 	public:
@@ -95,7 +76,7 @@ class V4L2DeviceSource: public FramedSource
 
 	protected:	
 		static void* threadStub(void* clientData) { return ((V4L2DeviceSource*) clientData)->thread();};
-		void* thread();
+		virtual void* thread();
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
 		static void incomingPacketHandlerStub(void* clientData, int mask) { ((V4L2DeviceSource*) clientData)->incomingPacketHandler(); };
@@ -123,4 +104,3 @@ class V4L2DeviceSource: public FramedSource
 		std::string m_auxLine;
 };
 
-#endif

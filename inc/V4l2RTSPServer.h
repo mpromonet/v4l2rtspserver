@@ -17,7 +17,6 @@
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
-#include "ServerMediaSubsession.h"
 #include "UnicastServerMediaSubsession.h"
 #include "MulticastServerMediaSubsession.h"
 #include "TSServerMediaSubsession.h"

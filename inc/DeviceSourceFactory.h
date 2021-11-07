@@ -13,7 +13,7 @@
 
 #include <linux/videodev2.h>
 
-#include "DeviceSource.h"
+#include "V4L2DeviceSource.h"
 #include "H264_V4l2DeviceSource.h"
 
 class DeviceSourceFactory {

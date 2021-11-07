@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "ServerMediaSubsession.h"
+#include "BaseServerMediaSubsession.h"
 
 // -----------------------------------------
 //    ServerMediaSubsession for Multicast

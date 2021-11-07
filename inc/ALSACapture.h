@@ -11,8 +11,7 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
-#ifndef ALSA_CAPTURE
-#define ALSA_CAPTURE
+#pragma once
 
 #include <list>
 
@@ -63,6 +62,5 @@ class ALSACapture  : public DeviceInterface
 		snd_pcm_format_t      m_fmt;
 };
 
-#endif
 
 

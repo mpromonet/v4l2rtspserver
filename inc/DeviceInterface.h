@@ -8,8 +8,7 @@
 ** -------------------------------------------------------------------------*/
 
 
-#ifndef DEVICE_INTERFACE
-#define DEVICE_INTERFACE
+#pragma once
 
 
 // ---------------------------------
@@ -31,4 +30,3 @@ class DeviceInterface
 };
 
 
-#endif

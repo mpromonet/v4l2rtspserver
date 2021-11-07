@@ -3,7 +3,7 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** ServerMediaSubsession.h
+** BaseServerMediaSubsession.h
 ** 
 ** -------------------------------------------------------------------------*/
 
@@ -22,7 +22,7 @@
 
 #include <linux/videodev2.h>
 
-#include "DeviceSource.h"
+#include "V4L2DeviceSource.h"
 #include "logger.h"
 
 #ifdef HAVE_ALSA   
