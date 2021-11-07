@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	std::list<unsigned int> videoformatList;
 	int width = 0;
 	int height = 0;
-	int queueSize = 10;
+	int queueSize = 5;
 	int fps = 25;
 	unsigned short rtspPort = 8554;
 	unsigned short rtspOverHTTPPort = 0;
