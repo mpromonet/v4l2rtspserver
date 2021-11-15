@@ -342,7 +342,12 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		sockaddr_storage clientAddress = { 0 };
 		sockaddr_storage destinationAddress = { 0 };
 #endif		
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1636848000		
 		subsession->getStreamParameters(m_ClientSessionId, clientAddress, clientRTPPort, clientRTCPPort, -1, 0, 0, destinationAddress, destinationTTL, isMulticast, serverRTPPort, serverRTCPPort, m_StreamToken);
+#else
+
+		subsession->getStreamParameters(m_ClientSessionId, clientAddress, clientRTPPort, clientRTCPPort, -1, 0, 0, NULL, destinationAddress, destinationTTL, isMulticast, serverRTPPort, serverRTCPPort, m_StreamToken);
+#endif		
 
 		// Seek the stream source to the desired place, with the desired duration, and (as a side effect) get the number of bytes:
 		double dOffsetInSeconds = (double)offsetInSeconds;
