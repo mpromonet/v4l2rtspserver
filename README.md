@@ -130,7 +130,7 @@ Using v4l2loopback
 ----------------------- 
 For camera providing uncompress format [v4l2tools](https://github.com/mpromonet/v4l2tools) can compress the video to an intermediate virtual V4L2 device [v4l2loopback](https://github.com/umlaeute/v4l2loopback):
 
-	/dev/video0 (camera device)-> v4l2compress_h264 -> /dev/video10 (v4l2loopback device) -> v4l2rtspserver
+	/dev/video0 (camera device)-> v4l2compress -> /dev/video10 (v4l2loopback device) -> v4l2rtspserver
 
 This workflow could be set using :
 
