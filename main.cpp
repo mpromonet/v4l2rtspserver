@@ -148,6 +148,7 @@ int main(int argc, char** argv)
 	int timeout = 65;
 	int defaultHlsSegment = 2;
 	unsigned int hlsSegment = 0;
+	const char* sslKeyCert = NULL;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;
@@ -164,7 +165,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::x:" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -183,7 +184,8 @@ int main(int argc, char** argv)
 			case 'c':	repeatConfig            = false; break;
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
-			
+			case 'x':	sslKeyCert              = optarg; break;
+
 			// users
 			case 'R':       realm                   = optarg; break;
 			case 'U':       userPasswordList.push_back(optarg); break;
@@ -237,6 +239,7 @@ int main(int argc, char** argv)
 				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
 				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
 				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")" << std::endl;
+				std::cout << "\t -x <sslkeycert>  : enable RTSPS & SRTP"                                 << std::endl;
 				
 				std::cout << "\t V4L2 options"                                                                                               << std::endl;
 				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
@@ -295,7 +298,7 @@ int main(int argc, char** argv)
      	
 	
 	// create RTSP server
-	V4l2RTSPServer rtspServer(rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot);
+	V4l2RTSPServer rtspServer(rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot, sslKeyCert);
 	if (!rtspServer.available()) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << rtspServer.getResultMsg();
