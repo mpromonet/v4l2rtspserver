@@ -37,9 +37,11 @@ class V4l2RTSPServer {
                 {
                     m_rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
                 }
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
                 if (sslkeycert != NULL) {
                     m_rtspServer->setTLSState(sslkeycert, sslkeycert, true, true);
                 }
+#endif                
             }
             
         }
