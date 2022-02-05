@@ -124,8 +124,8 @@ class HTTPServer : public RTSPServer
 	class HTTPClientConnection : public RTSPServer::RTSPClientConnection
 	{
 		public:
-			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct SOCKETCLIENT clientAddr)
-		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
+			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct SOCKETCLIENT clientAddr, Boolean useTLS)
+		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr, useTLS), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
 			}
 			virtual ~HTTPClientConnection();
 
@@ -157,7 +157,7 @@ class HTTPServer : public RTSPServer
 	};
 
 	public:
-		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string webroot) 
+		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string webroot, const char* sslCert) 
 		{
 			HTTPServer* httpServer = NULL;
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
@@ -173,34 +173,43 @@ class HTTPServer : public RTSPServer
 
 			if (ourSocketIPv4 != -1) 
 			{
-				httpServer = new HTTPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot);
+				httpServer = new HTTPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot, sslCert);
 			}
 			return httpServer;
 		}
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot)
-		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const char* sslCert)
+		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert)
 #else
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot)
-		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const char* sslCert)
+		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert)
 #endif			
 		{
                        if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
                                m_webroot += "/";
                        }
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
+                if (this->isSSL()) {
+                    this->setTLSState(m_sslCert, m_sslCert, true, true);
+                }
+#endif   			
 		}
 
 		virtual RTSPServer::ClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
 		{
-			return new HTTPClientConnection(*this, clientSocket, clientAddr);
+			return new HTTPClientConnection(*this, clientSocket, clientAddr, this->isSSL());
 		}
 		
 		virtual RTSPServer::ClientSession* createNewClientSession(u_int32_t sessionId) {
 			return new HTTPClientSession(*this, sessionId);
 		}
+
+		bool isSSL() { return (m_sslCert != NULL); }
+
         private:
 			const unsigned int m_hlsSegment;
 			std::string  m_webroot;
+			const char*  m_sslCert;
 };
 
