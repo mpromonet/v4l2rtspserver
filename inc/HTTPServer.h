@@ -125,7 +125,11 @@ class HTTPServer : public RTSPServer
 	{
 		public:
 			HTTPClientConnection(RTSPServer& ourServer, int clientSocket, struct SOCKETCLIENT clientAddr, Boolean useTLS)
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
 		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr, useTLS), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
+#else
+		       : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), m_TCPSink(NULL), m_StreamToken(NULL), m_Subsession(NULL), m_Source(NULL) {
+#endif				   
 			}
 			virtual ~HTTPClientConnection();
 
