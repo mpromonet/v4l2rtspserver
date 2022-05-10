@@ -16,9 +16,7 @@ jobs:
     - name: pkg
       run: | 
         sudo apt-get update 
-        sudo apt-get install -y --no-install-recommends g++ autoconf automake libtool xz-utils libasound2-dev libssl-dev cmake
-        sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
+        sudo apt-get install -y --no-install-recommends ca-certificates xz-utils cmake make pkg-config git wget gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
     - name: build
       run: |
