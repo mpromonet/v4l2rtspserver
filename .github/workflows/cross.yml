@@ -6,26 +6,13 @@ jobs:
   build:
     strategy:
       matrix:
+        buildtype: [Debug, Release]
         include:
-        - buildtype: Debug
-          system: arm64
+        - system: arm64
           crosscompiler: aarch64-linux-gnu
-        - buildtype: Release
-          system: arm64
-          crosscompiler: aarch64-linux-gnu
-
-        - buildtype: Debug
-          system: armhf
+        - system: armhf
           crosscompiler: arm-linux-gnueabihf
-        - buildtype: Release
-          system: armhf
-          crosscompiler: arm-linux-gnueabihf
-
-        - buildtype: Debug
-          system: mips
-          crosscompiler: mips-linux-gnu
-        - buildtype: Release
-          system: mips
+        - system: mips
           crosscompiler: mips-linux-gnu
 
     runs-on: ubuntu-latest
@@ -40,7 +27,7 @@ jobs:
 
     - name: build
       run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }} -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.system }} -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=${{ matrix.crosscompilerpkg }}-gcc -DCMAKE_CXX_COMPILER=${{ matrix.crosscompilerpkg }}-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }} -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.system }} -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=${{ matrix.crosscompiler }}-gcc -DCMAKE_CXX_COMPILER=${{ matrix.crosscompiler }}-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu .
           make
 
     - name: cpack 
