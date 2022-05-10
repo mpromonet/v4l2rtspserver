@@ -6,14 +6,27 @@ jobs:
   build:
     strategy:
       matrix:
-        buildtype: [Debug, Release]
         include:
-          - system: arm64
-            crosscompiler: aarch64-linux-gnu
-          - system: armhf
-            crosscompiler: arm-linux-gnueabihf
-          - system: mips
-            crosscompiler: mips-linux-gnu
+        - buildtype: Debug
+          system: arm64
+          crosscompiler: aarch64-linux-gnu
+        - buildtype: Release
+          system: arm64
+          crosscompiler: aarch64-linux-gnu
+
+        - buildtype: Debug
+          system: armhf
+          crosscompiler: arm-linux-gnueabihf
+        - buildtype: Release
+          system: armhf
+          crosscompiler: arm-linux-gnueabihf
+
+        - buildtype: Debug
+          system: mips
+          crosscompiler: mips-linux-gnu
+        - buildtype: Release
+          system: mips
+          crosscompiler: mips-linux-gnu
 
     runs-on: ubuntu-latest
     
