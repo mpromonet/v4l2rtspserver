@@ -1,0 +1,26 @@
+name: C/C++ CI docker
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-latest
+          dockerfile: Dockerfile.arm64
+          label: arm64
+        - os: ubuntu-latest
+          dockerfile: Dockerfile.rpi
+          label: armv6l
+        - os: ubuntu-latest
+          dockerfile: Dockerfile
+          label: amd64
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Build an image from Dockerfile
+      run: docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} -f ${{ matrix.dockerfile }} .
