@@ -9,14 +9,17 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     
-    - name: cmake
-      run: cmake .
-    - name: make
-      run: make
+    - name: build
+      run: | 
+          cmake .
+          make
+          
     - name: cpack
-      run: cpack -B $(pwd)/artifact
+      run: | 
+          cpack
+          echo "artifactPath=$(ls *.deb)" >> $GITHUB_ENV
 
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v3
       with:
-        name: pkg
-        path: artifact      
+        name: ${{ env.artifactPath }}
+        path: ${{ env.artifactPath }}    
