@@ -14,7 +14,7 @@
 // -----------------------------------------
 //    ServerMediaSubsession for Multicast
 // -----------------------------------------
-class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , public BaseServerMediaSubsession
+class MulticastServerMediaSubsession : public BaseServerMediaSubsession, public PassiveServerMediaSubsession
 {
 	public:
 		static MulticastServerMediaSubsession* createNew(UsageEnvironment& env
@@ -29,9 +29,10 @@ class MulticastServerMediaSubsession : public PassiveServerMediaSubsession , pub
 								, Port rtpPortNum, Port rtcpPortNum
 								, int ttl
 								, StreamReplicator* replicator) 
-				: PassiveServerMediaSubsession(*this->createRtpSink(env, destinationAddress, rtpPortNum, rtcpPortNum, ttl, replicator)
+				: BaseServerMediaSubsession(replicator)
+				, PassiveServerMediaSubsession(*this->createRtpSink(env, destinationAddress, rtpPortNum, rtcpPortNum, ttl, replicator)
 											  , m_rtcpInstance)
-				, BaseServerMediaSubsession(replicator) {};			
+				{}			
 
 		virtual char const* sdpLines() ;
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);

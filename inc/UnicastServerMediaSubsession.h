@@ -14,14 +14,14 @@
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
-class UnicastServerMediaSubsession : public OnDemandServerMediaSubsession , public BaseServerMediaSubsession
+class UnicastServerMediaSubsession : public BaseServerMediaSubsession, public OnDemandServerMediaSubsession 
 {
 	public:
 		static UnicastServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* replicator);
 		
 	protected:
 		UnicastServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator) 
-				: OnDemandServerMediaSubsession(env, False), BaseServerMediaSubsession(replicator) {}
+				: BaseServerMediaSubsession(replicator), OnDemandServerMediaSubsession(env, False) {}
 			
 		virtual FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
 		virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,  unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);		
