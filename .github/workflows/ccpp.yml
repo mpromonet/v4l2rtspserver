@@ -4,6 +4,10 @@ on: [push]
 
 jobs:
   build:
+    strategy:
+      matrix:
+        buildtype: [Debug, Release]
+
     runs-on: ubuntu-latest
     
     steps:
@@ -11,9 +15,9 @@ jobs:
     
     - name: build
       run: | 
-          cmake .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.buildtype }} .
           make
-          
+
     - name: cpack
       run: | 
           cpack
