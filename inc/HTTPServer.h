@@ -11,6 +11,7 @@
 **                                                                                    
 ** -------------------------------------------------------------------------*/
 
+#pragma once
 
 #include "RTSPServer.hh"
 #include "RTSPCommon.hh"
