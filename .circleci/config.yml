@@ -1,16 +1,17 @@
 defaults: &defaults
   working_directory: /v4l2rtspserver
   docker:
-    - image: heroku/heroku:18
+    - image: cimg/base:2022.04
+      user: root
 
-version: 2
+version: 2.1
 jobs:
   build_x86_64:
     <<: *defaults
 
     steps:
       - checkout
-      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++ liblog4cpp5-dev libasound2-dev pkg-config
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++ liblog4cpp5-dev libasound2-dev pkg-config
       - run: cmake . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
@@ -28,7 +29,7 @@ jobs:
 
     steps:
       - checkout
-      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
       - run: 
           command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
           no_output_timeout: 30m
@@ -50,7 +51,7 @@ jobs:
 
     steps:
       - checkout
-      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make pkg-config
       - run: 
           command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
           no_output_timeout: 30m
@@ -68,7 +69,7 @@ jobs:
 
     steps:
       - checkout
-      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++-mips-linux-gnu pkg-config
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++-mips-linux-gnu pkg-config
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/mips.toolchain . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
@@ -82,7 +83,7 @@ jobs:
 
     steps:
       - checkout
-      - run: apt-get update; apt-get install -y --no-install-recommends cmake autoconf automake libtool git make gcc-aarch64-linux-gnu g++-aarch64-linux-gnu pkg-config
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make gcc-aarch64-linux-gnu g++-aarch64-linux-gnu pkg-config
       - run: cmake -DCMAKE_SYSTEM_PROCESSOR=arm64 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
@@ -106,7 +107,7 @@ jobs:
     steps:
       - attach_workspace:
           at: /
-      - run: apt-get update; apt-get install -y --no-install-recommends golang      
+      - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends golang      
       - run: go get github.com/tcnksm/ghr
       - deploy:
           name: "Deploy to Github"
@@ -116,9 +117,11 @@ jobs:
   # publish docker amd64
   # -------------------------------------
   publish_docker_linuxamd64:
-    machine:
-      docker_layer_caching: false
+    <<: *defaults
+
     steps:
+      - setup_remote_docker:
+          version: 20.10.12
       - checkout
       - run: git submodule update --init
       - run:
@@ -132,9 +135,11 @@ jobs:
   # publish docker arm
   # -------------------------------------
   publish_docker_linuxarm32v7:
-    machine:
-      docker_layer_caching: false
+    <<: *defaults
+
     steps:
+      - setup_remote_docker:
+          version: 20.10.12
       - checkout
       - run: git submodule update --init
       - run:
@@ -148,9 +153,11 @@ jobs:
   # publish docker arm
   # -------------------------------------
   publish_docker_linuxarm32v6:
-    machine:
-      docker_layer_caching: false
+    <<: *defaults
+
     steps:
+      - setup_remote_docker:
+          version: 20.10.12
       - checkout  
       - run: git submodule update --init
       - run:
@@ -164,9 +171,11 @@ jobs:
   # publish docker arm
   # -------------------------------------
   publish_docker_linuxarm64:
-    machine:
-      docker_layer_caching: false
+    <<: *defaults
+
     steps:
+      - setup_remote_docker:
+          version: 20.10.12
       - checkout  
       - run: git submodule update --init
       - run:
@@ -180,9 +189,11 @@ jobs:
   # publish docker manifest
   # -------------------------------------
   publish_docker_multiarch:
-    machine:
-      image: circleci/classic:201808-01
+    <<: *defaults
+
     steps:
+      - setup_remote_docker:
+          version: 20.10.12
       - run:
           command: |
             mkdir $HOME/.docker
