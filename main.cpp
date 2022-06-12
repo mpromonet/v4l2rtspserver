@@ -329,7 +329,8 @@ int main(int argc, char** argv)
 			{
 				baseUrl = getDeviceName(videoDev);
 				baseUrl.append("_");
-				output.append(getDeviceName(videoDev));
+				// output is not compatible with multiple device
+				output.assign("");
 			}
 
 			V4l2Output* out = NULL;
