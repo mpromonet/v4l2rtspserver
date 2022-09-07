@@ -113,7 +113,7 @@ endif()
 
 # v4l2wrapper
 EXEC_PROGRAM("git submodule update --init")
-add_subdirectory(v4l2wrapper)
+add_subdirectory(v4l2wrapper EXCLUDE_FROM_ALL)
 include_directories("v4l2wrapper/inc")
 target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
 
