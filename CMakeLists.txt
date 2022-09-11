@@ -111,11 +111,11 @@ if (ALSA)
     endif ()
 endif()
 
-# v4l2wrapper
+# libv4l2cpp
 EXEC_PROGRAM("git submodule update --init")
-add_subdirectory(v4l2wrapper EXCLUDE_FROM_ALL)
-include_directories("v4l2wrapper/inc")
-target_link_libraries (${PROJECT_NAME} v4l2wrapper) 
+add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
+include_directories("libv4l2cpp/inc")
+target_link_libraries (${PROJECT_NAME} libv4l2cpp) 
 
 # static link of stdc++ if available
 include(CheckCXXCompilerFlag)
