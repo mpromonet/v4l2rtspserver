@@ -48,43 +48,6 @@ class V4l2RTSPServer {
             delete scheduler;	
         }
 
-        int addSession(const std::string & sessionName, ServerMediaSubsession* subSession)
-        {
-            std::list<ServerMediaSubsession*> subSessionList;
-            if (subSession) {
-                subSessionList.push_back(subSession);
-            }
-            return this->addSession(sessionName, subSessionList);
-        }
-
-        int addSession(const std::string & sessionName, const std::list<ServerMediaSubsession*> & subSession)
-        {
-            int nbSubsession = 0;
-            if (subSession.empty() == false)
-            {
-                ServerMediaSession* sms = ServerMediaSession::createNew(*m_env, sessionName.c_str());
-                if (sms != NULL)
-                {
-                    std::list<ServerMediaSubsession*>::const_iterator subIt;
-                    for (subIt = subSession.begin(); subIt != subSession.end(); ++subIt)
-                    {
-                        sms->addSubsession(*subIt);
-                        nbSubsession++;
-                    }
-                    
-                    m_rtspServer->addServerMediaSession(sms);
-
-                    char* url = m_rtspServer->rtspURL(sms);
-                    if (url != NULL)
-                    {
-                        LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
-                        delete[] url;			
-                    }
-                }
-            }
-            return nbSubsession;
-        }
-
         bool available() {
             return ((m_env != NULL) && (m_rtspServer != NULL));
         }
@@ -129,7 +92,7 @@ class V4l2RTSPServer {
         // -----------------------------------------
         //    Add unicast Session
         // -----------------------------------------
-        int AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+        ServerMediaSession* AddUnicastSession(const std::string& url, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 			// Create Unicast Session					
 			std::list<ServerMediaSubsession*> subSession;
 			if (videoReplicator)
@@ -146,13 +109,13 @@ class V4l2RTSPServer {
         // -----------------------------------------
         //    Add HLS & MPEG# Session
         // -----------------------------------------
-        int AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+        ServerMediaSession* AddHlsSession(const std::string& url, int hlsSegment, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
             std::list<ServerMediaSubsession*> subSession;
             if (videoReplicator)
             {
                 subSession.push_back(TSServerMediaSubsession::createNew(*this->env(), videoReplicator, audioReplicator, hlsSegment));				
             }
-            int nbSource = this->addSession(url, subSession);
+            ServerMediaSession* sms = this->addSession(url, subSession);
             
             struct in_addr ip;
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
@@ -163,14 +126,14 @@ class V4l2RTSPServer {
             LOG(NOTICE) << "HLS       http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".m3u8";
             LOG(NOTICE) << "MPEG-DASH http://" << inet_ntoa(ip) << ":" << m_rtspPort << "/" << url << ".mpd";	
 			
-			return nbSource;	    
+			return sms;	    
         }        
 
 
         // -----------------------------------------
         //    Add multicats Session
         // -----------------------------------------
-        int AddMulticastSession(const std::string& url, in_addr destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+        ServerMediaSession* AddMulticastSession(const std::string& url, in_addr destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 
             LOG(NOTICE) << "RTP  address " << inet_ntoa(destinationAddress) << ":" << rtpPortNum;
             LOG(NOTICE) << "RTCP address " << inet_ntoa(destinationAddress) << ":" << rtcpPortNum;
@@ -195,6 +158,21 @@ class V4l2RTSPServer {
             return this->addSession(url, subSession);
         }	
 
+ 
+        // -----------------------------------------
+        //    get rtsp url
+        // -----------------------------------------
+        std::string getRtspUrl(ServerMediaSession* sms) {
+            std::string url;
+            char* rtspurl = m_rtspServer->rtspURL(sms);
+            if (rtspurl != NULL)
+            {
+                url = rtspurl;
+                delete[] rtspurl;			
+            }
+            return url;
+        }
+
     protected:
         UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
         {
@@ -216,6 +194,42 @@ class V4l2RTSPServer {
             }
             
             return auth;
+        }
+
+        ServerMediaSession* addSession(const std::string & sessionName, ServerMediaSubsession* subSession)
+        {
+            std::list<ServerMediaSubsession*> subSessionList;
+            if (subSession) {
+                subSessionList.push_back(subSession);
+            }
+            return this->addSession(sessionName, subSessionList);
+        }
+
+        ServerMediaSession* addSession(const std::string & sessionName, const std::list<ServerMediaSubsession*> & subSession)
+        {
+            ServerMediaSession* sms = NULL;
+            if (subSession.empty() == false)
+            {
+                sms = ServerMediaSession::createNew(*m_env, sessionName.c_str());
+                if (sms != NULL)
+                {
+                    std::list<ServerMediaSubsession*>::const_iterator subIt;
+                    for (subIt = subSession.begin(); subIt != subSession.end(); ++subIt)
+                    {
+                        sms->addSubsession(*subIt);
+                    }
+                    
+                    m_rtspServer->addServerMediaSession(sms);
+
+                    char* url = m_rtspServer->rtspURL(sms);
+                    if (url != NULL)
+                    {
+                        LOG(NOTICE) << "Play this stream using the URL \"" << url << "\"";
+                        delete[] url;			
+                    }
+                }
+            }
+            return sms;
         }
 
     protected:

@@ -355,17 +355,26 @@ int main(int argc, char** argv)
 			// Create Multicast Session
 			if (multicast)						
 			{		
-				nbSource += rtspServer.AddMulticastSession(baseUrl+murl, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, audioReplicator);
+				ServerMediaSession* sms = rtspServer.AddMulticastSession(baseUrl+murl, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, audioReplicator);
+				if (sms) {
+					nbSource += sms->numSubsessions();
+				}
 			}
 			
 			// Create HLS Session					
 			if (hlsSegment > 0)
 			{
-				nbSource += rtspServer.AddHlsSession(baseUrl+tsurl, hlsSegment, videoReplicator, audioReplicator);
+				ServerMediaSession* sms = rtspServer.AddHlsSession(baseUrl+tsurl, hlsSegment, videoReplicator, audioReplicator);
+				if (sms) {
+					nbSource += sms->numSubsessions();
+				}
 			}
 			
 			// Create Unicast Session
-			nbSource += rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, audioReplicator);		
+			ServerMediaSession* sms  = rtspServer.AddUnicastSession(baseUrl+url, videoReplicator, audioReplicator);		
+			if (sms) {
+				nbSource += sms->numSubsessions();
+			}
 		}
 
 		if (nbSource>0)
