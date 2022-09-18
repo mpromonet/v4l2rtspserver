@@ -1,5 +1,5 @@
 [submodule "v4l2wrapper"]
-	path = v4l2wrapper
+	path = libv4l2cpp
 	url = https://github.com/mpromonet/v4l2wrapper
 [submodule "hls.js"]
 	path = hls.js
