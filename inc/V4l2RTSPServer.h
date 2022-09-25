@@ -173,6 +173,10 @@ class V4l2RTSPServer {
             return url;
         }
 
+        void RemoveSession(ServerMediaSession* sms) {
+            m_rtspServer->deleteServerMediaSession(sms);
+        }
+
     protected:
         UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
         {
