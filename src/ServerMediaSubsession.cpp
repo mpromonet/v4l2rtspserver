@@ -81,8 +81,12 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 		DeviceInterface* device = source->getDevice();
 		switch (device->getVideoFormat()) {
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
-			case V4L2_PIX_FMT_YUYV: sampling = "YCbCr-4:2:2"; break;
-			case V4L2_PIX_FMT_UYVY: sampling = "YCbCr-4:2:2"; break;
+			case V4L2_PIX_FMT_UYVY  : sampling = "YCbCr-4:2:2"; break;
+			case V4L2_PIX_FMT_NV12  : sampling = "YCbCr-4:2:0"; break;
+			case V4L2_PIX_FMT_RGB24 : sampling = "RGB"        ; break;
+			case V4L2_PIX_FMT_RGB32 : sampling = "RGBA"       ; break;
+			case V4L2_PIX_FMT_BGR24 : sampling = "BGR"        ; break;
+			case V4L2_PIX_FMT_BGR32 : sampling = "BGRA"       ; break;
 		}
 		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, device->getWidth(), device->getHeight(), 8, sampling.c_str(),"BT709-2");
     } 
