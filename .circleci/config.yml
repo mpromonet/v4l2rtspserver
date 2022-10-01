@@ -108,7 +108,7 @@ jobs:
       - attach_workspace:
           at: /
       - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends golang      
-      - run: go get github.com/tcnksm/ghr
+      - run: go install github.com/tcnksm/ghr@latest
       - deploy:
           name: "Deploy to Github"
           command: $(go env GOPATH)/bin/ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME $CIRCLE_TAG /distrib
