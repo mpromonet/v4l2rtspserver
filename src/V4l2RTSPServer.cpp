@@ -102,7 +102,7 @@ std::string getDeviceId(const std::string& evt) {
     return deviceid;
 }
 
-std::string  getV4l2Alsa(const std::string& v4l2device) {
+std::string  V4l2RTSPServer::getV4l2Alsa(const std::string& v4l2device) {
 	std::string audioDevice(v4l2device);
 	
 	std::map<std::string,std::string> videodevices;
@@ -169,6 +169,33 @@ std::string  getV4l2Alsa(const std::string& v4l2device) {
 	
 	
 	return audioDevice;
+}
+
+snd_pcm_format_t V4l2RTSPServer::decodeAudioFormat(const std::string& fmt)
+{
+	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
+	if (fmt == "S16_BE") {
+		audioFmt = SND_PCM_FORMAT_S16_BE;
+	} else if (fmt == "S16_LE") {
+		audioFmt = SND_PCM_FORMAT_S16_LE;
+	} else if (fmt == "S24_BE") {
+		audioFmt = SND_PCM_FORMAT_S24_BE;
+	} else if (fmt == "S24_LE") {
+		audioFmt = SND_PCM_FORMAT_S24_LE;
+	} else if (fmt == "S32_BE") {
+		audioFmt = SND_PCM_FORMAT_S32_BE;
+	} else if (fmt == "S32_LE") {
+		audioFmt = SND_PCM_FORMAT_S32_LE;
+	} else if (fmt == "ALAW") {
+		audioFmt = SND_PCM_FORMAT_A_LAW;
+	} else if (fmt == "MULAW") {
+		audioFmt = SND_PCM_FORMAT_MU_LAW;
+	} else if (fmt == "S8") {
+		audioFmt = SND_PCM_FORMAT_S8;
+	} else if (fmt == "MPEG") {
+		audioFmt = SND_PCM_FORMAT_MPEG;
+	}
+	return audioFmt;
 }
 
 StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(

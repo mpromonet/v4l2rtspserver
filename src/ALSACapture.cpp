@@ -128,8 +128,7 @@ size_t ALSACapture::read(char* buffer, size_t bufferSize)
 	int fmt_phys_width_bytes = 0;
 	if (m_pcm != 0)
 	{
-		int fmt_phys_width_bits = snd_pcm_format_physical_width(m_fmt);
-		fmt_phys_width_bytes = fmt_phys_width_bits / 8;
+		fmt_phys_width_bytes = snd_pcm_format_physical_width(m_fmt) / 8;
 
 		snd_pcm_sframes_t ret = snd_pcm_readi (m_pcm, buffer, m_periodSize*fmt_phys_width_bytes);
 		LOG(DEBUG) << "ALSA buffer in_size:" << m_periodSize*fmt_phys_width_bytes << " read_size:" << ret;
