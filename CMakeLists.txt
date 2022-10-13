@@ -3,12 +3,14 @@ cmake_minimum_required(VERSION 3.0)
 project(v4l2rtspserver)
 
 option(COVERAGE "Coverage" OFF)
+option (WITH_SSL "Enable SSL support" ON)
 
 set(ALSA ON CACHE BOOL "use ALSA if available")
 set(STATICSTDCPP ON CACHE BOOL "use gcc static lib if available")
 set(LOG4CPP OFF CACHE BOOL "use log4cpp if available")
 set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
+
 if(NOT CMAKE_BUILD_TYPE)
      set (CMAKE_BUILD_TYPE "Release")
 endif()
@@ -61,7 +63,9 @@ if (LOG4CPP)
 endif ()
 
 # openssl ?
-find_package(OpenSSL QUIET)
+if (WITH_SSL)
+  find_package(OpenSSL QUIET)
+endif()
 MESSAGE("OpenSSL_FOUND = ${OpenSSL_FOUND}")
 
 # live555
