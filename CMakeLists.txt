@@ -114,18 +114,18 @@ endif()
 # libv4l2cpp
 EXEC_PROGRAM("git submodule update --init")
 add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
-include_directories("libv4l2cpp/inc")
-target_link_libraries (${PROJECT_NAME} libv4l2cpp) 
+target_include_directories(libv4l2rtspserver PUBLIC libv4l2cpp/inc)
+target_link_libraries (libv4l2rtspserver libv4l2cpp) 
 
 # static link of stdc++ if available
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-static-libgcc" CXX_SUPPORTS_STATIC_LIBGCC)
 if (CXX_SUPPORTS_STATIC_LIBGCC) 
-  target_link_libraries (${CMAKE_PROJECT_NAME} -static-libgcc)
+  target_link_libraries (${PROJECT_NAME} -static-libgcc)
 endif()    
 CHECK_CXX_COMPILER_FLAG("-static-libstdc++" CXX_SUPPORTS_STATIC_LIBSTDCPP)
 if (CXX_SUPPORTS_STATIC_LIBSTDCPP) 
-  target_link_libraries (${CMAKE_PROJECT_NAME} -static-libstdc++)
+  target_link_libraries (${PROJECT_NAME} -static-libstdc++)
 endif()
 
 #testing
