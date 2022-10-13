@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::x:" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M::ct:S::x:" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 			case 'p':	rtspOverHTTPPort        = atoi(optarg); break;
 			case 'u':	url                     = optarg; break;
 			case 'm':	multicast = true; murl  = optarg ? optarg : murl; break;
-			case 'M':	multicast = true; maddr = optarg; break;
+			case 'M':	multicast = true; maddr = optarg ? optarg : maddr; break;
 			case 'c':	repeatConfig            = false; break;
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
