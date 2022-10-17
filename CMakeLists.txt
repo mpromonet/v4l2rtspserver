@@ -3,11 +3,14 @@ cmake_minimum_required(VERSION 3.0)
 project(v4l2rtspserver)
 
 option(COVERAGE "Coverage" OFF)
+option (WITH_SSL "Enable SSL support" ON)
 
 set(ALSA ON CACHE BOOL "use ALSA if available")
+set(STATICSTDCPP ON CACHE BOOL "use gcc static lib if available")
 set(LOG4CPP OFF CACHE BOOL "use log4cpp if available")
 set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 CACHE STRING "live555 CFGLAGS")
+
 if(NOT CMAKE_BUILD_TYPE)
      set (CMAKE_BUILD_TYPE "Release")
 endif()
@@ -19,7 +22,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/")
 # set version based on git
 find_package(Git)
 if(GIT_FOUND)
-    EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
     STRING(REGEX REPLACE "^v(.*)" "\\1" VERSION "${VERSION}")
     add_definitions("-DVERSION=\"${VERSION}\"")
 endif()
@@ -60,7 +63,9 @@ if (LOG4CPP)
 endif ()
 
 # openssl ?
-find_package(OpenSSL QUIET)
+if (WITH_SSL)
+  find_package(OpenSSL QUIET)
+endif()
 MESSAGE("OpenSSL_FOUND = ${OpenSSL_FOUND}")
 
 # live555
@@ -114,18 +119,20 @@ endif()
 # libv4l2cpp
 EXEC_PROGRAM("git submodule update --init")
 add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
-include_directories("libv4l2cpp/inc")
-target_link_libraries (${PROJECT_NAME} libv4l2cpp) 
+target_include_directories(libv4l2rtspserver PUBLIC libv4l2cpp/inc)
+target_link_libraries (libv4l2rtspserver libv4l2cpp) 
 
 # static link of stdc++ if available
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-static-libgcc" CXX_SUPPORTS_STATIC_LIBGCC)
-if (CXX_SUPPORTS_STATIC_LIBGCC) 
-  target_link_libraries (${CMAKE_PROJECT_NAME} -static-libgcc)
-endif()    
-CHECK_CXX_COMPILER_FLAG("-static-libstdc++" CXX_SUPPORTS_STATIC_LIBSTDCPP)
-if (CXX_SUPPORTS_STATIC_LIBSTDCPP) 
-  target_link_libraries (${CMAKE_PROJECT_NAME} -static-libstdc++)
+if (STATICSTDCPP)
+  include(CheckCXXCompilerFlag)
+  CHECK_CXX_COMPILER_FLAG("-static-libgcc" CXX_SUPPORTS_STATIC_LIBGCC)
+  if (CXX_SUPPORTS_STATIC_LIBGCC) 
+    target_link_libraries (${PROJECT_NAME} -static-libgcc)
+  endif()    
+  CHECK_CXX_COMPILER_FLAG("-static-libstdc++" CXX_SUPPORTS_STATIC_LIBSTDCPP)
+  if (CXX_SUPPORTS_STATIC_LIBSTDCPP) 
+    target_link_libraries (${PROJECT_NAME} -static-libstdc++)
+  endif()
 endif()
 
 #testing

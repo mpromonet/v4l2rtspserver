@@ -88,35 +88,6 @@ std::string getDeviceName(const std::string & devicePath)
 	return deviceName;
 }
 
-#ifdef HAVE_ALSA
-snd_pcm_format_t decodeAudioFormat(const std::string& fmt)
-{
-	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
-	if (fmt == "S16_BE") {
-		audioFmt = SND_PCM_FORMAT_S16_BE;
-	} else if (fmt == "S16_LE") {
-		audioFmt = SND_PCM_FORMAT_S16_LE;
-	} else if (fmt == "S24_BE") {
-		audioFmt = SND_PCM_FORMAT_S24_BE;
-	} else if (fmt == "S24_LE") {
-		audioFmt = SND_PCM_FORMAT_S24_LE;
-	} else if (fmt == "S32_BE") {
-		audioFmt = SND_PCM_FORMAT_S32_BE;
-	} else if (fmt == "S32_LE") {
-		audioFmt = SND_PCM_FORMAT_S32_LE;
-	} else if (fmt == "ALAW") {
-		audioFmt = SND_PCM_FORMAT_A_LAW;
-	} else if (fmt == "MULAW") {
-		audioFmt = SND_PCM_FORMAT_MU_LAW;
-	} else if (fmt == "S8") {
-		audioFmt = SND_PCM_FORMAT_S8;
-	} else if (fmt == "MPEG") {
-		audioFmt = SND_PCM_FORMAT_MPEG;
-	}
-	return audioFmt;
-}
-#endif
-
 		
 // -----------------------------------------
 //    entry point
@@ -165,7 +136,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M:ct:S::x:" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M::ct:S::x:" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -180,7 +151,7 @@ int main(int argc, char** argv)
 			case 'p':	rtspOverHTTPPort        = atoi(optarg); break;
 			case 'u':	url                     = optarg; break;
 			case 'm':	multicast = true; murl  = optarg ? optarg : murl; break;
-			case 'M':	multicast = true; maddr = optarg; break;
+			case 'M':	multicast = true; maddr = optarg ? optarg : maddr; break;
 			case 'c':	repeatConfig            = false; break;
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
@@ -205,7 +176,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_ALSA	
 			case 'A':	audioFreq = atoi(optarg); break;
 			case 'C':	audioNbChannels = atoi(optarg); break;
-			case 'a':	audioFmt = decodeAudioFormat(optarg); if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {audioFmtList.push_back(audioFmt);} ; break;
+			case 'a':	audioFmt = V4l2RTSPServer::decodeAudioFormat(optarg); if (audioFmt != SND_PCM_FORMAT_UNKNOWN) {audioFmtList.push_back(audioFmt);} ; break;
 #endif			
 			
 			// version
