@@ -72,7 +72,8 @@ unsigned char*  H26X_V4L2DeviceSource::extractFrame(unsigned char* frame, size_t
 }
 
 std::string H26X_V4L2DeviceSource::getFrameWithMarker(const std::string & frame) {
-	std::string frameWithMarker(H264marker);
+	std::string frameWithMarker;
+	frameWithMarker.append(H264marker, sizeof(H264marker));
 	frameWithMarker.append(frame);
 	return frameWithMarker;
 }
