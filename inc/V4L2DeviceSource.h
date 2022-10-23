@@ -77,9 +77,9 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) ;
 		std::string getAuxLine()                   { return m_auxLine;    }
-		void setAuxLine(const std::string auxLine) { m_auxLine = auxLine; }	
 		DeviceInterface* getDevice()               { return m_device;     }	
 		void postFrame(char * frame, int frameSize, const timeval &ref);
+		virtual std::list< std::string > getInitFrames() { return std::list< std::string >(); }
 	
 
 	protected:

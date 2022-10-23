@@ -15,6 +15,7 @@
 
 #include "V4L2DeviceSource.h"
 #include "H264_V4l2DeviceSource.h"
+#include "H265_V4l2DeviceSource.h"
 
 class DeviceSourceFactory {
     public:
