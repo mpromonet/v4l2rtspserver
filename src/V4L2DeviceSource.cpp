@@ -221,12 +221,15 @@ void V4L2DeviceSource::postFrame(char * frame, int frameSize, const timeval &ref
 	timeval diff;
 	timersub(&tv,&ref,&diff);
 	m_in.notify(tv.tv_sec, frameSize);
-	LOG(DEBUG) << "getNextFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
+	LOG(DEBUG) << "postFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
 	
 	processFrame(frame,frameSize,ref);
 	if (m_outfd != -1) 
 	{
-		write(m_outfd, frame, frameSize);
+		int written = write(m_outfd, frame, frameSize);
+		if (written != frameSize) {
+			LOG(NOTICE) << "error writing output " << written << "/" << frameSize << " err:" << strerror(errno);
+		}
 	}		
 }	
 
