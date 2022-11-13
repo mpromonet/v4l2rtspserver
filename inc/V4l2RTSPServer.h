@@ -90,6 +90,9 @@ class V4l2RTSPServer {
         
         static std::string       getV4l2Alsa(const std::string& v4l2device);
         static snd_pcm_format_t  decodeAudioFormat(const std::string& fmt);
+        static std::string       getAudioFormatName(const snd_pcm_format_t fmt) {
+            return snd_pcm_format_name(fmt);
+        }
 #endif
 
         // -----------------------------------------
