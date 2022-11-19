@@ -46,13 +46,15 @@ class ALSACapture  : public DeviceInterface
 		int configureFormat(snd_pcm_hw_params_t *hw_params);
 			
 	public:
-		virtual size_t read(char* buffer, size_t bufferSize);		
-		virtual int getFd();
-		virtual unsigned long getBufferSize()   { return m_bufferSize;          }	
+		virtual size_t         read(char* buffer, size_t bufferSize);		
+		virtual int            getFd();
+		virtual unsigned long  getBufferSize()      { return m_bufferSize;          }	
 		
-		virtual unsigned long getSampleRate()   { return m_params.m_sampleRate; }
-		virtual unsigned long getChannels  ()   { return m_params.m_channels;   }
-		virtual int           getAudioFormat () { return m_fmt;                 }
+		virtual unsigned long  getSampleRate()      { return m_params.m_sampleRate; }
+		virtual unsigned long  getChannels  ()      { return m_params.m_channels;   }
+		virtual int            getAudioFormat ()    { return m_fmt;                 }
+		virtual std::list<int> getAudioFormatList() { return m_fmtList;             }
+
 		
 	private:
 		snd_pcm_t*            m_pcm;
@@ -60,6 +62,7 @@ class ALSACapture  : public DeviceInterface
 		unsigned long         m_periodSize;
 		ALSACaptureParameters m_params;
 		snd_pcm_format_t      m_fmt;
+		std::list<int>        m_fmtList;
 };
 
 

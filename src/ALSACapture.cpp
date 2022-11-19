@@ -15,6 +15,46 @@
 
 #include "ALSACapture.h"
 
+static const snd_pcm_format_t formats[] = {
+	SND_PCM_FORMAT_S8,
+	SND_PCM_FORMAT_U8,
+	SND_PCM_FORMAT_S16_LE,
+	SND_PCM_FORMAT_S16_BE,
+	SND_PCM_FORMAT_U16_LE,
+	SND_PCM_FORMAT_U16_BE,
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_S24_BE,
+	SND_PCM_FORMAT_U24_LE,
+	SND_PCM_FORMAT_U24_BE,
+	SND_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S32_BE,
+	SND_PCM_FORMAT_U32_LE,
+	SND_PCM_FORMAT_U32_BE,
+	SND_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT64_LE,
+	SND_PCM_FORMAT_FLOAT64_BE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME_BE,
+	SND_PCM_FORMAT_MU_LAW,
+	SND_PCM_FORMAT_A_LAW,
+	SND_PCM_FORMAT_IMA_ADPCM,
+	SND_PCM_FORMAT_MPEG,
+	SND_PCM_FORMAT_GSM,
+	SND_PCM_FORMAT_SPECIAL,
+	SND_PCM_FORMAT_S24_3LE,
+	SND_PCM_FORMAT_S24_3BE,
+	SND_PCM_FORMAT_U24_3LE,
+	SND_PCM_FORMAT_U24_3BE,
+	SND_PCM_FORMAT_S20_3LE,
+	SND_PCM_FORMAT_S20_3BE,
+	SND_PCM_FORMAT_U20_3LE,
+	SND_PCM_FORMAT_U20_3BE,
+	SND_PCM_FORMAT_S18_3LE,
+	SND_PCM_FORMAT_S18_3BE,
+	SND_PCM_FORMAT_U18_3LE,
+	SND_PCM_FORMAT_U18_3BE,
+};
 
 ALSACapture* ALSACapture::createNew(const ALSACaptureParameters & params) 
 { 
@@ -101,6 +141,15 @@ ALSACapture::ALSACapture(const ALSACaptureParameters & params) : m_pcm(NULL), m_
 		this->close();
 	}			
 	
+	if (!err) {
+		// get supported format
+		for (int i = 0; i < sizeof(formats)/sizeof(formats[0]); ++i) {
+			if (!snd_pcm_hw_params_test_format(m_pcm, hw_params, formats[i])) {
+				m_fmtList.push_back(formats[i]);
+			}
+		}	
+	}
+
 	LOG(NOTICE) << "ALSA device: \"" << m_params.m_devName << "\" buffer_size:" << m_bufferSize << " period_size:" << m_periodSize << " rate:" << m_params.m_sampleRate;
 }
 			
