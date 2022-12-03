@@ -8,4 +8,6 @@ linuxarmv6_docker_builder:
   script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv6 . -f Dockerfile.rpi --build-arg ARCH=armv6l
 
 linuxarm64_docker_builder:    
-  script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . -f Dockerfile.arm64
+  script: |
+    docker run --rm --privileged hypriot/qemu-register
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . -f Dockerfile.arm64
