@@ -182,6 +182,7 @@ jobs:
           command: |
             export TAG=${CIRCLE_TAG:-latest}
             docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
+            docker run --rm --privileged hypriot/qemu-register
             docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64 -f Dockerfile.arm64 . 
             docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64
 
