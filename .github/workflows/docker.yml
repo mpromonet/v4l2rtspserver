@@ -23,4 +23,6 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Build an image from Dockerfile
-      run: docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} -f ${{ matrix.dockerfile }} .
+      run: |
+        docker run --rm --privileged hypriot/qemu-register
+        docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} -f ${{ matrix.dockerfile }} .
