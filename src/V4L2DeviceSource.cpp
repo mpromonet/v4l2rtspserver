@@ -108,8 +108,15 @@ void* V4L2DeviceSource::thread()
 				LOG(DEBUG) << "waitingFrame\tdelay:" << (1000-(tv.tv_usec/1000)) << "ms"; 
 				if (this->getNextFrame() <= 0)
 				{
-					LOG(ERROR) << "error:" << strerror(errno); 						
-					stop=1;
+					if (errno == EAGAIN)
+					{
+						LOG(NOTICE) << "Retrying getNextFrame";
+					}
+					else
+					{
+						LOG(ERROR) << "error:" << strerror(errno);
+						stop=1;
+					}
 				}
 			}
 		}
