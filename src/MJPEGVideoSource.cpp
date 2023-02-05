@@ -48,17 +48,23 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 		int length = (fTo[i+2]<<8)|(fTo[i+3]);		    
 		LOG(DEBUG) << "DQT length:" << length;
 
-		unsigned int precision = (fTo[i+4]&0xf0)<<4;
-		unsigned int quantIdx  = fTo[i+4]&0x0f;
-		unsigned int quantSize =  64*(precision+1);
-		if (quantSize*quantIdx+quantSize <= sizeof(m_qTable)) {
-		    if ( (i+2+length) < frameSize) {
-		    	memcpy(m_qTable + quantSize*quantIdx, fTo + i + 5, length-3);
-		    	LOG(DEBUG) << "Quantization table idx:" << quantIdx << " precision:" << precision << " size:" << quantSize << " total size:" << m_qTableSize;
-		    	if (quantSize*quantIdx+quantSize > m_qTableSize) {
+		int qtable_length = length-2;
+		unsigned int qtable_position = i+4;
+		while (qtable_length > 0) {
+		    unsigned int precision = (fTo[qtable_position]&0xf0)<<4;
+		    unsigned int quantIdx  = fTo[qtable_position]&0x0f;
+		    unsigned int quantSize =  64*(precision+1);
+		    if (quantSize*quantIdx+quantSize <= sizeof(m_qTable)) {
+			if ( (i+2+length) < frameSize) {
+			    memcpy(m_qTable + quantSize*quantIdx, fTo + qtable_position + 1, quantSize);
+			    LOG(DEBUG) << "Quantization table idx:" << quantIdx << " precision:" << precision << " size:" << quantSize << " total size:" << m_qTableSize;
+			    if (quantSize*quantIdx+quantSize > m_qTableSize) {
 				m_qTableSize = quantSize*quantIdx+quantSize;
-		    	}
+			    }
+			}
 		    }
+		    qtable_length -= quantSize+1;
+		    qtable_position += quantSize+1;
 		}
 
 		i+=length+2;	       
