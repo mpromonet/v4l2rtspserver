@@ -50,8 +50,8 @@ class ALSACapture  : public DeviceInterface
 		virtual int            getFd();
 		virtual unsigned long  getBufferSize()      { return m_bufferSize;          }	
 		
-		virtual unsigned long  getSampleRate()      { return m_params.m_sampleRate; }
-		virtual unsigned long  getChannels  ()      { return m_params.m_channels;   }
+		virtual int            getSampleRate()      { return m_params.m_sampleRate; }
+		virtual int            getChannels  ()      { return m_params.m_channels;   }
 		virtual int            getAudioFormat ()    { return m_fmt;                 }
 		virtual std::list<int> getAudioFormatList() { return m_fmtList;             }
 

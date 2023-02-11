@@ -24,8 +24,8 @@ class DeviceInterface
 		virtual int            getHeight()                   { return -1; }
 		virtual int            getVideoFormat()              { return -1; }
 		virtual std::list<int> getVideoFormatList()          { return std::list<int>(); }
-		virtual unsigned long  getSampleRate()               { return -1; }
-		virtual unsigned long  getChannels()                 { return -1; }
+		virtual int            getSampleRate()               { return -1; }
+		virtual int            getChannels()                 { return -1; }
 		virtual int            getAudioFormat()              { return -1; }				
 		virtual std::list<int> getAudioFormatList()          { return std::list<int>(); }
 		virtual ~DeviceInterface()                           {};
