@@ -33,6 +33,7 @@ Dependencies
 ------------
  - liblivemedia-dev [License LGPL](http://www.live555.com/liveMedia/) > live.2012.01.07 (need StreamReplicator)
  - libv4l2cpp [Unlicense](https://github.com/mpromonet/libv4l2cpp/blob/master/LICENSE)
+ - libssl-dev [Apache License 2.0](https://www.openssl.org/source/apache-license-2.0.txt)
  - liblog4cpp5-dev  [License LGPL](http://log4cpp.sourceforge.net/#license) (optional)
 If liblog4cpp5-dev is not present, a simple log using std::cout is used.
  - libasound2-dev Licence LGPL (optional)
