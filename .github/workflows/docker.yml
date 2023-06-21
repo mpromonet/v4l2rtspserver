@@ -24,5 +24,5 @@ jobs:
 
     - name: Build an image from Dockerfile
       run: |
-        docker run --rm --privileged hypriot/qemu-register
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
         docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} -f ${{ matrix.dockerfile }} .
