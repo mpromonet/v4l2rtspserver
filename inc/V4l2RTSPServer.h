@@ -178,6 +178,9 @@ class V4l2RTSPServer {
             }
             return url;
         }
+        int numClientSessions() {
+            return m_rtspServer->numClientSessions();        
+        }
 
         void RemoveSession(ServerMediaSession* sms) {
             m_rtspServer->deleteServerMediaSession(sms);
