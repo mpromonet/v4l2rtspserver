@@ -1,6 +1,6 @@
 
   name: v4l2-rtspserver
-  base: core20
+  base: core22
   version: git
   summary: RTSP Server for V4L2 device capture supporting HEVC/H264/JPEG/VP8/VP9
   description: |
