@@ -29,8 +29,10 @@
       - g++
       - pkg-config
       - libasound2-dev
+      - libssl-dev      
       stage-packages:
       - libasound2
+      - libssl3      
 
   apps:
     v4l2rtspserver:
