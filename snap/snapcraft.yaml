@@ -34,6 +34,6 @@
 
   apps:
     v4l2rtspserver:
-      command: usr/local/bin/v4l2rtspserver -b $SNAP/usr/local/share/v4l2rtspserver/ -P "$(snapctl get rtsp-port)" "$(snapctl get devices)"
+      command: usr/local/bin/v4l2rtspserver -b $SNAP/usr/local/share/v4l2rtspserver/
       daemon: simple   
       plugs: [network-bind, camera, alsa]
