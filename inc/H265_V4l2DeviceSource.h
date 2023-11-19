@@ -29,6 +29,7 @@ class H265_V4L2DeviceSource : public H26X_V4L2DeviceSource
 		// overide V4L2DeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);			
 		virtual std::list< std::string > getInitFrames();
+		virtual bool isKeyFrame(const char*, int);
 				
 	protected:
 		std::string m_vps;

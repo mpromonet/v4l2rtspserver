@@ -76,3 +76,13 @@ std::list< std::string > H265_V4L2DeviceSource::getInitFrames() {
 	frameList.push_back(this->getFrameWithMarker(m_pps));
 	return frameList;
 }
+
+bool H265_V4L2DeviceSource::isKeyFrame(const char* buffer, int size) {
+	bool res = false;
+	if (size > 4)
+	{
+		int frameType = (buffer[4]&0x7E)>>1;
+		res = (frameType == 19 || frameType == 20);
+	}
+	return res;	
+}

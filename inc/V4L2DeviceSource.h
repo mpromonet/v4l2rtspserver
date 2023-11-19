@@ -80,6 +80,7 @@ class V4L2DeviceSource: public FramedSource
 		DeviceInterface* getDevice()               { return m_device;     }	
 		void postFrame(char * frame, int frameSize, const timeval &ref);
 		virtual std::list< std::string > getInitFrames() { return std::list< std::string >(); }
+		virtual bool isKeyFrame(const char*, int) { return false; }
 	
 
 	protected:
