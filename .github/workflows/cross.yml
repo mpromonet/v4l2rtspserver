@@ -28,6 +28,20 @@ jobs:
           system: mips
           crosscompiler: mips-linux-gnu
 
+        - buildtype: Debug
+          system: mipsel
+          crosscompiler: mipsel-linux-gnu
+        - buildtype: Release
+          system: mipsel
+          crosscompiler: mipsel-linux-gnu
+
+        - buildtype: Debug
+          system: riscv64
+          crosscompiler: riscv64-linux-gnu
+        - buildtype: Release
+          system: riscv64
+          crosscompiler: riscv64-linux-gnu
+          
     runs-on: ubuntu-latest
     
     steps:
