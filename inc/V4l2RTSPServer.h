@@ -164,7 +164,42 @@ class V4l2RTSPServer {
             return this->addSession(url, subSession);
         }	
 
- 
+        void decodeMulticastUrl(const std::string & maddr, in_addr & destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum)
+        {
+            std::istringstream is(maddr);
+            std::string ip;
+            getline(is, ip, ':');						
+            if (!ip.empty())
+            {
+                destinationAddress.s_addr = inet_addr(ip.c_str());
+            } else {
+                destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*this->env());
+            }	
+            
+            rtpPortNum = 20000;
+            std::string port;
+            getline(is, port, ':');						
+            if (!port.empty())
+            {
+                rtpPortNum = atoi(port.c_str());
+            }	
+            rtcpPortNum = rtpPortNum+1;
+            getline(is, port, ':');						
+            if (!port.empty())
+            {
+                rtcpPortNum = atoi(port.c_str());
+            }
+        }
+
+        ServerMediaSession* AddMulticastSession(const std::string& url, std::string& multicasturi, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+			struct in_addr destinationAddress;
+			unsigned short rtpPortNum;
+			unsigned short rtcpPortNum;
+            this->decodeMulticastUrl(multicasturi, destinationAddress, rtpPortNum, rtcpPortNum);
+            multicasturi = inet_ntoa(destinationAddress) + std::string(":") + std::to_string(rtpPortNum) + std::string(":") + std::to_string(rtcpPortNum);
+            return this->AddMulticastSession(url, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, audioReplicator);
+        }
+
         // -----------------------------------------
         //    get rtsp url
         // -----------------------------------------

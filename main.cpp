@@ -46,29 +46,6 @@ void sighandler(int n)
 }
 
 // -------------------------------------------------------
-//    decode multicast url <group>:<rtp_port>:<rtcp_port>
-// -------------------------------------------------------
-void decodeMulticastUrl(const std::string & maddr, in_addr & destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum)
-{
-	std::istringstream is(maddr);
-	std::string ip;
-	getline(is, ip, ':');						
-	if (!ip.empty())
-	{
-		destinationAddress.s_addr = inet_addr(ip.c_str());
-	}						
-	
-	std::string port;
-	getline(is, port, ':');						
-	rtpPortNum = 20000;
-	if (!port.empty())
-	{
-		rtpPortNum = atoi(port.c_str());
-	}	
-	rtcpPortNum = rtpPortNum+1;
-}
-
-// -------------------------------------------------------
 //    split video,audio device
 // -------------------------------------------------------
 void decodeDevice(const std::string & device, std::string & videoDev, std::string & audioDev)
@@ -280,10 +257,9 @@ int main(int argc, char** argv)
 	{		
 		// decode multicast info
 		struct in_addr destinationAddress;
-		destinationAddress.s_addr = chooseRandomIPv4SSMAddress(*rtspServer.env());
-		unsigned short rtpPortNum = 20000;
-		unsigned short rtcpPortNum = rtpPortNum+1;
-		decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
+		unsigned short rtpPortNum;
+		unsigned short rtcpPortNum;
+		rtspServer.decodeMulticastUrl(maddr, destinationAddress, rtpPortNum, rtcpPortNum);	
 
 		std::list<V4l2Output*> outList;
 		int nbSource = 0;
