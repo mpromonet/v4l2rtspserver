@@ -164,7 +164,7 @@ class V4l2RTSPServer {
             return this->addSession(url, subSession);
         }	
 
-        void decodeMulticastUrl(const std::string & maddr, in_addr & destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum)
+        std::string decodeMulticastUrl(const std::string & maddr, in_addr & destinationAddress, unsigned short & rtpPortNum, unsigned short & rtcpPortNum)
         {
             std::istringstream is(maddr);
             std::string ip;
@@ -189,14 +189,14 @@ class V4l2RTSPServer {
             {
                 rtcpPortNum = atoi(port.c_str());
             }
+            return inet_ntoa(destinationAddress) + std::string(":") + std::to_string(rtpPortNum) + std::string(":") + std::to_string(rtcpPortNum);
         }
 
-        ServerMediaSession* AddMulticastSession(const std::string& url, std::string& multicasturi, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
+        ServerMediaSession* AddMulticastSession(const std::string& url, const std::string& inmulticasturi, std::string& outmulticasturi, StreamReplicator* videoReplicator, StreamReplicator* audioReplicator) {
 			struct in_addr destinationAddress;
 			unsigned short rtpPortNum;
 			unsigned short rtcpPortNum;
-            this->decodeMulticastUrl(multicasturi, destinationAddress, rtpPortNum, rtcpPortNum);
-            multicasturi = inet_ntoa(destinationAddress) + std::string(":") + std::to_string(rtpPortNum) + std::string(":") + std::to_string(rtcpPortNum);
+            outmulticasturi = this->decodeMulticastUrl(inmulticasturi, destinationAddress, rtpPortNum, rtcpPortNum);
             return this->AddMulticastSession(url, destinationAddress, rtpPortNum, rtcpPortNum, videoReplicator, audioReplicator);
         }
 
