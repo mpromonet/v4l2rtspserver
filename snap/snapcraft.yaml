@@ -19,6 +19,8 @@
 
   grade: stable 
   confinement: strict
+  license: The Unlicense
+  contact: michel.promonet@free.fr  
 
   parts:
     v4l2rtspserver:
