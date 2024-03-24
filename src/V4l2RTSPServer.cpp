@@ -59,7 +59,6 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 				delete videoCapture;
 			} else {
-				LOG(NOTICE) << "Create Source ..." << videoDev;
 				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, captureMode, outfd, repeatConfig);
 				if (videoReplicator == NULL) 
 				{
