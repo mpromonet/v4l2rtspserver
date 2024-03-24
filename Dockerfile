@@ -4,7 +4,7 @@ WORKDIR /v4l2rtspserver
 COPY . /v4l2rtspserver
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates g++ autoconf automake libtool xz-utils cmake make pkg-config git wget libasound2-dev libssl-dev \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates g++ autoconf automake libtool xz-utils cmake make patch pkg-config git wget libasound2-dev libssl-dev \
     && cmake . && make install && apt-get clean && rm -rf /var/lib/apt/lists/
 
 FROM ubuntu:22.04
