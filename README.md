@@ -1,10 +1,9 @@
-[![TravisCI](https://travis-ci.org/mpromonet/v4l2rtspserver.png)](https://travis-ci.org/mpromonet/v4l2rtspserver)
 [![CircleCI](https://circleci.com/gh/mpromonet/v4l2rtspserver.svg?style=shield)](https://circleci.com/gh/mpromonet/v4l2rtspserver)
 [![CirusCI](https://api.cirrus-ci.com/github/mpromonet/v4l2rtspserver.svg?branch=master)](https://cirrus-ci.com/github/mpromonet/v4l2rtspserver)
 [![Snap Status](https://snapcraft.io//v4l2-rtspserver/badge.svg)](https://snapcraft.io/v4l2-rtspserver)
 [![GithubCI](https://github.com/mpromonet/v4l2rtspserver/workflows/C/C++%20CI/badge.svg)](https://github.com/mpromonet/v4l2rtspserver/actions)
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/aa0c28514aa843ea9fa7da358d905871)](https://www.codacy.com/app/michelpromonet_2643/v4l2rtspserver?utm_source=github.com&utm_medium=referral&utm_content=mpromonet/v4l2rtspserver&utm_campaign=badger)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4602f447d1c1408d865ebb4ef68f12f1)](https://app.codacy.com/gh/mpromonet/v4l2rtspserver/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
 [![Coverage Status](https://coveralls.io/repos/github/mpromonet/v4l2rtspserver/badge.svg?branch=master)](https://coveralls.io/github/mpromonet/v4l2rtspserver?branch=master)
 
