@@ -104,9 +104,6 @@ add_library (libv4l2rtspserver STATIC ${LIVESOURCE} ${LIBV4L2RTSP_SRC_FILES})
 target_include_directories(libv4l2rtspserver PUBLIC inc ${LIVEINCLUDE})
 target_compile_definitions(libv4l2rtspserver PUBLIC ${LIVE555CFLAGS})
 target_link_libraries (${PROJECT_NAME} libv4l2rtspserver ${LIVE_LIBRARIES}) 
-if (OpenSSL_FOUND)
-    target_link_libraries(${PROJECT_NAME} OpenSSL::SSL)
-endif ()
 
 #ALSA
 if (ALSA)
@@ -114,7 +111,6 @@ if (ALSA)
     MESSAGE("ALSA_FOUND = ${ALSA_FOUND}")
     if (ALSA_LIBRARY)
         add_definitions(-DHAVE_ALSA)
-        target_link_libraries (${PROJECT_NAME} ${ALSA_LIBRARY}) 
         
         SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
     endif ()
@@ -124,7 +120,7 @@ endif()
 EXEC_PROGRAM("git submodule update --init")
 add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
 target_include_directories(libv4l2rtspserver PUBLIC libv4l2cpp/inc)
-target_link_libraries (libv4l2rtspserver libv4l2cpp) 
+target_link_libraries (libv4l2rtspserver PUBLIC libv4l2cpp ${ALSA_LIBRARY} ${OPENSSL_LIBRARIES}) 
 
 # static link of stdc++ if available
 if (STATICSTDCPP)
