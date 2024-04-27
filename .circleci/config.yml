@@ -120,8 +120,7 @@ jobs:
     <<: *defaults
 
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
+      - setup_remote_docker
       - checkout
       - run: git submodule update --init
       - run:
@@ -138,8 +137,7 @@ jobs:
     <<: *defaults
 
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
+      - setup_remote_docker
       - checkout
       - run: git submodule update --init
       - run:
@@ -156,8 +154,7 @@ jobs:
     <<: *defaults
 
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
+      - setup_remote_docker
       - checkout  
       - run: git submodule update --init
       - run:
@@ -174,8 +171,7 @@ jobs:
     <<: *defaults
 
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
+      - setup_remote_docker
       - checkout  
       - run: git submodule update --init
       - run:
@@ -193,8 +189,7 @@ jobs:
     <<: *defaults
 
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
+      - setup_remote_docker
       - run:
           command: |
             mkdir $HOME/.docker
