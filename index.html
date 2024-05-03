@@ -6,10 +6,10 @@
     </style>
     <body>
 	<!--fill streamList variable with the list of streams -->
-	<script src="/getStreamList?streamList" ></script>
+	<script src="getStreamList?streamList" ></script>
 	<h3>HLS</h3>
 	<div id="videos"></div>
-	<script src="hls.js/dist/hls.light.min.js" ></script>
+	<script src="hls.js" ></script>
 	<script>
 		if (Hls.isSupported()) {
 			var videos = document.getElementById("videos")

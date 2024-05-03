@@ -158,7 +158,7 @@ It is now possible to play HLS url directly from browser :
  * using Firefox installing [Native HLS addons](https://addons.mozilla.org/en-US/firefox/addon/native_hls_playback)
  * using Chrome installing [Native HLS playback](https://chrome.google.com/webstore/detail/native-hls-playback/emnphkkblegpebimobpbekeedfgemhof)
 
-There is also a small HTML page that use hls.js and dash.js, but dash still not work because player doesnot support MP2T format.
+There is also a small HTML page that use hls.js.
 
 Using Docker image
 ===============

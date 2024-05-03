@@ -160,7 +160,7 @@ endif (SYSTEMD_FOUND)
 # package
 install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 install (FILES index.html DESTINATION share/${PROJECT_NAME}/)
-install (FILES hls.js/dist/hls.light.min.js DESTINATION share/${PROJECT_NAME}/hls.js/dist/)
+install (FILES hls.js DESTINATION share/${PROJECT_NAME}/)
 
 SET(CPACK_GENERATOR "DEB")
 IF(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
