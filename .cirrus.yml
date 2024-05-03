@@ -1,13 +1,17 @@
 linux_docker_builder:
-  script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-linux . -f Dockerfile
+  script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-linux . 
 
 linuxarmv7_docker_builder:
-  script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-rpi . -f Dockerfile.rpi
+  script: |
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv7 . --build-arg IMAGE=balenalib/raspberry-pi2
 
 linuxarmv6_docker_builder:    
-  script: docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv6 . -f Dockerfile.rpi --build-arg ARCH=armv6l
+  script: |
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv6 . --build-arg IMAGE=balenalib/raspberry-pi
 
 linuxarm64_docker_builder:    
   script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . -f Dockerfile.arm64
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . --build-arg IMAGE=arm64v8/ubuntu:24.04

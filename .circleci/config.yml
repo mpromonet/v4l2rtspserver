@@ -144,7 +144,8 @@ jobs:
           command: |
             export TAG=${CIRCLE_TAG:-latest}
             docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
-            docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 -f Dockerfile.rpi .
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7 --build-arg IMAGE=balenalib/raspberry-pi2 .
             docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v7
 
   # -------------------------------------
@@ -161,7 +162,8 @@ jobs:
           command: |
             export TAG=${CIRCLE_TAG:-latest}
             docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
-            docker build --build-arg ARCH=armv6l --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6 -f Dockerfile.rpi . 
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            docker build --build-arg ARCH=armv6l --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6 --build-arg IMAGE=balenalib/raspberry-pi . 
             docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm32v6
 
   # -------------------------------------
@@ -179,7 +181,7 @@ jobs:
             export TAG=${CIRCLE_TAG:-latest}
             docker login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-            docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64 -f Dockerfile.arm64 . 
+            docker build --pull -t $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64 --build-arg IMAGE=arm64v8/ubuntu:24.04 . 
             docker push $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME:${TAG}-arm64
 
   # -------------------------------------

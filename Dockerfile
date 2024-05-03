@@ -1,4 +1,5 @@
-FROM ubuntu:24.04 as builder
+ARG IMAGE=ubuntu:24.04
+FROM $IMAGE as builder
 LABEL maintainer michel.promonet@free.fr
 WORKDIR /v4l2rtspserver
 
@@ -8,7 +9,7 @@ COPY . .
 
 RUN cmake . && make install && apt-get clean && rm -rf /var/lib/apt/lists/
 
-FROM ubuntu:24.04
+FROM $IMAGE
 WORKDIR /usr/local/share/v4l2rtspserver
 
 RUN apt-get update \
