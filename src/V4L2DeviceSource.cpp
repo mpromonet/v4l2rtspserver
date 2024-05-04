@@ -103,27 +103,19 @@ void* V4L2DeviceSource::thread()
 		int ret = select(fd+1, &fdset, NULL, NULL, &tv);
 		if (ret == 1)
 		{
-			if (FD_ISSET(fd, &fdset))
+			LOG(DEBUG) << "waitingFrame\tdelay:" << (1000-(tv.tv_usec/1000)) << "ms"; 
+			if (this->getNextFrame() <= 0)
 			{
-				LOG(DEBUG) << "waitingFrame\tdelay:" << (1000-(tv.tv_usec/1000)) << "ms"; 
-				if (this->getNextFrame() <= 0)
+				if (errno == EAGAIN)
 				{
-					if (errno == EAGAIN)
-					{
-						LOG(NOTICE) << "Retrying getNextFrame";
-					}
-					else
-					{
-						LOG(ERROR) << "error:" << strerror(errno);
-						stop=1;
-					}
+					LOG(DEBUG) << "Retrying getNextFrame";
+				}
+				else
+				{
+					LOG(ERROR) << "error:" << strerror(errno);
+					stop=1;
 				}
 			}
-		}
-		else if (ret == -1)
-		{
-			LOG(ERROR) << "stop " << strerror(errno); 
-			stop=1;
 		}
 	}
 	LOG(NOTICE) << "end thread"; 
@@ -208,10 +200,12 @@ int V4L2DeviceSource::getNextFrame()
 	if (frameSize < 0)
 	{
 		LOG(NOTICE) << "V4L2DeviceSource::getNextFrame errno:" << errno << " "  << strerror(errno);		
+		delete [] buffer;
 	}
 	else if (frameSize == 0)
 	{
-		LOG(NOTICE) << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno);		
+		LOG(DEBUG) << "V4L2DeviceSource::getNextFrame no data errno:" << errno << " "  << strerror(errno);		
+		delete [] buffer;
 	}
 	else
 	{
