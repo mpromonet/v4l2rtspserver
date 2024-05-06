@@ -114,7 +114,7 @@ if (ALSA)
     find_package(ALSA QUIET)
     MESSAGE("ALSA_FOUND = ${ALSA_FOUND}")
     if (ALSA_LIBRARY)
-        add_definitions(-DHAVE_ALSA)
+	    target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_ALSA)
         set(LIBRARIES ${LIBRARIES} ${ALSA_LIBRARY})
         
         SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
