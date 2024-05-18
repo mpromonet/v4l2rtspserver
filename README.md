@@ -124,9 +124,6 @@ This RTSP server works with Raspberry Pi camera using :
 
 	sudo modprobe -v bcm2835-v4l2
 	
-- the closed source V4L2 driver for the Raspberry Pi Camera Module http://www.linux-projects.org/uv4l/
-
-	sudo uv4l --driver raspicam --auto-video_nr --encoding h264
 
 Using v4l2loopback
 ----------------------- 
