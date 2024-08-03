@@ -1,5 +1,5 @@
 ARG IMAGE=ubuntu:24.04
-FROM $IMAGE as builder
+FROM $IMAGE AS builder
 LABEL maintainer michel.promonet@free.fr
 WORKDIR /v4l2rtspserver
 
