@@ -24,7 +24,7 @@
 
 class V4l2RTSPServer {
     public:
-        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const char *sslkeycert = NULL)
+        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const std::string & sslkeycert = "")
             : m_stop(0)
             , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
             , m_rtspPort(rtspPort)

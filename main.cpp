@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 	int timeout = 65;
 	int defaultHlsSegment = 2;
 	unsigned int hlsSegment = 0;
-	const char* sslKeyCert = NULL;
+	std::string sslKeyCert;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;

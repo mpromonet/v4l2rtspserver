@@ -162,7 +162,7 @@ class HTTPServer : public RTSPServer
 	};
 
 	public:
-		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string webroot, const char* sslCert) 
+		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert) 
 		{
 			HTTPServer* httpServer = NULL;
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
@@ -184,10 +184,10 @@ class HTTPServer : public RTSPServer
 		}
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const char* sslCert)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert)
 		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert)
 #else
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const char* sslCert)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert)
 		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert)
 #endif			
 		{
@@ -196,7 +196,7 @@ class HTTPServer : public RTSPServer
                        }
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
                 if (this->isSSL()) {
-                    this->setTLSState(m_sslCert, m_sslCert, true, true);
+                    this->setTLSState(m_sslCert.c_str(), m_sslCert.c_str(), true, true);
                 }
 #endif   			
 		}
@@ -210,11 +210,11 @@ class HTTPServer : public RTSPServer
 			return new HTTPClientSession(*this, sessionId);
 		}
 
-		bool isSSL() { return (m_sslCert != NULL); }
+		bool isSSL() { return (!m_sslCert.empty()); }
 
         private:
 			const unsigned int m_hlsSegment;
 			std::string  m_webroot;
-			const char*  m_sslCert;
+			std::string  m_sslCert;
 };
 
