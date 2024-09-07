@@ -38,6 +38,8 @@ Dependencies
 If liblog4cpp5-dev is not present, a simple log using std::cout is used.
  - libasound2-dev Licence LGPL (optional)
 If libasound2-dev is not present in the build environment, there will have no audio support.
+ - libssl-dev (optional)
+If libssl-dev is not present rtsps/srtp will not be available
 
 Usage
 -----
