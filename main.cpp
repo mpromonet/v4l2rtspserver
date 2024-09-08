@@ -132,7 +132,9 @@ int main(int argc, char** argv)
 			case 'c':	repeatConfig            = false; break;
 			case 't':	timeout                 = atoi(optarg); break;
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
+#ifndef NO_OPENSSL
 			case 'x':	sslKeyCert              = optarg; break;
+#endif
 
 			// users
 			case 'R':       realm                   = optarg; break;
