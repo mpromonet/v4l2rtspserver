@@ -24,13 +24,13 @@
 
 class V4l2RTSPServer {
     public:
-        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const std::string & sslkeycert = "")
+        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const std::string & sslkeycert = "", bool weServeSRTP = true)
             : m_stop(0)
             , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
             , m_rtspPort(rtspPort)
         {     
             UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
-            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot, sslkeycert);
+            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot, sslkeycert, weServeSRTP);
            	if (m_rtspServer != NULL)
             {
                 if (rtspOverHTTPPort)
