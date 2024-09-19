@@ -15,7 +15,8 @@
 
 // hacking private members RTSPServer::fWeServeSRTP & RTSPServer::fWeEncryptSRTP
 #define private protected
-#include "liveMedia.hh"
+#include "RTSPServer.hh"
+#undef private
 #include "RTSPCommon.hh"
 #include <GroupsockHelper.hh> // for "ignoreSigPipeOnSocket()"
 
