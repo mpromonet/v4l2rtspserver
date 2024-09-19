@@ -63,7 +63,8 @@ Usage
 		 -c       : don't repeat config (default repeat config before IDR frame)
 		 -t secs  : RTCP expiration timeout (default 65)
 		 -S[secs] : HTTP segment duration (enable HLS & MPEG-DASH)
-		 -x <sslkeycert>  : enable RTSPS & SRTP
+		 -x <sslkeycert>  : enable SRTP
+		 -X               : enable RSTPS
  
 		 V4L2 options :
 		 -r       : V4L2 capture using read interface (default use memory mapped buffers)
