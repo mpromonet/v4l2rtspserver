@@ -31,8 +31,8 @@
 #include "V4l2Device.h"
 #include "V4l2Output.h"
 
-#include "DeviceSourceFactory.h"
 #include "V4l2RTSPServer.h"
+#include "DeviceSourceFactory.h"
 
 
 // -----------------------------------------
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 	int defaultHlsSegment = 2;
 	unsigned int hlsSegment = 0;
 	std::string sslKeyCert;
-	bool weServeSRTP = true;
+	bool enableRTSPS = true;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;
@@ -135,7 +135,7 @@ int main(int argc, char** argv)
 			case 'S':	hlsSegment              = optarg ? atoi(optarg) : defaultHlsSegment; break;
 #ifndef NO_OPENSSL
 			case 'x':	sslKeyCert              = optarg; break;
-			case 'X':	weServeSRTP             = false; break;			
+			case 'X':	enableRTSPS             = true; break;			
 #endif
 
 			// users
@@ -191,8 +191,8 @@ int main(int argc, char** argv)
 				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
 				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
 				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")"   << std::endl;
-				std::cout << "\t -x <sslkeycert>  : enable RTSPS & SRTP"                                                                              << std::endl;
-				std::cout << "\t -X               : disable SRTP"                                                                                     << std::endl;
+				std::cout << "\t -x <sslkeycert>  : enable SRTP"                                                                                      << std::endl;
+				std::cout << "\t -X               : enable RTSPS"                                                                                     << std::endl;
 				
 				std::cout << "\t V4L2 options"                                                                                                        << std::endl;
 				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
@@ -253,7 +253,7 @@ int main(int argc, char** argv)
      	
 	
 	// create RTSP server
-	V4l2RTSPServer rtspServer(rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot, sslKeyCert, weServeSRTP);
+	V4l2RTSPServer rtspServer(rtspPort, rtspOverHTTPPort, timeout, hlsSegment, userPasswordList, realm, webroot, sslKeyCert, enableRTSPS);
 	if (!rtspServer.available()) 
 	{
 		LOG(ERROR) << "Failed to create RTSP server: " << rtspServer.getResultMsg();

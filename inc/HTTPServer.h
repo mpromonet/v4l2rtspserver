@@ -13,7 +13,9 @@
 
 #pragma once
 
-#include "RTSPServer.hh"
+// hacking private members RTSPServer::fWeServeSRTP & RTSPServer::fWeEncryptSRTP
+#define private protected
+#include "liveMedia.hh"
 #include "RTSPCommon.hh"
 #include <GroupsockHelper.hh> // for "ignoreSigPipeOnSocket()"
 
@@ -162,7 +164,7 @@ class HTTPServer : public RTSPServer
 	};
 
 	public:
-		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool weServeSRTP) 
+		static HTTPServer* createNew(UsageEnvironment& env, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS) 
 		{
 			HTTPServer* httpServer = NULL;
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
@@ -178,17 +180,17 @@ class HTTPServer : public RTSPServer
 
 			if (ourSocketIPv4 != -1) 
 			{
-				httpServer = new HTTPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot, sslCert, weServeSRTP);
+				httpServer = new HTTPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds, hlsSegment, webroot, sslCert, enableRTSPS);
 			}
 			return httpServer;
 		}
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool weServeSRTP)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
 		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert)
 #else
-		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool weServeSRTP)
-		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert), m_weServeSRTP(weServeSRTP)
+		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
+		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_sslCert(sslCert), m_enableRTSPS(enableRTSPS)
 #endif			
 		{
                        if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
@@ -196,14 +198,20 @@ class HTTPServer : public RTSPServer
                        }
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
                 if (this->isSSL()) {
-                    this->setTLSState(m_sslCert.c_str(), m_sslCert.c_str(), m_weServeSRTP);
+					if (m_enableRTSPS) {
+	                    this->setTLSState(m_sslCert.c_str(), m_sslCert.c_str());
+					} else {
+						this->setTLSFileNames(m_sslCert.c_str(), m_sslCert.c_str());
+						this->fWeServeSRTP = true;
+						this->fWeEncryptSRTP = true;
+					}
                 }
 #endif   			
 		}
 
 		virtual RTSPServer::ClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
 		{
-			return new HTTPClientConnection(*this, clientSocket, clientAddr, this->isSSL());
+			return new HTTPClientConnection(*this, clientSocket, clientAddr, this->isSSL() && m_enableRTSPS);
 		}
 		
 		virtual RTSPServer::ClientSession* createNewClientSession(u_int32_t sessionId) {
@@ -216,6 +224,6 @@ class HTTPServer : public RTSPServer
 			const unsigned int m_hlsSegment;
 			std::string  m_webroot;
 			std::string  m_sslCert;
-			bool         m_weServeSRTP;
+			bool         m_enableRTSPS;
 };
 

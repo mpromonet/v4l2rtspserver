@@ -16,8 +16,8 @@
 #include "logger.h"
 #include "V4l2Capture.h"
 #include "V4l2Output.h"
-#include "DeviceSourceFactory.h"
 #include "V4l2RTSPServer.h"
+#include "DeviceSourceFactory.h"
 #include "VideoCaptureAccess.h"
 
 #ifdef HAVE_ALSA

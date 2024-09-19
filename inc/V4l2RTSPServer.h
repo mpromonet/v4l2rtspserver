@@ -17,20 +17,20 @@
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
+#include "HTTPServer.h"
 #include "UnicastServerMediaSubsession.h"
 #include "MulticastServerMediaSubsession.h"
 #include "TSServerMediaSubsession.h"
-#include "HTTPServer.h"
 
 class V4l2RTSPServer {
     public:
-        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const std::string & sslkeycert = "", bool weServeSRTP = true)
+        V4l2RTSPServer(unsigned short rtspPort, unsigned short rtspOverHTTPPort = 0, int timeout = 10, unsigned int hlsSegment = 0, const std::list<std::string> & userPasswordList = std::list<std::string>(), const char* realm = NULL, const std::string & webroot = "", const std::string & sslkeycert = "", bool enableRTSPS = false)
             : m_stop(0)
             , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
             , m_rtspPort(rtspPort)
         {     
             UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
-            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot, sslkeycert, weServeSRTP);
+            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot, sslkeycert, enableRTSPS);
            	if (m_rtspServer != NULL)
             {
                 if (rtspOverHTTPPort)
