@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 	int defaultHlsSegment = 2;
 	unsigned int hlsSegment = 0;
 	std::string sslKeyCert;
-	bool enableRTSPS = true;
+	bool enableRTSPS = false;
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;
