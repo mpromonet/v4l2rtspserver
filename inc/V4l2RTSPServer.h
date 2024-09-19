@@ -29,16 +29,14 @@ class V4l2RTSPServer {
             , m_env(BasicUsageEnvironment::createNew(*BasicTaskScheduler::createNew()))
             , m_rtspPort(rtspPort)
         {     
-            UserAuthenticationDatabase* auth = createUserAuthenticationDatabase(userPasswordList, realm);
-            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, auth, timeout, hlsSegment, webroot, sslkeycert, enableRTSPS);
+            m_rtspServer = HTTPServer::createNew(*m_env, rtspPort, userPasswordList, realm, timeout, hlsSegment, webroot, sslkeycert, enableRTSPS);
            	if (m_rtspServer != NULL)
             {
                 if (rtspOverHTTPPort)
                 {
                     m_rtspServer->setUpTunnelingOverHTTP(rtspOverHTTPPort);
                 }             
-            }
-            
+            }            
         }
 
         virtual ~V4l2RTSPServer() {
@@ -221,29 +219,15 @@ class V4l2RTSPServer {
             m_rtspServer->deleteServerMediaSession(sms);
         }
 
-    protected:
-        UserAuthenticationDatabase* createUserAuthenticationDatabase(const std::list<std::string> & userPasswordList, const char* realm)
-        {
-            UserAuthenticationDatabase* auth = NULL;
-            if (userPasswordList.size() > 0)
-            {
-                auth = new UserAuthenticationDatabase(realm, (realm != NULL) );
-                
-                std::list<std::string>::const_iterator it;
-                for (it = userPasswordList.begin(); it != userPasswordList.end(); ++it)
-                {
-                    std::istringstream is(*it);
-                    std::string user;
-                    getline(is, user, ':');	
-                    std::string password;
-                    getline(is, password);	
-                    auth->addUserRecord(user.c_str(), password.c_str());
-                }
-            }
-            
-            return auth;
+        void addUserRecord(const char* username, const char* password) {
+            m_rtspServer->addUserRecord(username, password);
         }
 
+        std::list<std::string> getUsers() {
+            return m_rtspServer->getUsers();
+        }
+
+    protected:
         ServerMediaSession* addSession(const std::string & sessionName, ServerMediaSubsession* subSession)
         {
             std::list<ServerMediaSubsession*> subSessionList;
@@ -283,6 +267,6 @@ class V4l2RTSPServer {
     protected:
         char              m_stop;
         UsageEnvironment* m_env;	
-        RTSPServer*       m_rtspServer;
+        HTTPServer*       m_rtspServer;
         int               m_rtspPort;
 };
