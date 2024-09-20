@@ -43,7 +43,7 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 			
 			if (!outputFile.empty())
 			{
-				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut, inParam.m_verbose);
+				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
 				out = V4l2Output::create(outparam);
 				if (out != NULL)
 				{
