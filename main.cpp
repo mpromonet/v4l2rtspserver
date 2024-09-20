@@ -191,8 +191,10 @@ int main(int argc, char** argv)
 				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
 				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
 				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")"   << std::endl;
+#ifndef NO_OPENSSL				
 				std::cout << "\t -x <sslkeycert>  : enable SRTP"                                                                                      << std::endl;
 				std::cout << "\t -X               : enable RTSPS"                                                                                     << std::endl;
+#endif
 				
 				std::cout << "\t V4L2 options"                                                                                                        << std::endl;
 				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
