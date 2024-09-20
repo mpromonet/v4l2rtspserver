@@ -227,6 +227,22 @@ class V4l2RTSPServer {
             return m_rtspServer->getUsers();
         }
 
+        void setTLS(const std::string & sslCert, bool enableRTSPS = false, bool encryptSRTP = true) {
+            m_rtspServer->setTLS(sslCert, enableRTSPS, encryptSRTP);
+        }
+
+        bool isRTSPS() { 
+            return m_rtspServer->isRTSPS(); 
+        }
+
+		bool isSRTP() { 
+            return m_rtspServer->isSRTP(); 
+        }
+
+		bool isSRTPEncrypted() { 
+            return m_rtspServer->isSRTPEncrypted(); 
+        }
+
     protected:
         ServerMediaSession* addSession(const std::string & sessionName, ServerMediaSubsession* subSession)
         {
