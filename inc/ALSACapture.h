@@ -22,8 +22,8 @@
 
 struct ALSACaptureParameters 
 {
-	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels, int verbose) : 
-		m_devName(devname), m_formatList(formatList), m_sampleRate(sampleRate), m_channels(channels), m_verbose(verbose) {
+	ALSACaptureParameters(const char* devname, const std::list<snd_pcm_format_t> & formatList, unsigned int sampleRate, unsigned int channels) : 
+		m_devName(devname), m_formatList(formatList), m_sampleRate(sampleRate), m_channels(channels) {
 			
 	}
 		
@@ -31,7 +31,6 @@ struct ALSACaptureParameters
 	std::list<snd_pcm_format_t> m_formatList;		
 	unsigned int     m_sampleRate;
 	unsigned int     m_channels;
-	int              m_verbose;
 };
 
 class ALSACapture  : public DeviceInterface

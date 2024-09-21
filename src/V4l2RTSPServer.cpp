@@ -209,7 +209,7 @@ StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
 		// Init audio capture
 		LOG(NOTICE) << "Create ALSA Source..." << audioDevice;
 		
-		ALSACaptureParameters param(audioDevice.c_str(), audioFmtList, audioFreq, audioNbChannels, verbose);
+		ALSACaptureParameters param(audioDevice.c_str(), audioFmtList, audioFreq, audioNbChannels);
 		ALSACapture* audioCapture = ALSACapture::createNew(param);
 		if (audioCapture) 
 		{
