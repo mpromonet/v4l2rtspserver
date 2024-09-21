@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 project(v4l2rtspserver)
 
@@ -48,18 +48,6 @@ find_package (Threads)
 target_link_libraries (${PROJECT_NAME} Threads::Threads) 
 
 
-# LOG4CPP
-if (LOG4CPP) 
-    find_library(LOG4CPP_LIBRARY NAMES log4cpp)
-    if (LOG4CPP_LIBRARY)
-        message(STATUS "Log4Cpp available ${LOG4CPP_LIBRARY}")
-        add_definitions(-DHAVE_LOG4CPP)
-        target_link_libraries(${PROJECT_NAME} "${LOG4CPP_LIBRARY}")
-        
-        SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5v5,)
-    endif ()
-endif ()
-
 # openssl ?
 if (WITH_SSL)
   find_package(OpenSSL QUIET)
@@ -101,6 +89,18 @@ target_link_libraries (${PROJECT_NAME} libv4l2rtspserver ${LIVE_LIBRARIES})
 set (LIBRARIES "")
 if (OpenSSL_FOUND)
     set(LIBRARIES ${LIBRARIES} ${OPENSSL_LIBRARIES})
+endif ()
+
+# LOG4CPP
+if (LOG4CPP) 
+    find_library(LOG4CPP_LIBRARY NAMES log4cpp)
+    if (LOG4CPP_LIBRARY)
+        message(STATUS "Log4Cpp available ${LOG4CPP_LIBRARY}")
+        target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_LOG4CPP)
+        target_link_libraries(libv4l2rtspserver PUBLIC "${LOG4CPP_LIBRARY}")
+        
+        SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}liblog4cpp5v5,)
+    endif ()
 endif ()
 
 #ALSA
