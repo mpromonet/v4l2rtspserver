@@ -43,10 +43,6 @@ message(STATUS "CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 message(STATUS "CMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
-#pthread
-find_package (Threads)
-target_link_libraries (${PROJECT_NAME} Threads::Threads) 
-
 
 # openssl ?
 if (WITH_SSL)
@@ -90,6 +86,10 @@ set (LIBRARIES "")
 if (OpenSSL_FOUND)
     set(LIBRARIES ${LIBRARIES} ${OPENSSL_LIBRARIES})
 endif ()
+
+#pthread
+find_package (Threads)
+target_link_libraries (libv4l2rtspserver PUBLIC Threads::Threads) 
 
 # LOG4CPP
 if (LOG4CPP) 
