@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <map>
 #include "BaseServerMediaSubsession.h"
 
 // -----------------------------------------
@@ -34,7 +35,11 @@ class MulticastServerMediaSubsession : public BaseServerMediaSubsession, public 
 											  , m_rtcpInstance)
 				{}			
 
-		virtual char const* sdpLines() ;
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
+		virtual char const* sdpLines();
+#else		 
+		virtual char const* sdpLines(int addressFamily);
+#endif		
 		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
 		RTPSink* createRtpSink(UsageEnvironment& env
 								, struct in_addr destinationAddress
@@ -43,9 +48,9 @@ class MulticastServerMediaSubsession : public BaseServerMediaSubsession, public 
 								, StreamReplicator* replicator);
 		
 	protected:
-		RTPSink*      m_rtpSink;
-		RTCPInstance* m_rtcpInstance;
-		std::string   m_SDPLines;
+		RTPSink*                    m_rtpSink;
+		RTCPInstance*               m_rtcpInstance;
+		std::map<int,std::string>   m_SDPLines;
 };
 
 

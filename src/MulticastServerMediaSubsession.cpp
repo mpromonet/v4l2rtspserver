@@ -58,19 +58,23 @@ RTPSink* MulticastServerMediaSubsession::createRtpSink(UsageEnvironment& env
 	return m_rtpSink;
 }
 
-char const* MulticastServerMediaSubsession::sdpLines() 
-{
-	if (m_SDPLines.empty())
+#if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
+char const* MulticastServerMediaSubsession::sdpLines() {
+	int addressFamily = 0;
+#else		 
+char const* MulticastServerMediaSubsession::sdpLines(int addressFamily) { 
+#endif		
+	if (m_SDPLines[addressFamily].empty())
 	{
 		// Ugly workaround to give SPS/PPS that are get from the RTPSink
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
-		m_SDPLines.assign(PassiveServerMediaSubsession::sdpLines());
+		m_SDPLines[addressFamily].assign(PassiveServerMediaSubsession::sdpLines());
 #else		 
-		m_SDPLines.assign(PassiveServerMediaSubsession::sdpLines(AF_INET));
+		m_SDPLines[addressFamily].assign(PassiveServerMediaSubsession::sdpLines(addressFamily));
 #endif		
-		m_SDPLines.append(getAuxSDPLine(m_rtpSink,NULL));
+		m_SDPLines[addressFamily].append(getAuxSDPLine(m_rtpSink,NULL));
 	}
-	return m_SDPLines.c_str();
+	return m_SDPLines[addressFamily].c_str();
 }
 
 char const* MulticastServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource)
