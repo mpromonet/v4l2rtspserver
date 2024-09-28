@@ -246,7 +246,7 @@ class HTTPServer : public RTSPServer
 
 		virtual RTSPServer::ClientConnection* createNewClientConnection(int clientSocket, struct SOCKETCLIENT clientAddr) 
 		{
-			return new HTTPClientConnection(*this, clientSocket, clientAddr, fOurConnectionsUseTLS);
+			return new HTTPClientConnection(*this, clientSocket, clientAddr, isRTSPS());
 		}
 		
 		virtual RTSPServer::ClientSession* createNewClientSession(u_int32_t sessionId) {
@@ -272,9 +272,29 @@ class HTTPServer : public RTSPServer
 #endif  			
 		}
 
-		bool isRTSPS() { return fOurConnectionsUseTLS; }
-		bool isSRTP() { return fWeServeSRTP; }
-		bool isSRTPEncrypted() { return fWeEncryptSRTP; }
+		bool isRTSPS() { 
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
+			return fOurConnectionsUseTLS; 
+#else
+			return false;
+#endif			
+		}
+
+		bool isSRTP() { 
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
+			return fWeServeSRTP; 
+#else
+			return false;
+#endif			
+		}
+
+		bool isSRTPEncrypted() {
+#if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
+			return fWeEncryptSRTP; 
+#else
+			return false;
+#endif			
+		}
 
         void addUserRecord(const char* username, const char* password) {
             UserAuthenticationDatabase* auth = this->getAuthenticationDatabaseForCommand(NULL);
