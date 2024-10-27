@@ -1,4 +1,4 @@
-ARG IMAGE=ubuntu:24.04
+ARG IMAGE=debian:trixie
 FROM $IMAGE AS builder
 LABEL maintainer michel.promonet@free.fr
 WORKDIR /v4l2rtspserver
