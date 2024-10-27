@@ -7,25 +7,25 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-latest
-          image: arm64v8/ubuntu:24.04
+        - image: ubuntu:24.04
           label: arm64
-        - os: ubuntu-latest
-          image: balenalib/raspberry-pi
+          platform: linux/arm64
+        - image: balenalib/raspberry-pi
           label: armv6l
-        - os: ubuntu-latest
-          image: balenalib/raspberry-pi2
+          platform: linux/arm/v6
+        - image: balenalib/raspberry-pi2
           label: armv7
-        - os: ubuntu-latest
-          image: ubuntu:24.04
+          platform: linux/arm/v7
+        - image: ubuntu:24.04
           label: amd64
+          platform: linux/amd64
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Build an image from Dockerfile
       run: |
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-        docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} --build-arg IMAGE=${{ matrix.image }} .
+        docker build -t docker.io/${{ github.repository }}:${{ matrix.label }} --platform ${{ matrix.platform }} --build-arg IMAGE=${{ matrix.image }} .
