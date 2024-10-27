@@ -14,4 +14,4 @@ linuxarmv6_docker_builder:
 linuxarm64_docker_builder:    
   script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . --build-arg IMAGE=arm64v8/ubuntu:24.04
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . --platform linux/arm64 --build-arg IMAGE=ubuntu:24.04
