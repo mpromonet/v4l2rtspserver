@@ -34,7 +34,7 @@ jobs:
           command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
           no_output_timeout: 30m
       - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
-      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=armv6l -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
+      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=armv6l -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=armhf -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ -DCMAKE_LIBRARY_ARCHITECTURE=arm-linux-gnuebihf -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
       - persist_to_workspace:
@@ -56,7 +56,7 @@ jobs:
           command: wget -qO- ${CROSSCOMPILER} | tar xz -C /opt 
           no_output_timeout: 30m
       - run: echo "export PATH=$(ls -d /opt/cross-pi-gcc-*/bin):\$PATH" >> $BASH_ENV
-      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=armv7 -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/raspberry.toolchain . && make
+      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=armv7 -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=armhf -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ -DCMAKE_LIBRARY_ARCHITECTURE=arm-linux-gnuebihf -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
       - persist_to_workspace:
@@ -70,7 +70,7 @@ jobs:
     steps:
       - checkout
       - run: apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake autoconf automake libtool git make g++-mips-linux-gnu pkg-config; apt remove -y libssl-dev
-      - run: cmake -DCMAKE_TOOLCHAIN_FILE=${CIRCLE_WORKING_DIRECTORY}/mips.toolchain . && make
+      - run: cmake -DCMAKE_SYSTEM_PROCESSOR=mips -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=mips -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=mips-linux-gnu-gcc -DCMAKE_CXX_COMPILER=mips-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY . && make
       - run: cpack .
       - run: mkdir -p /distrib && cp *.deb /distrib 
       - persist_to_workspace:
