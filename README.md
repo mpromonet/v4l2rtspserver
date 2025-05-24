@@ -11,7 +11,7 @@
 [![Release](https://img.shields.io/github/release/mpromonet/v4l2rtspserver.svg)](https://github.com/mpromonet/v4l2rtspserver/releases/latest)
 [![Download](https://img.shields.io/github/downloads/mpromonet/v4l2rtspserver/total.svg)](https://github.com/mpromonet/v4l2rtspserver/releases/latest)
 [![Docker Pulls](https://img.shields.io/docker/pulls/mpromonet/v4l2rtspserver.svg)](https://hub.docker.com/r/mpromonet/v4l2rtspserver/)
-[![Openwrt](https://img.shields.io/badge/OpenWRT-00B5E2?logo=OpenWrt)](https://openwrt.org/packages/pkgdata/v4l2rtspserver)
+[![OpenWrt 24.10 x86_64 package](https://repology.org/badge/version-for-repo/openwrt_24_10_x86_64/v4l2rtspserver.svg)](https://repology.org/project/v4l2rtspserver/versions)
 
 v4l2rtspserver
 ====================
