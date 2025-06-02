@@ -13,9 +13,14 @@
 #include <iomanip>
 #include <sstream>
 
+#ifdef __linux__
+#include <linux/videodev2.h>
+#endif
+
 // project
 #include "logger.h"
 #include "V4L2DeviceSource.h"
+#include "SnapshotManager.h"
 
 // ---------------------------------
 // V4L2 FramedSource Stats
@@ -224,13 +229,40 @@ void V4L2DeviceSource::postFrame(char * frame, int frameSize, const timeval &ref
 	m_in.notify(tv.tv_sec, frameSize);
 	LOG(DEBUG) << "postFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
 	
+	// Process raw frame for snapshot if enabled and device has raw format
+	if (SnapshotManager::getInstance().isEnabled() && m_device) {
+		unsigned int format = m_device->getVideoFormat();
+		// Check if this is a YUV/raw format that can be converted to images
+#ifdef __linux__
+		if (format == V4L2_PIX_FMT_YUYV || format == V4L2_PIX_FMT_UYVY || 
+		    format == V4L2_PIX_FMT_YUV420 || format == V4L2_PIX_FMT_NV12 ||
+		    format == V4L2_PIX_FMT_RGB24 || format == V4L2_PIX_FMT_BGR24) {
+			// Pass raw frame data for YUV->image conversion
+			SnapshotManager::getInstance().processRawFrame(
+				(unsigned char*)frame, frameSize, 
+				m_device->getWidth(), m_device->getHeight()
+			);
+		}
+#endif
+	}
+	
 	processFrame(frame,frameSize,ref);
 	if (m_outfd != -1) 
 	{
+#ifdef __linux__
+		// Skip writing for H264/H265 formats - they have their own proper writing in H26X_V4L2DeviceSource
+		unsigned int format = m_device ? m_device->getVideoFormat() : 0;
+		if (format != V4L2_PIX_FMT_H264 && format != V4L2_PIX_FMT_HEVC) {
+#endif
 		int written = write(m_outfd, frame, frameSize);
 		if (written != frameSize) {
 			LOG(NOTICE) << "error writing output " << written << "/" << frameSize << " err:" << strerror(errno);
 		}
+#ifdef __linux__
+		} else {
+			LOG(DEBUG) << "Skipping raw H264/HEVC write - handled by H26X_V4L2DeviceSource";
+		}
+#endif
 	}		
 }	
 
