@@ -78,7 +78,7 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				if (outfd == -1) {
 					// Try to open as regular file for writing
 					LOG(INFO) << (isV4L2Device ? "V4L2 output failed, trying regular file: " : (isMP4File ? "Opening MP4 file: " : "Opening regular file: ")) << outputFile;
-					outfd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+					outfd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
 					if (outfd != -1) {
 						LOG(INFO) << "Opened " << (isMP4File ? "MP4" : "regular") << " file for output: " << outputFile << " fd:" << outfd;
 						
