@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 // Structure for storing frame information
 struct FrameInfo {
@@ -76,11 +77,22 @@ private:
     // Frame metadata for streaming
     std::vector<FrameInfo> m_frames;
     
+    // Buffering system for disk write optimization
+    std::vector<uint8_t> m_writeBuffer;      // In-memory buffer for frame data
+    size_t m_bufferMaxSize;                   // Maximum buffer size (1MB default)
+    std::chrono::steady_clock::time_point m_lastFlushTime;  // Last disk flush time
+    uint32_t m_flushIntervalMs;               // Minimum interval between flushes (1000ms default)
+    
     // Helper methods from SnapshotManager
     void write32(std::vector<uint8_t>& vec, uint32_t value);
     void write16(std::vector<uint8_t>& vec, uint16_t value);
     void write8(std::vector<uint8_t>& vec, uint8_t value);
     void writeToFile(const void* data, size_t size);
+    
+    // Buffering management
+    void writeToBuffer(const void* data, size_t size);
+    void flushBufferToDisk(bool force = false);
+    bool shouldFlushBuffer(bool isKeyFrame);
     
     // MP4 structure creation helpers (refactored to avoid duplication)
     static std::vector<uint8_t> createFtypBox();

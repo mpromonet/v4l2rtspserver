@@ -22,12 +22,16 @@
 
 MP4Muxer::MP4Muxer() 
     : m_fd(-1), m_initialized(false), m_width(0), m_height(0),
-      m_mdatStartPos(0), m_moovStartPos(0), m_currentPos(0), m_frameCount(0), m_keyFrameCount(0) {
+      m_mdatStartPos(0), m_moovStartPos(0), m_currentPos(0), m_frameCount(0), m_keyFrameCount(0),
+      m_bufferMaxSize(1024 * 1024), m_flushIntervalMs(1000) {  // 1MB buffer, 1 second interval
     m_frames.clear(); // initialize empty frame vector
+    m_writeBuffer.reserve(m_bufferMaxSize); // Reserve buffer space
+    m_lastFlushTime = std::chrono::steady_clock::now();
 }
 
 MP4Muxer::~MP4Muxer() {
     if (m_initialized) {
+        flushBufferToDisk(true); // Force flush before finalize
         finalize();
     }
 }
@@ -106,6 +110,11 @@ bool MP4Muxer::addFrame(const unsigned char* h264Data, size_t dataSize, bool isK
         m_keyFrameCount++;
     }
     
+    // Check if we should flush buffer to disk
+    if (shouldFlushBuffer(isKeyFrame)) {
+        flushBufferToDisk(false); // Regular scheduled flush (no fsync)
+    }
+    
     LOG(DEBUG) << "[MP4Muxer] Added frame " << m_frameCount << " (" << dataSize << " bytes" 
                << (isKeyFrame ? ", keyframe" : "") << ") at offset " << frameInfo.offset;
     
@@ -116,6 +125,9 @@ bool MP4Muxer::finalize() {
     if (!m_initialized) {
         return false;
     }
+    
+    // CRITICAL: Force final buffer flush before finalization
+    flushBufferToDisk(true);
     
     // CRITICAL: Force data to disk immediately
     if (m_fd != -1) {
@@ -209,18 +221,60 @@ void MP4Muxer::write8(std::vector<uint8_t>& vec, uint8_t value) {
 }
 
 void MP4Muxer::writeToFile(const void* data, size_t size) {
-    if (write(m_fd, data, size) != static_cast<ssize_t>(size)) {
-        LOG(ERROR) << "[MP4Muxer] Write failed: " << strerror(errno);
-    }
+    // Use buffered writing instead of direct disk writes
+    writeToBuffer(data, size);
+}
+
+void MP4Muxer::writeToBuffer(const void* data, size_t size) {
+    const uint8_t* byteData = static_cast<const uint8_t*>(data);
+    m_writeBuffer.insert(m_writeBuffer.end(), byteData, byteData + size);
     m_currentPos += size;
     
-    // CRITICAL: Periodic sync every 10 frames to prevent data loss
-    static int writeCounter = 0;
-    writeCounter++;
-    if (writeCounter % 10 == 0) {
-        fsync(m_fd);
-        LOG(DEBUG) << "[MP4Muxer] Periodic sync after " << writeCounter << " writes";
+    // Check if buffer is getting too large
+    if (m_writeBuffer.size() >= m_bufferMaxSize) {
+        LOG(WARN) << "[MP4Muxer] Buffer size limit reached (" << m_writeBuffer.size() 
+                  << " bytes), forcing flush";
+        flushBufferToDisk(true);
     }
+}
+
+void MP4Muxer::flushBufferToDisk(bool force) {
+    if (m_writeBuffer.empty() || m_fd < 0) {
+        return;
+    }
+    
+    // Write buffered data to disk
+    ssize_t written = write(m_fd, m_writeBuffer.data(), m_writeBuffer.size());
+    if (written != static_cast<ssize_t>(m_writeBuffer.size())) {
+        LOG(ERROR) << "[MP4Muxer] Buffer flush failed: " << strerror(errno) 
+                   << " (wrote " << written << " of " << m_writeBuffer.size() << " bytes)";
+    } else {
+        LOG(DEBUG) << "[MP4Muxer] Flushed " << m_writeBuffer.size() << " bytes to disk"
+                   << (force ? " (forced)" : " (scheduled)");
+    }
+    
+    // Force sync to disk if requested
+    if (force) {
+        fsync(m_fd);
+        LOG(DEBUG) << "[MP4Muxer] Forced fsync after buffer flush";
+    }
+    
+    // Clear buffer and update flush time
+    m_writeBuffer.clear();
+    m_lastFlushTime = std::chrono::steady_clock::now();
+}
+
+bool MP4Muxer::shouldFlushBuffer(bool isKeyFrame) {
+    // Only flush on keyframes
+    if (!isKeyFrame) {
+        return false;
+    }
+    
+    // Check time interval since last flush
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceFlush = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastFlushTime);
+    
+    return timeSinceFlush.count() >= m_flushIntervalMs;
 }
 
 // Helper class for H.264 SPS bitstream reading
