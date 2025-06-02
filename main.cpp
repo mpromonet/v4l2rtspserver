@@ -19,11 +19,23 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <dirent.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <unistd.h>  // for fsync()
 
 #include <sstream>
+#include <vector>
+#include <list>
 
 // libv4l2
+#ifdef __linux__
 #include <linux/videodev2.h>
+#endif
+
+// live555
+#include "UsageEnvironment.hh"
+#include "BasicUsageEnvironment.hh"
+#include "liveMedia.hh"
 
 // project
 #include "logger.h"
@@ -33,16 +45,46 @@
 
 #include "V4l2RTSPServer.h"
 #include "DeviceSourceFactory.h"
-
+#include "SnapshotManager.h"
+#include "H264_V4l2DeviceSource.h"
 
 // -----------------------------------------
 //    signal handler
 // -----------------------------------------
 char quit = 0;
+
+// Global list to track active MP4 output file descriptors for proper finalization
+static std::list<int> g_mp4OutputFds;
+
+// Function to register MP4 file descriptor (called from V4l2RTSPServer)
+extern "C" void registerMP4FileDescriptor(int fd) {
+	if (fd != -1) {
+		g_mp4OutputFds.push_back(fd);
+		printf("Registered MP4 file descriptor %d for finalization\n", fd);
+	}
+}
+
+// External function for emergency MP4 finalization
+extern "C" void forceFinalizeMp4Files();
+
 void sighandler(int n)
 { 
 	printf("SIGINT\n");
-	quit =1;
+	
+	// CRITICAL: Force finalize MP4 files before exit to prevent data loss
+	// Since destructors may not be called on SIGINT, we need to manually sync/close
+	for (int fd : g_mp4OutputFds) {
+		if (fd != -1) {
+			printf("Force syncing MP4 file descriptor %d before exit\n", fd);
+			fsync(fd);  // Force flush data to disk
+			// Note: Don't close here as it may be closed by destructors
+		}
+	}
+	
+	// EMERGENCY: Force finalize MP4 muxers since destructors won't be called
+	forceFinalizeMp4Files();
+	
+	quit = 1;
 }
 
 // -------------------------------------------------------
@@ -101,6 +143,12 @@ int main(int argc, char** argv)
 	const char* realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;
+	int snapshotWidth = 640;
+	int snapshotHeight = 480;
+	int snapshotSaveInterval = 5; // Default 5 seconds
+	std::string snapshotFilePath;
+	bool enableDump = false;
+	std::string dumpDir;
 #ifdef HAVE_ALSA	
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
@@ -114,7 +162,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:" "I:P:p:m::u:M::ct:S::x:X" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:j:J:d:" "I:P:p:m::u:M::ct:S::x:X" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -122,6 +170,35 @@ int main(int argc, char** argv)
 			case 'Q':	queueSize  = atoi(optarg); break;
 			case 'O':	outputFile = optarg; break;
 			case 'b':	webroot = optarg; break;
+			case 'j':	
+					snapshotFilePath = optarg;
+				break;
+			case 'J':   
+			{
+				// Parse format: widthxheight or widthxheightxinterval
+				int tmpWidth = 640, tmpHeight = 480, tmpInterval = 5;
+				int parsed = sscanf(optarg, "%dx%dx%d", &tmpWidth, &tmpHeight, &tmpInterval);
+				if (parsed >= 2) {
+					snapshotWidth = tmpWidth;
+					snapshotHeight = tmpHeight;
+					if (parsed >= 3) {
+						// Validate interval range: 1-60 seconds
+						if (tmpInterval < 1) {
+							printf("Warning: Save interval too low (%d), using minimum: 1 second\n", tmpInterval);
+							tmpInterval = 1;
+						} else if (tmpInterval > 60) {
+							printf("Warning: Save interval too high (%d), using maximum: 60 seconds\n", tmpInterval);
+							tmpInterval = 60;
+						}
+						snapshotSaveInterval = tmpInterval;
+					}
+				} else if (sscanf(optarg, "%dx%d", &tmpWidth, &tmpHeight) == 2) {
+					// Fallback for old format
+					snapshotWidth = tmpWidth;
+					snapshotHeight = tmpHeight;
+				}
+			}
+			break;
 			
 			// RTSP/RTP
 			case 'I':       ReceivingInterfaceAddr  = inet_addr(optarg); break;
@@ -168,57 +245,12 @@ int main(int argc, char** argv)
 			
 			// help
 			case 'h':
-			default:
-			{
-				std::cout << argv[0] << " [-v[v]] [-Q queueSize] [-O file]"                                        << std::endl;
-				std::cout << "\t          [-I interface] [-P RTSP port] [-p RTSP/HTTP port] [-m multicast url] [-u unicast url] [-M multicast addr] [-c] [-t timeout] [-T] [-S[duration]]" << std::endl;
-				std::cout << "\t          [-r] [-w] [-s] [-f[format] [-W width] [-H height] [-F fps] [device] [device]"                               << std::endl;
-				std::cout << "\t -v               : verbose"                                                                                          << std::endl;
-				std::cout << "\t -vv              : very verbose"                                                                                     << std::endl;
-				std::cout << "\t -Q <length>      : Number of frame queue  (default "<< queueSize << ")"                                              << std::endl;
-				std::cout << "\t -O <output>      : Copy captured frame to a file or a V4L2 device"                                                   << std::endl;
-				std::cout << "\t -b <webroot>     : path to webroot" << std::endl;
-				
-				std::cout << "\t RTSP/RTP options"                                                                                                    << std::endl;
-				std::cout << "\t -I <addr>        : RTSP interface (default autodetect)"                                                              << std::endl;
-				std::cout << "\t -P <port>        : RTSP port (default "<< rtspPort << ")"                                                            << std::endl;
-				std::cout << "\t -p <port>        : RTSP over HTTP port (default "<< rtspOverHTTPPort << ")"                                          << std::endl;
-				std::cout << "\t -U <user>:<pass> : RTSP user and password"                                                                           << std::endl;
-				std::cout << "\t -R <realm>       : use md5 password 'md5(<username>:<realm>:<password>')"                                            << std::endl;
-				std::cout << "\t -u <url>         : unicast url (default " << url << ")"                                                              << std::endl;
-				std::cout << "\t -m <url>         : multicast url (default " << murl << ")"                                                           << std::endl;
-				std::cout << "\t -M <addr>        : multicast group:port (default is random_address:20000)"                                           << std::endl;
-				std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)"                                     << std::endl;
-				std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")"                                   << std::endl;
-				std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")"   << std::endl;
-#ifndef NO_OPENSSL				
-				std::cout << "\t -x <sslkeycert>  : enable SRTP"                                                                                      << std::endl;
-				std::cout << "\t -X               : enable RTSPS"                                                                                     << std::endl;
-#endif
-				
-				std::cout << "\t V4L2 options"                                                                                                        << std::endl;
-				std::cout << "\t -r               : V4L2 capture using read interface (default use memory mapped buffers)"                            << std::endl;
-				std::cout << "\t -w               : V4L2 capture using write interface (default use memory mapped buffers)"                           << std::endl;
-				std::cout << "\t -B               : V4L2 capture using blocking mode (default use non-blocking mode)"                                 << std::endl;
-				std::cout << "\t -s               : V4L2 capture using live555 mainloop (default use a reader thread)"                                << std::endl;
-				std::cout << "\t -f               : V4L2 capture using current capture format (-W,-H,-F are ignored)"                                 << std::endl;
-				std::cout << "\t -f<format>       : V4L2 capture using format (-W,-H,-F are used)"                                                    << std::endl;
-				std::cout << "\t -W <width>       : V4L2 capture width (default "<< width << ")"                                                      << std::endl;
-				std::cout << "\t -H <height>      : V4L2 capture height (default "<< height << ")"                                                    << std::endl;
-				std::cout << "\t -F <fps>         : V4L2 capture framerate (default "<< fps << ")"                                                    << std::endl;
-				std::cout << "\t -G <w>x<h>[x<f>] : V4L2 capture format (default "<< width << "x" << height << "x" << fps << ")"  << std::endl;
-				
-#ifdef HAVE_ALSA	
-				std::cout << "\t ALSA options"                                                                                                        << std::endl;
-				std::cout << "\t -A freq          : ALSA capture frequency and channel (default " << audioFreq << ")"                                 << std::endl;
-				std::cout << "\t -C channels      : ALSA capture channels (default " << audioNbChannels << ")"                                        << std::endl;
-				std::cout << "\t -a fmt           : ALSA capture audio format (default S16_BE)"                                                       << std::endl;
-#endif
-				
-				std::cout << "\t Devices :"                                                                                                           << std::endl;
-				std::cout << "\t [V4L2 device][,ALSA device] : V4L2 capture device or/and ALSA capture device (default "<< dev_name << ")"            << std::endl;
-				exit(0);
-			}
+			case 'd':
+				enableDump = true;
+				if (optarg) {
+					dumpDir = optarg;
+				}
+				break;
 		}
 	}
 	std::list<std::string> devList;
@@ -234,11 +266,13 @@ int main(int argc, char** argv)
 	
 	// default format tries
 	if ((videoformatList.empty()) && (format!=0)) {
+#ifdef __linux__
 		videoformatList.push_back(V4L2_PIX_FMT_HEVC);
 		videoformatList.push_back(V4L2_PIX_FMT_H264);
 		videoformatList.push_back(V4L2_PIX_FMT_MJPEG);
 		videoformatList.push_back(V4L2_PIX_FMT_JPEG);
 		videoformatList.push_back(V4L2_PIX_FMT_NV12);
+#endif
 	}
 
 #ifdef HAVE_ALSA	
@@ -298,6 +332,57 @@ int main(int argc, char** argv)
 			if (out != NULL) {
 				outList.push_back(out);
 			}
+			
+			// Initialize snapshot manager (always enabled)
+			if (videoReplicator != NULL) {
+				SnapshotManager::getInstance().setEnabled(true);
+				
+				// AUTO-DETECT: Get actual frame dimensions from device if not specified
+				int actualWidth = width;
+				int actualHeight = height;
+				
+				// If dimensions not specified via -W/-H, they will be 0
+				// The V4L2 device will have detected the actual dimensions during CreateVideoReplicator
+				if (width == 0 || height == 0) {
+					// Note: At this point, the device has been initialized by CreateVideoReplicator
+					// and SnapshotManager should have received the correct dimensions via setDeviceFormat()
+					// We'll use reasonable defaults and let the system auto-detect from the stream
+					actualWidth = (width > 0) ? width : 640;
+					actualHeight = (height > 0) ? height : 480;
+					LOG(NOTICE) << "Using default dimensions for user interface: " << actualWidth << "x" << actualHeight;
+					LOG(NOTICE) << "Note: Actual device dimensions will be auto-detected from video stream";
+				}
+				
+				SnapshotManager::getInstance().setFrameDimensions(actualWidth, actualHeight);
+				SnapshotManager::getInstance().setSnapshotResolution(snapshotWidth, snapshotHeight);
+				SnapshotManager::getInstance().setSaveInterval(snapshotSaveInterval);
+				
+				// Configure file saving if path specified
+				if (!snapshotFilePath.empty()) {
+					SnapshotManager::getInstance().setFilePath(snapshotFilePath);
+					LOG(NOTICE) << "Snapshot auto-save enabled to: " << snapshotFilePath << " (interval: " << snapshotSaveInterval << "s)";
+				}
+				
+				if (!SnapshotManager::getInstance().initialize(actualWidth, actualHeight)) {
+					LOG(WARN) << "Failed to fully initialize SnapshotManager - falling back to basic mode";
+				}
+				LOG(NOTICE) << "SnapshotManager mode: " << SnapshotManager::getInstance().getModeDescription();
+				
+				// Get IP address and port to display full snapshot URL
+				struct in_addr ip;
+#if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611878400				
+				ip.s_addr = ourIPAddress(*rtspServer.env());
+#else
+				ip.s_addr = ourIPv4Address(*rtspServer.env());
+#endif
+				
+				// Display snapshot URL with full IP and port
+				if (rtspOverHTTPPort > 0) {
+					LOG(NOTICE) << "Snapshots available at http://" << inet_ntoa(ip) << ":" << rtspOverHTTPPort << "/snapshot";
+				} else {
+					LOG(NOTICE) << "Snapshots available at http://" << inet_ntoa(ip) << ":" << rtspPort << "/snapshot";
+				}
+			}
 					
 			// Init Audio Capture
 			StreamReplicator* audioReplicator = NULL;
@@ -346,6 +431,11 @@ int main(int argc, char** argv)
 			V4l2Output* out = outList.back();
 			delete out;
 			outList.pop_back();
+		}
+
+		// After initializing SnapshotManager
+		if (enableDump) {
+			SnapshotManager::getInstance().enableFullDump(dumpDir);
 		}
 	}
 	

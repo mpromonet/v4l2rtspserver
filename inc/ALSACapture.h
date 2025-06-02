@@ -51,6 +51,7 @@ class ALSACapture  : public DeviceInterface
 		
 		virtual int            getSampleRate()      { return m_params.m_sampleRate; }
 		virtual int            getChannels  ()      { return m_params.m_channels;   }
+		virtual int            getFps()             { return -1;                    }  // Not applicable for audio
 		virtual int            getAudioFormat ()    { return m_fmt;                 }
 		virtual std::list<int> getAudioFormatList() { return m_fmtList;             }
 

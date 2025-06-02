@@ -22,6 +22,7 @@ class DeviceInterface
 		virtual unsigned long  getBufferSize()               = 0;
 		virtual int            getWidth()                    { return -1; }	
 		virtual int            getHeight()                   { return -1; }
+		virtual int            getFps()                      { return -1; }	
 		virtual int            getVideoFormat()              { return -1; }
 		virtual std::list<int> getVideoFormatList()          { return std::list<int>(); }
 		virtual int            getSampleRate()               { return -1; }

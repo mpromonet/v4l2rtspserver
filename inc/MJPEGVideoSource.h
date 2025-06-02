@@ -15,6 +15,8 @@
 
 #include "logger.h"
 #include "JPEGVideoSource.hh"
+#include "V4L2DeviceSource.h"
+#include "SnapshotManager.h"
 
 class MJPEGVideoSource : public JPEGVideoSource
 {

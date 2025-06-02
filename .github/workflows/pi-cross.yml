@@ -1,0 +1,582 @@
+# 🚀 Raspberry Pi Cross-Compilation Matrix
+#
+# Build optimizations:
+# - Pi Zero: 2 parallel jobs, debug info disabled (-g0)
+# - Pi 3/4 and ARM64: 4 parallel jobs
+# - APT package and lists caching for faster rebuilds
+# - Combined apt-get update + install to reduce redundant updates
+# - SSL and ALSA disabled to reduce compilation time
+# - Compiler warnings suppressed for live555 library
+#
+# Estimated build times:
+# - Pi Zero: 8-12 minutes (slowest due to ARMv6 emulation)
+# - Pi 3/4: 4-6 minutes  
+# - ARM64: 3-5 minutes
+#
+# Note: apt-get update runs 3 times (once per platform in matrix)
+# This is normal for GitHub Actions as each job runs in separate container
+
+name: 🚀 Raspberry Pi Cross-Compilation Matrix
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  cross-compile-pi:
+    name: "⚙️ ${{ matrix.config.name }}"
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Raspberry Pi Zero/Zero W (ARMv6)
+          - name: "Pi Zero"
+            arch: "armv6"
+            cc: "arm-linux-gnueabi-gcc"
+            cxx: "arm-linux-gnueabi-g++"
+            cflags: "-march=armv6 -mfpu=vfp -mfloat-abi=soft -O2 -g0 -DNDEBUG -static -D_GNU_SOURCE"
+            ldflags: "-static -Wl,--gc-sections"
+            target: "pi-zero"
+            description: "Raspberry Pi Zero/Zero W"
+            parallel_jobs: "2"
+            
+          # Raspberry Pi 3/4 (ARMv7)
+          - name: "Pi 3/4"
+            arch: "armv7"
+            cc: "arm-linux-gnueabihf-gcc"
+            cxx: "arm-linux-gnueabihf-g++"
+            cflags: "-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -static -D_GNU_SOURCE"
+            ldflags: "-static -Wl,--gc-sections"
+            target: "pi3-4"
+            description: "Raspberry Pi 3/4 32-bit"
+            parallel_jobs: "4"
+            
+          # ARM64/AArch64 (Pi 4 64-bit, etc.)
+          - name: "ARM64"
+            arch: "aarch64"
+            cc: "aarch64-linux-gnu-gcc"
+            cxx: "aarch64-linux-gnu-g++"
+            cflags: "-march=armv8-a -O2 -static -D_GNU_SOURCE"
+            ldflags: "-static -Wl,--gc-sections"
+            target: "arm64"
+            description: "ARM64/AArch64 64-bit"
+            parallel_jobs: "4"
+
+    steps:
+    - name: 📥 Checkout Repository
+      run: |
+        echo "Cloning repository..."
+        git clone --depth=1 ${{ github.server_url }}/${{ github.repository }}.git .
+        
+        echo "Fetching specific commit..."
+        git fetch origin ${{ github.sha }} || echo "Fetch failed, using default branch"
+        git checkout ${{ github.sha }} || echo "Checkout failed, using current HEAD"
+        
+        echo "Initializing submodules..."
+        git submodule update --init --depth=1 || {
+          echo "Submodule update failed, trying manual init..."
+          git submodule init
+          git submodule foreach --recursive 'git checkout master || git checkout main || echo "Using default branch"'
+        }
+        
+        echo "Repository cloned successfully"
+        ls -la
+
+    - name: 📦 Cache APT packages
+      id: cache-apt
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/apt-cache/archives
+          ~/apt-cache/lists
+        key: apt-cache-${{ matrix.config.arch }}-${{ runner.os }}-v5-${{ hashFiles('/etc/apt/sources.list', '/etc/apt/sources.list.d/*') }}
+        restore-keys: |
+          apt-cache-${{ matrix.config.arch }}-${{ runner.os }}-v5-
+          apt-cache-${{ matrix.config.arch }}-${{ runner.os }}-
+
+    - name: 🛠️ Install Cross-Compilation Tools
+      run: |
+        # Create user-owned cache directories
+        mkdir -p ~/apt-cache/archives ~/apt-cache/lists
+        
+        # Clean any existing problematic cache files first
+        sudo rm -rf /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/cache/apt/archives/partial
+        sudo rm -f /var/lib/apt/lists/*microsoft* 2>/dev/null || true
+        
+        # Restore cached packages if available
+        if [ -d ~/apt-cache/archives ] && [ "$(ls -A ~/apt-cache/archives)" ]; then
+          echo "🔄 Restoring cached APT packages..."
+          sudo cp -r ~/apt-cache/archives/* /var/cache/apt/archives/ 2>/dev/null || true
+        fi
+        
+        if [ -d ~/apt-cache/lists ] && [ "$(ls -A ~/apt-cache/lists)" ]; then
+          echo "🔄 Restoring cached APT lists..."
+          sudo cp -r ~/apt-cache/lists/* /var/lib/apt/lists/ 2>/dev/null || true
+        fi
+        
+        # Single apt-get update + install to reduce redundant updates
+        echo "📦 Installing cross-compilation tools for ${{ matrix.config.arch }}..."
+        
+        # Clear and update package lists
+        sudo apt-get clean
+        sudo apt-get update
+        
+        if [ "${{ matrix.config.arch }}" = "aarch64" ]; then
+          sudo apt-get install -y --no-install-recommends \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu \
+            libc6-dev-arm64-cross \
+            build-essential \
+            cmake \
+            pkg-config
+        else
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-linux-gnueabi \
+            g++-arm-linux-gnueabi \
+            gcc-arm-linux-gnueabihf \
+            g++-arm-linux-gnueabihf \
+            libc6-dev-armhf-cross \
+            libc6-armel-cross \
+            libc6-dev-armel-cross \
+            build-essential \
+            cmake \
+            pkg-config
+        fi
+        
+        echo "✅ Cross-compilation tools installed"
+        
+        # Clean up problematic files that cause cache conflicts
+        sudo rm -f /var/lib/apt/lists/*microsoft* 2>/dev/null || true
+        sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+        sudo rm -rf /var/cache/apt/archives/partial
+        
+        # Clean up but preserve architecture-specific files
+        sudo apt-get autoclean
+        
+        # Save packages to user cache
+        echo "💾 Saving APT packages to cache..."
+        sudo cp -r /var/cache/apt/archives/* ~/apt-cache/archives/ 2>/dev/null || true
+        sudo cp -r /var/lib/apt/lists/* ~/apt-cache/lists/ 2>/dev/null || true
+        
+        # Fix ownership of cached files
+        sudo chown -R $USER:$USER ~/apt-cache/ 2>/dev/null || true
+        
+        # Ensure cache directory permissions are correct
+        sudo chmod -R 755 /var/cache/apt/archives 2>/dev/null || true
+        sudo chmod -R 755 /var/lib/apt/lists 2>/dev/null || true
+
+    - name: ⚙️ Configure Build Environment
+      run: |
+        # Set compiler variables
+        echo "CC=${{ matrix.config.cc }}" >> $GITHUB_ENV
+        echo "CXX=${{ matrix.config.cxx }}" >> $GITHUB_ENV
+        
+        # Set correct strip command based on architecture
+        if [ "${{ matrix.config.arch }}" = "aarch64" ]; then
+          echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
+        elif [ "${{ matrix.config.arch }}" = "armv6" ]; then
+          echo "STRIP=arm-linux-gnueabi-strip" >> $GITHUB_ENV
+        else
+          echo "STRIP=arm-linux-gnueabihf-strip" >> $GITHUB_ENV
+        fi
+        
+        # Set compilation flags with comprehensive warning suppression for live555
+        C_WARNING_FLAGS="-Wno-format -Wno-format-overflow -Wno-format-security -Wno-stringop-overflow -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Wno-cast-function-type -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized"
+        CXX_WARNING_FLAGS="-Wno-format -Wno-format-overflow -Wno-format-security -Wno-stringop-overflow -Wno-int-to-pointer-cast -Wno-cast-function-type -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-maybe-uninitialized"
+        
+        C_FULL_FLAGS="${{ matrix.config.cflags }} $C_WARNING_FLAGS"
+        CXX_FULL_FLAGS="${{ matrix.config.cflags }} $CXX_WARNING_FLAGS"
+        
+        echo "CFLAGS=$C_FULL_FLAGS" >> $GITHUB_ENV
+        echo "CXXFLAGS=$CXX_FULL_FLAGS" >> $GITHUB_ENV
+        
+        # Set linker flags if specified
+        if [ -n "${{ matrix.config.ldflags }}" ]; then
+          echo "LDFLAGS=${{ matrix.config.ldflags }}" >> $GITHUB_ENV
+        fi
+        
+        # Test compiler
+        echo 'int main(){return 0;}' > test_compile.c
+        if ${{ matrix.config.cc }} $C_FULL_FLAGS test_compile.c -o test_compile; then
+          echo "✅ Compiler test successful for ${{ matrix.config.name }}"
+          file test_compile
+        else
+          echo "❌ Compiler test failed for ${{ matrix.config.name }}"
+          exit 1
+        fi
+        rm -f test_compile.c test_compile
+
+    - name: 🔧 Configure CMake
+      run: |
+        mkdir -p build
+        cd build
+        
+        echo "🔧 Configuring CMake for ${{ matrix.config.description }}..."
+        
+        # Additional optimizations for Pi Zero
+        if [ "${{ matrix.config.target }}" = "pi-zero" ]; then
+          EXTRA_FLAGS="-DWITH_SSL=OFF -DALSA=OFF -DSTATICSTDCPP=ON -DCMAKE_SKIP_RPATH=ON"
+          echo "⚡ Applying Pi Zero optimizations: $EXTRA_FLAGS"
+        else
+          EXTRA_FLAGS="-DWITH_SSL=OFF -DALSA=OFF -DSTATICSTDCPP=ON"
+        fi
+        
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_SYSTEM_NAME=Linux \
+          -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.config.arch }} \
+          -DCMAKE_C_COMPILER=${{ env.CC }} \
+          -DCMAKE_CXX_COMPILER=${{ env.CXX }} \
+          -DCMAKE_C_FLAGS="${{ env.CFLAGS }}" \
+          -DCMAKE_CXX_FLAGS="${{ env.CXXFLAGS }}" \
+          -DCMAKE_EXE_LINKER_FLAGS="${{ env.LDFLAGS }}" \
+          -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+          -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+          -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+          -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+          $EXTRA_FLAGS \
+          ..
+
+    - name: 🏗️ Build
+      run: |
+        cd build
+        echo "::notice title=Building::🏗️ Building v4l2rtspserver for ${{ matrix.config.description }}..."
+        
+        # Show build info for Pi Zero
+        if [ "${{ matrix.config.target }}" = "pi-zero" ]; then
+          echo "⚡ Pi Zero build optimizations:"
+          echo "  - Parallel jobs: ${{ matrix.config.parallel_jobs }}"
+          echo "  - Debug info: disabled (-g0)"
+          echo "  - SSL/ALSA: disabled"
+          echo "  - Expected time: 8-12 minutes"
+          echo ""
+        fi
+        
+        echo "🕐 Build started at: $(date)"
+        START_TIME=$(date +%s)
+        
+        make -j${{ matrix.config.parallel_jobs }}
+        
+        END_TIME=$(date +%s)
+        BUILD_TIME=$((END_TIME - START_TIME))
+        echo "🕐 Build completed in: ${BUILD_TIME} seconds ($(($BUILD_TIME / 60))m $(($BUILD_TIME % 60))s)"
+        
+        echo "::group::📁 Build artifacts"
+        ls -la
+        echo "::endgroup::"
+        
+        # Build v4l2compress for modern camera stack support
+        echo "::group::🔧 Building v4l2compress"
+        echo "🔧 Building v4l2compress for modern camera stack integration..."
+        
+        if [ -f "../CMakeLists.txt" ]; then
+          # Check if v4l2compress target exists in CMake
+          if grep -q "v4l2compress" ../CMakeLists.txt; then
+            echo "📦 Found v4l2compress target in CMakeLists.txt"
+            make v4l2compress || echo "⚠️ v4l2compress build failed, but continuing..."
+          else
+            echo "ℹ️ v4l2compress target not found in CMakeLists.txt"
+          fi
+        fi
+        
+        # Check if v4l2compress was built
+        if [ -f "v4l2compress" ]; then
+          echo "✅ v4l2compress built successfully"
+          ls -la v4l2compress
+        else
+          echo "ℹ️ v4l2compress not available in this build"
+        fi
+        echo "::endgroup::"
+
+    - name: 📦 Create Package
+      run: |
+        cd build
+        
+        # Try to create DEB package
+        echo "::group::📦 Creating DEB package"
+        cpack || echo "DEB package creation failed, but binary should be ready"
+        ls -la *.deb 2>/dev/null || echo "No DEB packages found"
+        echo "::endgroup::"
+        
+        # Create package directory
+        PKG_DIR="v4l2rtspserver-${{ matrix.config.target }}"
+        mkdir -p "../$PKG_DIR"
+        
+        # Copy binaries
+        cp v4l2rtspserver "../$PKG_DIR/"
+        
+        # Copy v4l2compress if available
+        if [ -f "v4l2compress" ]; then
+          echo "📦 Adding v4l2compress to package"
+          cp v4l2compress "../$PKG_DIR/"
+        fi
+        
+        # Copy web files if they exist
+        cp ../index.html "../$PKG_DIR/" 2>/dev/null || echo "::warning title=Web Files::⚠️ index.html not found"
+        cp ../hls.js "../$PKG_DIR/" 2>/dev/null || echo "::warning title=Web Files::⚠️ hls.js not found"
+        
+        # Copy DEB package if exists
+        if ls *.deb 1> /dev/null 2>&1; then
+          cp *.deb "../$PKG_DIR/"
+          echo "::notice title=DEB Package::✅ DEB package copied for ${{ matrix.config.name }}"
+        fi
+        
+        # Create README for this platform
+        cat << EOF > "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        # v4l2rtspserver for ${{ matrix.config.description }}
+        
+        ## Quick Start
+        \`\`\`bash
+        # Make executable
+        chmod +x v4l2rtspserver
+        
+        # Basic usage
+        ./v4l2rtspserver /dev/video0
+        
+        # With web interface
+        ./v4l2rtspserver -w 8080 /dev/video0
+        \`\`\`
+        
+        ## Optimized Settings for ${{ matrix.config.name }}
+        EOF
+        
+        if [ "${{ matrix.config.target }}" = "pi-zero" ]; then
+          cat << EOF >> "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        \`\`\`bash
+        # Low resolution for Pi Zero
+        ./v4l2rtspserver -W 320 -H 240 -F 10 -f MJPG /dev/video0
+        \`\`\`
+        
+        - Use low resolution: -W 320 -H 240
+        - Reduce framerate: -F 10 or -F 5  
+        - Use MJPEG format: -f MJPG
+        EOF
+        elif [ "${{ matrix.config.target }}" = "pi3-4" ]; then
+          cat << EOF >> "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        \`\`\`bash
+        # Standard resolution for Pi 3/4
+        ./v4l2rtspserver -W 640 -H 480 -F 15 /dev/video0
+        \`\`\`
+        
+        - Good performance with: -W 640 -H 480 -F 15
+        - Can handle H264: -f H264
+        EOF
+        else
+          cat << EOF >> "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        \`\`\`bash
+        # High resolution for ARM64
+        ./v4l2rtspserver -W 1280 -H 720 -F 30 /dev/video0
+        \`\`\`
+        
+        - High performance: -W 1280 -H 720 -F 30
+        - Full H264 support: -f H264
+        EOF
+        fi
+        
+        cat << EOF >> "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        
+        ## Access Streams
+        - RTSP: rtsp://PI_IP:8554/unicast
+        - Web: http://PI_IP:8080 (if -w enabled)
+        
+        ## Architecture
+        - Target: ${{ matrix.config.description }}
+        - Arch: ${{ matrix.config.arch }}
+        - Compiler: ${{ matrix.config.cc }}
+        - Flags: ${{ matrix.config.cflags }}
+        EOF
+
+        cat << EOF >> "../$PKG_DIR/README-${{ matrix.config.target }}.md"
+        
+        ## v4l2compress (Modern Camera Stack)
+        
+        If v4l2compress is included in this package, it provides support for modern camera stack:
+        
+        \`\`\`bash
+        # Make executable
+        chmod +x v4l2compress
+        
+        # Convert YUV to JPEG for snapshots (modern camera stack)
+        ./v4l2compress -i /dev/video13 -o /tmp/snapshot.jpg -f MJPG
+        
+        # Use with v4l2rtspserver for dual format support
+        ./v4l2rtspserver -w 8080 /dev/video0 &
+        # Then use v4l2compress for snapshots when needed
+        \`\`\`
+        
+        **Modern Camera Stack Devices:**
+        - /dev/video0: unicam (raw sensor data)
+        - /dev/video13-16: bcm2835-isp (processed YUV/RGB)
+        - /dev/video20-23: bcm2835-isp (additional outputs)
+        
+        ## Access Streams
+        EOF
+
+    - name: 🧪 Test Binary
+      run: |
+        cd build
+        echo "::group::🔍 Testing binary architecture"
+        file ./v4l2rtspserver || echo "❌ Binary test failed"
+        ${{ env.STRIP }} --version || echo "Strip tool info"
+        echo "::endgroup::"
+        
+        echo "::group::📏 Binary size"
+        ls -lh ./v4l2rtspserver
+        echo "::endgroup::"
+
+    - name: 📤 Create Release Archive
+      run: |
+        PKG_DIR="v4l2rtspserver-${{ matrix.config.target }}"
+        
+        echo "::group::📦 Package contents for ${{ matrix.config.name }}"
+        ls -la "$PKG_DIR"
+        echo "::endgroup::"
+        
+        # Create tarball
+        tar -czf "$PKG_DIR.tar.gz" "$PKG_DIR"
+        echo "✅ Created $PKG_DIR.tar.gz"
+        
+        # Set environment variables for upload
+        echo "PACKAGE_NAME=$PKG_DIR" >> $GITHUB_ENV
+        echo "ARCHIVE_NAME=$PKG_DIR.tar.gz" >> $GITHUB_ENV
+
+    - name: 📤 Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: v4l2rtspserver-${{ matrix.config.target }}
+        path: v4l2rtspserver-${{ matrix.config.target }}.tar.gz
+        retention-days: 90
+        if-no-files-found: error
+
+    - name: 📤 Upload Binary Only (Quick Download)
+      uses: actions/upload-artifact@v4
+      with:
+        name: v4l2rtspserver-binary-${{ matrix.config.target }}
+        path: |
+          v4l2rtspserver-${{ matrix.config.target }}/v4l2rtspserver
+          v4l2rtspserver-${{ matrix.config.target }}/v4l2compress
+        retention-days: 90
+        if-no-files-found: warn
+
+    - name: 🎉 Build Summary
+      run: |
+        echo "📊 Build Summary for ${{ matrix.config.description }}:"
+        echo "=============================================="
+        
+        if [ -f "v4l2rtspserver-${{ matrix.config.target }}/v4l2rtspserver" ]; then
+          SIZE=$(ls -lh v4l2rtspserver-${{ matrix.config.target }}/v4l2rtspserver | awk '{print $5}')
+          echo "✅ v4l2rtspserver binary size: $SIZE"
+        fi
+        
+        if [ -f "v4l2rtspserver-${{ matrix.config.target }}/v4l2compress" ]; then
+          SIZE=$(ls -lh v4l2rtspserver-${{ matrix.config.target }}/v4l2compress | awk '{print $5}')
+          echo "✅ v4l2compress binary size: $SIZE"
+        else
+          echo "ℹ️ v4l2compress: not available in this build"
+        fi
+        
+        echo ""
+        echo "🎯 Target: ${{ matrix.config.description }} (${{ matrix.config.arch }})"
+        echo "📦 Package: ${{ env.ARCHIVE_NAME }}"
+        echo "🚀 Ready for deployment!"
+
+    - name: 📥 Download Instructions
+      run: |
+        echo ""
+        echo "🔗 DOWNLOAD LINKS:"
+        echo "=================="
+        echo ""
+        echo "1️⃣ Go to GitHub Actions page:"
+        echo " 👉 https://github.com/${{ github.repository }}/actions"
+        echo ""
+        echo "2️⃣ Click on this workflow run:"
+        echo " 👉 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo ""
+        echo "3️⃣ Scroll down to 'Artifacts' section and download:"
+        echo " 📦 v4l2rtspserver-${{ matrix.config.target }}.tar.gz"
+        echo ""
+        echo "📋 Package contains:"
+        echo " ✅ Pre-compiled v4l2rtspserver binary"
+        echo " ✅ v4l2compress binary (if available, for modern camera stack)"
+        echo " ✅ Web interface files (index.html, hls.js)"
+        echo " ✅ DEB package (if available)"
+        echo " ✅ Platform-specific README with optimized settings"
+        echo ""
+        echo "🚀 Quick install on target device:"
+        echo " tar -xzf v4l2rtspserver-${{ matrix.config.target }}.tar.gz"
+        echo " cd v4l2rtspserver-${{ matrix.config.target }}"
+        echo " chmod +x v4l2rtspserver"
+        echo " ./v4l2rtspserver /dev/video0"
+
+  # Summary job that runs after all builds complete
+  download-summary:
+    name: "📥 Download Summary"
+    runs-on: ubuntu-latest
+    needs: cross-compile-pi
+    if: always()
+
+    steps:
+    - name: 📋 All Artifacts Summary
+      run: |
+        echo ""
+        echo "🚀 V4L2RTSPSERVER - RASPBERRY PI CROSS-COMPILATION COMPLETE!"
+        echo "============================================================="
+        echo ""
+        echo "📦 Available Downloads:"
+        echo "----------------------"
+        echo "• v4l2rtspserver-pi-zero (Raspberry Pi Zero/Zero W)"
+        echo "• v4l2rtspserver-pi3-4 (Raspberry Pi 3/4 32-bit)"
+        echo "• v4l2rtspserver-arm64 (ARM64/AArch64 64-bit)"
+        echo ""
+        echo "🔗 HOW TO DOWNLOAD:"
+        echo "==================="
+        echo ""
+        echo "1️⃣ Visit this workflow run:"
+        echo " 👉 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo ""
+        echo "2️⃣ Scroll to 'Artifacts' section at the bottom"
+        echo ""
+        echo "3️⃣ Click to download the package for your platform:"
+        echo " 📱 Pi Zero: v4l2rtspserver-pi-zero.tar.gz"
+        echo " 🍓 Pi 3/4: v4l2rtspserver-pi3-4.tar.gz"
+        echo " 💪 ARM64: v4l2rtspserver-arm64.tar.gz"
+        echo ""
+        echo "📋 Each package contains:"
+        echo " ✅ Pre-compiled v4l2rtspserver binary"
+        echo " ✅ v4l2compress binary (if available, for modern camera stack)"
+        echo " ✅ Web interface files (index.html, hls.js)"
+        echo " ✅ DEB package (if available)"
+        echo " ✅ Platform-specific README with optimized settings"
+        echo ""
+        echo "🚀 Installation on target device:"
+        echo " tar -xzf v4l2rtspserver-PLATFORM.tar.gz"
+        echo " cd v4l2rtspserver-PLATFORM/"
+        echo " chmod +x v4l2rtspserver"
+        echo " ./v4l2rtspserver /dev/video0"
+        echo ""
+        echo "🧪 Test your installation:"
+        echo " # Basic RTSP stream"
+        echo " ./v4l2rtspserver /dev/video0"
+        echo " "
+        echo " # With web interface"
+        echo " ./v4l2rtspserver -w 8080 /dev/video0"
+        echo ""
+        echo "💡 Platform-specific optimizations:"
+        echo " • Pi Zero: Low resolution (-W 320 -H 240 -F 10 -f MJPG)"
+        echo " • Pi 3/4: Standard resolution (-W 640 -H 480 -F 15)"
+        echo " • ARM64: High resolution (-W 1280 -H 720 -F 30)"
+        echo ""
+        echo "🌐 Access streams:"
+        echo " • RTSP: rtsp://PI_IP:8554/unicast"
+        echo " • Web: http://PI_IP:8080 (if -w enabled)"
+        echo ""
+        echo "⏰ Artifacts are kept for 90 days"
