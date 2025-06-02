@@ -29,10 +29,16 @@ MP4Muxer::MP4Muxer()
     m_lastFlushTime = std::chrono::steady_clock::now();
 }
 
-MP4Muxer::~MP4Muxer() {
-    if (m_initialized) {
-        flushBufferToDisk(true); // Force flush before finalize
-        finalize();
+MP4Muxer::~MP4Muxer() noexcept {
+    // Destructor should not throw exceptions  
+    try {
+        if (m_initialized) {
+            flushBufferToDisk(true); // Force flush before finalize
+            finalize();
+        }
+    } catch (...) {
+        // Suppress all exceptions in destructor to avoid std::terminate
+        // Log the error if possible, but don't throw
     }
 }
 

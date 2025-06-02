@@ -26,7 +26,7 @@ struct FrameInfo {
 class MP4Muxer {
 public:
     MP4Muxer();
-    ~MP4Muxer();
+    ~MP4Muxer() noexcept;
     
     // Initialize MP4 file with SPS/PPS and dimensions
     bool initialize(int fd, const std::string& sps, const std::string& pps, int width, int height, int fps = 30);
