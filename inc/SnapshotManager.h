@@ -101,7 +101,7 @@ public:
 
 private:
     SnapshotManager();
-    ~SnapshotManager();
+    ~SnapshotManager() noexcept;
     SnapshotManager(const SnapshotManager&) = delete;
     SnapshotManager& operator=(const SnapshotManager&) = delete;
     

@@ -296,7 +296,13 @@ SnapshotManager::SnapshotManager()
       m_v4l2Format(0), m_pixelFormat(""), m_formatInitialized(false) {
 }
 
-SnapshotManager::~SnapshotManager() {
+SnapshotManager::~SnapshotManager() noexcept {
+    // Destructor should not throw exceptions
+    try {
+        // Any cleanup code if needed in the future
+    } catch (...) {
+        // Suppress all exceptions in destructor
+    }
 }
 
 void SnapshotManager::setFrameDimensions(int width, int height) {
@@ -345,6 +351,7 @@ void SnapshotManager::processMJPEGFrame(const unsigned char* jpegData, size_t da
     }
     
     // This is called from MJPEGVideoSource - we have real JPEG data!
+    {
     std::lock_guard<std::mutex> lock(m_snapshotMutex);
     m_currentSnapshot.assign(jpegData, jpegData + dataSize);
     m_snapshotData.assign(jpegData, jpegData + dataSize);
@@ -358,9 +365,7 @@ void SnapshotManager::processMJPEGFrame(const unsigned char* jpegData, size_t da
     }
     
     LOG(DEBUG) << "Real MJPEG snapshot captured: " << dataSize << " bytes";
-    
-    // Release lock before auto-save to avoid blocking
-    lock.~lock_guard();
+    } // Lock released here automatically
     
     // Auto-save if file path is specified
     autoSaveSnapshot();
@@ -428,24 +433,10 @@ std::vector<uint8_t> SnapshotManager::findNALUnit(const uint8_t* data, size_t si
     return result;
 }
 
-// Helper functions for binary data writing
+// Helper functions for binary data writing (shared with MP4Muxer)
 namespace {
-    void write32(std::vector<uint8_t>& vec, uint32_t value) {
-        vec.push_back((value >> 24) & 0xFF);
-        vec.push_back((value >> 16) & 0xFF);
-        vec.push_back((value >> 8) & 0xFF);
-        vec.push_back(value & 0xFF);
-    }
-
-    void write16(std::vector<uint8_t>& vec, uint16_t value) {
-        vec.push_back((value >> 8) & 0xFF);
-        vec.push_back(value & 0xFF);
-    }
-
-    void write8(std::vector<uint8_t>& vec, uint8_t value) {
-        vec.push_back(value);
-    }
-
+    // Removed duplicate functions - use writeU32/writeU16/writeU8 from MP4Muxer helper methods instead
+    
     // Parse SPS to extract video dimensions
     std::pair<int, int> parseSPSDimensions(const std::string& sps) {
         if (sps.size() < 8) {
@@ -516,8 +507,8 @@ void SnapshotManager::createH264Snapshot(const unsigned char* h264Data, size_t h
         m_snapshotMimeType = "video/mp4";
         m_lastSnapshotTime = std::time(nullptr);
         m_lastSnapshotTimePoint = std::chrono::steady_clock::now();
-        
-        // Cache the frame data and SPS/PPS for future use
+    
+    // Cache the frame data and SPS/PPS for future use
         m_lastH264Frame.assign(h264Data, h264Data + h264Size);
         if (!sps.empty()) m_lastSPS = sps;
         if (!pps.empty()) m_lastPPS = pps;
