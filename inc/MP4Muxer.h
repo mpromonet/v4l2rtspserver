@@ -102,12 +102,6 @@ private:
     static std::vector<uint8_t> createMdatBox(const std::string& sps, const std::string& pps, 
                                               const unsigned char* h264Data, size_t dataSize);
     
-    // Helper methods for MP4 box creation
-    static std::vector<uint8_t> createAvcCBox(const std::string& sps, const std::string& pps);
-    static std::vector<uint8_t> createAvc1Box(const std::string& sps, const std::string& pps, int width, int height);
-    static std::vector<uint8_t> createSingleFrameMoovBox(const std::string& sps, const std::string& pps, 
-                                                         int width, int height, int fps, uint32_t mdatOffset);
-    
     // Create proper moov box for multiple frames
     std::vector<uint8_t> createMultiFrameMoovBox();
     
