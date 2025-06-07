@@ -283,6 +283,8 @@ std::list< std::pair<unsigned char*,size_t> > V4L2DeviceSource::splitFrames(unsi
 	if (frame != NULL)
 	{
 		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
+        std::lock_guard<std::mutex> lock(m_lastFrameMutex);
+		m_lastFrame.assign((char*)frame, frameSize);
 	}
 	return frameList;
 }

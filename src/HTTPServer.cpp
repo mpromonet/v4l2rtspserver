@@ -18,8 +18,9 @@
 
 #include <time.h>
 #include "ByteStreamMemoryBufferSource.hh"
-
 #include "HTTPServer.h"
+
+#include "BaseServerMediaSubsession.h"
 
 u_int32_t HTTPServer::HTTPClientConnection::m_ClientSessionId = 0;
 
@@ -241,6 +242,37 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 	}
 	else if (strncmp(urlSuffix, "getSnapshot", strlen("getSnapshot")) == 0) 
 	{
+		std::string streamName(urlSuffix);
+		size_t pos = streamName.find_last_of(".");
+		if (pos != std::string::npos)
+		{
+			streamName.erase(pos);
+		}
+		ServerMediaSessionIterator it(fOurServer);
+		ServerMediaSession* serverSession = NULL;
+		while ( (serverSession = it.next()) != NULL) {
+			if ((serverSession->streamName() == streamName) || streamName.empty()) {
+				break;
+			}
+		}		
+		if (serverSession == NULL) 
+		{
+			handleHTTPCmd_notFound();
+			fIsActive = False;
+			return;			  
+		} else {
+			ServerMediaSubsessionIterator subIt(*serverSession);
+			ServerMediaSubsession* subsession = subIt.next();
+			if (subsession != NULL) {
+				BaseServerMediaSubsession* baseSubsession = (BaseServerMediaSubsession*)subsession;
+
+				
+				std::string content = baseSubsession->getLastFrame();
+				this->sendHeader("image/jpeg", content.size());
+				this->streamSource(content);
+			}
+			return;
+		}
 	}
 	else if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
 	{

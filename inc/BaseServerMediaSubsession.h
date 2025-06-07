@@ -115,6 +115,7 @@ class BaseServerMediaSubsession
 		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, const std::string& format);
 		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format, V4L2DeviceSource* source);
 		char const* getAuxLine(V4L2DeviceSource* source, RTPSink* rtpSink);
+        std::string getLastFrame() const { return dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource())->getLastFrame(); }
 		
 	protected:
 		StreamReplicator* m_replicator;

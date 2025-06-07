@@ -16,6 +16,7 @@
 #include <list> 
 #include <iostream>
 #include <iomanip>
+#include <mutex>
 
 #include <pthread.h>
 
@@ -77,6 +78,10 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) ;
 		std::string getAuxLine()                   { return m_auxLine;    }
+		std::string getLastFrame() 	{ 
+            std::lock_guard<std::mutex> lock(m_lastFrameMutex);
+			return m_lastFrame; 
+		}
 		DeviceInterface* getDevice()               { return m_device;     }	
 		void postFrame(char * frame, int frameSize, const timeval &ref);
 		virtual std::list< std::string > getInitFrames() { return std::list< std::string >(); }
@@ -115,5 +120,7 @@ class V4L2DeviceSource: public FramedSource
 		pthread_t m_thid;
 		pthread_mutex_t m_mutex;
 		std::string m_auxLine;
+		std::mutex  m_lastFrameMutex;
+		std::string m_lastFrame;
 };
 
