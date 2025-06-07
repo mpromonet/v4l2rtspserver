@@ -116,6 +116,17 @@ class BaseServerMediaSubsession
 		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format, V4L2DeviceSource* source);
 		char const* getAuxLine(V4L2DeviceSource* source, RTPSink* rtpSink);
 		
+        std::string getLastFrame() const { 
+            V4L2DeviceSource* deviceSource = dynamic_cast<V4L2DeviceSource*>(m_replicator->inputSource());
+            if (deviceSource) {
+                return deviceSource->getLastFrame(); 
+            } else {
+                return "";
+            }
+        }
+
+        std::string getFormat() const { return m_format; }
+
 	protected:
 		StreamReplicator* m_replicator;
 		std::string m_format;        

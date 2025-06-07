@@ -77,6 +77,12 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) ;
 		std::string getAuxLine()                   { return m_auxLine;    }
+		std::string getLastFrame() 	{ 
+			pthread_mutex_lock (&m_lastFrameMutex);
+			std::string frame(m_lastFrame);
+			pthread_mutex_unlock (&m_lastFrameMutex);
+			return frame; 
+		}
 		DeviceInterface* getDevice()               { return m_device;     }	
 		void postFrame(char * frame, int frameSize, const timeval &ref);
 		virtual std::list< std::string > getInitFrames() { return std::list< std::string >(); }
@@ -115,5 +121,7 @@ class V4L2DeviceSource: public FramedSource
 		pthread_t m_thid;
 		pthread_mutex_t m_mutex;
 		std::string m_auxLine;
+		pthread_mutex_t  m_lastFrameMutex;
+		std::string m_lastFrame;
 };
 
