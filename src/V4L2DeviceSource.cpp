@@ -60,6 +60,8 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * devi
 	memset(&m_thid, 0, sizeof(m_thid));
 	memset(&m_mutex, 0, sizeof(m_mutex));
 	pthread_mutex_init(&m_mutex, NULL);
+	memset(&m_lastFrameMutex, 0, sizeof(m_lastFrameMutex));
+	pthread_mutex_init(&m_lastFrameMutex, NULL);
 	if (m_device)
 	{
 		switch (captureMode) {
@@ -82,6 +84,7 @@ V4L2DeviceSource::~V4L2DeviceSource()
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 	pthread_join(m_thid, NULL);	
 	pthread_mutex_destroy(&m_mutex);
+	pthread_mutex_destroy(&m_lastFrameMutex);
 	delete m_device;
 }
 
@@ -283,6 +286,9 @@ std::list< std::pair<unsigned char*,size_t> > V4L2DeviceSource::splitFrames(unsi
 	if (frame != NULL)
 	{
 		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
+		pthread_mutex_lock (&m_lastFrameMutex);
+		m_lastFrame.assign((char*)frame, frameSize);
+		pthread_mutex_unlock (&m_lastFrameMutex);
 	}
 	return frameList;
 }

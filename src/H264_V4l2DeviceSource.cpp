@@ -36,13 +36,23 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	{	
 		switch (frameType&0x1F)					
 		{
-			case 7: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); break;
+			case 7: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); m_pps.clear(); break;
 			case 8: LOG(INFO) << "PPS size:" << size << " bufSize:" << bufSize; m_pps.assign((char*)buffer,size); break;
 			case 5: LOG(INFO) << "IDR size:" << size << " bufSize:" << bufSize; 
 				if (m_repeatConfig && !m_sps.empty() && !m_pps.empty())
 				{
 					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
 					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
+				}
+				if (!m_sps.empty() && !m_pps.empty()) {
+					pthread_mutex_lock (&m_lastFrameMutex);
+					m_lastFrame.assign(H264marker, sizeof(H264marker));
+					m_lastFrame.append(m_sps.c_str(), m_sps.size());
+					m_lastFrame.append(H264marker, sizeof(H264marker));
+					m_lastFrame.append(m_pps.c_str(), m_pps.size());
+					m_lastFrame.append(H264marker, sizeof(H264marker));
+					m_lastFrame.append((char*)buffer, size);
+					pthread_mutex_unlock (&m_lastFrameMutex);
 				}
 			break;
 			default: 
