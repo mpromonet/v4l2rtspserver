@@ -46,7 +46,7 @@ std::list< std::pair<unsigned char*,size_t> > H265_V4L2DeviceSource::splitFrames
 					pthread_mutex_lock (&m_lastFrameMutex);
 					m_lastFrame.assign(H264marker, sizeof(H264marker));
 					m_lastFrame.append(m_vps.c_str(), m_vps.size());
-					m_lastFrame.assign(H264marker, sizeof(H264marker));
+					m_lastFrame.append(H264marker, sizeof(H264marker));
 					m_lastFrame.append(m_sps.c_str(), m_sps.size());
 					m_lastFrame.append(H264marker, sizeof(H264marker));
 					m_lastFrame.append(m_pps.c_str(), m_pps.size());
