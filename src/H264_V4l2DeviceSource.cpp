@@ -45,14 +45,13 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
 				}
 				if (!m_sps.empty() && !m_pps.empty()) {
-					pthread_mutex_lock (&m_lastFrameMutex);
+					std::lock_guard<std::mutex> lock(m_lastFrameMutex);					
 					m_lastFrame.assign(H264marker, sizeof(H264marker));
 					m_lastFrame.append(m_sps.c_str(), m_sps.size());
 					m_lastFrame.append(H264marker, sizeof(H264marker));
 					m_lastFrame.append(m_pps.c_str(), m_pps.size());
 					m_lastFrame.append(H264marker, sizeof(H264marker));
 					m_lastFrame.append((char*)buffer, size);
-					pthread_mutex_unlock (&m_lastFrameMutex);
 				}
 			break;
 			default: 
