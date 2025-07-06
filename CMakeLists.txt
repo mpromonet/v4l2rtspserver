@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 project(v4l2rtspserver)
 
@@ -85,7 +85,7 @@ target_compile_definitions(libv4l2rtspserver PUBLIC ${LIVE555CFLAGS})
 target_link_libraries (${PROJECT_NAME} libv4l2rtspserver ${LIVE_LIBRARIES}) 
 set (LIBRARIES "")
 if (OpenSSL_FOUND)
-    set(LIBRARIES ${LIBRARIES} ${OPENSSL_LIBRARIES})
+    set(LIBRARIES ${LIBRARIES} OpenSSL::SSL)
 endif ()
 
 #pthread
@@ -109,9 +109,9 @@ if (ALSA)
     find_package(ALSA QUIET)
     MESSAGE("ALSA_FOUND = ${ALSA_FOUND}")
     if (ALSA_LIBRARY)
-	    target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_ALSA)
-        set(LIBRARIES ${LIBRARIES} ${ALSA_LIBRARY})
-        
+        target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_ALSA)
+        set(LIBRARIES ${LIBRARIES} ALSA::ALSA)
+
         SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
     endif ()
 endif()
