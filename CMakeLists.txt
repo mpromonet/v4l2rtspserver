@@ -117,7 +117,9 @@ if (ALSA)
 endif()
 
 # libv4l2cpp
-execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init)
+if (GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init)
+endif()
 add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
 target_include_directories(libv4l2rtspserver PUBLIC libv4l2cpp/inc)
 target_link_libraries (libv4l2rtspserver PUBLIC libv4l2cpp ${LIBRARIES}) 
