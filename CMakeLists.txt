@@ -15,14 +15,19 @@ set(CMAKE_CXX_STANDARD 20)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/")
 
-# set version based on git
 find_package(Git)
-if(GIT_FOUND)
+if(DEFINED ENV{V4L2RTSPSERVER_VERSION})
+    # set version from V4L2RTSPSERVER_VERSION env variable
+    add_compile_definitions("VERSION=\"$ENV{V4L2RTSPSERVER_VERSION}\"")
+elseif(GIT_FOUND)
+    # set version based on git
     EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
     STRING(REGEX REPLACE "^v(.*)" "\\1" VERSION "${VERSION}")
-    add_definitions("-DVERSION=\"${VERSION}\"")
+    add_compile_definitions("VERSION=\"${VERSION}\"")
+else()
+    message(WARNING "VERSION is undefined")
+    add_compile_definitions("VERSION=\"undefined\"")
 endif()
-
 
 # define executable to build
 include_directories("inc")
