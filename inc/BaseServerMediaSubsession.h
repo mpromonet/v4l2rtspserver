@@ -67,6 +67,7 @@ class BaseServerMediaSubsession
                 case V4L2_PIX_FMT_YUV444: rtpFormat = "video/RAW" ; break;
                 case V4L2_PIX_FMT_UYVY  : rtpFormat = "video/RAW" ; break;
                 case V4L2_PIX_FMT_NV12  : rtpFormat = "video/RAW" ; break;
+                case V4L2_PIX_FMT_Y41P  : rtpFormat = "video/RAW" ; break;
                 case V4L2_PIX_FMT_BGR24 : rtpFormat = "video/RAW" ; break;
                 case V4L2_PIX_FMT_BGR32 : rtpFormat = "video/RAW" ; break;
                 case V4L2_PIX_FMT_RGB24 : rtpFormat = "video/RAW" ; break;

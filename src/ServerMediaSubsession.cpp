@@ -83,6 +83,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
 			case V4L2_PIX_FMT_UYVY  : sampling = "YCbCr-4:2:2"; break;
 			case V4L2_PIX_FMT_NV12  : sampling = "YCbCr-4:2:0"; break;
+			case V4L2_PIX_FMT_Y41P  : sampling = "YCbCr-4:1:1"; break;
 			case V4L2_PIX_FMT_RGB24 : sampling = "RGB"        ; break;
 			case V4L2_PIX_FMT_RGB32 : sampling = "RGBA"       ; break;
 			case V4L2_PIX_FMT_BGR24 : sampling = "BGR"        ; break;
