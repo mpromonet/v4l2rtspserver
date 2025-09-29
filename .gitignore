@@ -4,6 +4,7 @@ CMakeCache.txt
 *.cmake
 Makefile
 # build
+/build/
 *.a
 *.service
 v4l2rtspserver
