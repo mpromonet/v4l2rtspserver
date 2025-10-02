@@ -196,21 +196,39 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     auto ftypBox = createFtypBox();
     mp4Data.insert(mp4Data.end(), ftypBox.begin(), ftypBox.end());
     
-    // Create mdat box with frame data FIRST (for proper offset calculation)
-    std::vector<uint8_t> frameData(h264Data, h264Data + dataSize);
-    auto mdatBox = createMdatBox(frameData);
+    // Prepare mdat content: SPS + PPS + Frame (each with 4-byte length prefix)
+    std::vector<uint8_t> mdatContent;
+    
+    // Add SPS with length prefix
+    if (!sps.empty()) {
+        write32(mdatContent, sps.size());
+        mdatContent.insert(mdatContent.end(), sps.begin(), sps.end());
+    }
+    
+    // Add PPS with length prefix
+    if (!pps.empty()) {
+        write32(mdatContent, pps.size());
+        mdatContent.insert(mdatContent.end(), pps.begin(), pps.end());
+    }
+    
+    // Add frame data with length prefix
+    write32(mdatContent, dataSize);
+    mdatContent.insert(mdatContent.end(), h264Data, h264Data + dataSize);
+    
+    // Create mdat box with all data
+    auto mdatBox = createMdatBox(mdatContent);
     uint32_t mdatOffset = ftypBox.size(); // Offset where mdat starts
     mp4Data.insert(mp4Data.end(), mdatBox.begin(), mdatBox.end());
     
     // Create moov box AFTER mdat (standard MP4 structure for streaming)
-    // Note: stco offset in moov needs to point to mdat data
+    // Note: stco offset in moov needs to point to SPS (first data in mdat)
     auto moovBox = createVideoTrackMoovBox(
         std::vector<uint8_t>(sps.begin(), sps.end()),
         std::vector<uint8_t>(pps.begin(), pps.end()),
         width, height, fps, 1
     );
     
-    // Fix stco offset in moov to point to actual mdat position
+    // Fix stco offset in moov to point to actual mdat data position (after mdat header)
     // stco is at the end of moov, find it and update the offset
     size_t stcoPos = moovBox.size() - 8; // Last 8 bytes: version+flags(4) + entry_count(4) + offset(4)
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
@@ -559,17 +577,14 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
     std::vector<uint8_t> box;
     
-    // Calculate total size: header(8) + length_prefix(4) + frame_data
-    uint32_t totalSize = 8 + 4 + frameData.size();
-    
-    // Box size
-    write32(box, totalSize);
+    // Note: For snapshots, frameData should already contain SPS+PPS+Frame with length prefixes
+    // Box size (8 + data size)
+    write32(box, 8 + frameData.size());
     
     // Box type: 'mdat'
     write32(box, 0x6D646174);
     
-    // Frame data with 4-byte length prefix (MP4 format requires this)
-    write32(box, frameData.size());  // Length prefix
+    // Insert frame data as-is (should already have length prefixes)
     box.insert(box.end(), frameData.begin(), frameData.end());
     
     return box;
