@@ -559,13 +559,17 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
     std::vector<uint8_t> box;
     
-    // Box size (8 + data size)
-    write32(box, 8 + frameData.size());
+    // Calculate total size: header(8) + length_prefix(4) + frame_data
+    uint32_t totalSize = 8 + 4 + frameData.size();
+    
+    // Box size
+    write32(box, totalSize);
     
     // Box type: 'mdat'
     write32(box, 0x6D646174);
     
-    // Frame data
+    // Frame data with 4-byte length prefix (MP4 format requires this)
+    write32(box, frameData.size());  // Length prefix
     box.insert(box.end(), frameData.begin(), frameData.end());
     
     return box;
