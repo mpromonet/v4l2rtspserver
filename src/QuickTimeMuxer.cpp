@@ -70,6 +70,32 @@ bool QuickTimeMuxer::addFrame(const unsigned char* h264Data, size_t dataSize, bo
         return false;
     }
     
+    // For the FIRST frame, prepend SPS and PPS (required for proper playback)
+    if (m_frameCount == 0) {
+        // Write SPS with length prefix
+        uint32_t spsSize = static_cast<uint32_t>(m_sps.size());
+        uint8_t spsLenBytes[4];
+        spsLenBytes[0] = (spsSize >> 24) & 0xFF;
+        spsLenBytes[1] = (spsSize >> 16) & 0xFF;
+        spsLenBytes[2] = (spsSize >> 8) & 0xFF;
+        spsLenBytes[3] = spsSize & 0xFF;
+        writeToFile(spsLenBytes, 4);
+        writeToFile(m_sps.data(), m_sps.size());
+        
+        // Write PPS with length prefix
+        uint32_t ppsSize = static_cast<uint32_t>(m_pps.size());
+        uint8_t ppsLenBytes[4];
+        ppsLenBytes[0] = (ppsSize >> 24) & 0xFF;
+        ppsLenBytes[1] = (ppsSize >> 16) & 0xFF;
+        ppsLenBytes[2] = (ppsSize >> 8) & 0xFF;
+        ppsLenBytes[3] = ppsSize & 0xFF;
+        writeToFile(ppsLenBytes, 4);
+        writeToFile(m_pps.data(), m_pps.size());
+        
+        LOG(DEBUG) << "[QuickTimeMuxer] Prepended SPS (" << m_sps.size() << " bytes) and PPS (" 
+                   << m_pps.size() << " bytes) to first frame";
+    }
+    
     // Write frame data with length prefix (MP4 format)
     uint32_t frameSize = static_cast<uint32_t>(dataSize);
     
@@ -86,6 +112,10 @@ bool QuickTimeMuxer::addFrame(const unsigned char* h264Data, size_t dataSize, bo
     // Save frame metadata
     FrameInfo frameInfo;
     frameInfo.size = dataSize + 4;
+    // For first frame, include SPS+PPS in size
+    if (m_frameCount == 0) {
+        frameInfo.size += m_sps.size() + 4 + m_pps.size() + 4;
+    }
     frameInfo.isKeyFrame = isKeyFrame;
     frameInfo.offset = m_currentPos - frameInfo.size;
     m_frames.push_back(frameInfo);
