@@ -440,7 +440,7 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
     // Pre-defined
     for (int i = 0; i < 6; i++) write32(mvhd, 0);
     write32(mvhd, 2); // next_track_ID
-    uint32_t mvhdSize = 8 + mvhd.size();
+    uint32_t mvhdSize = 4 + mvhd.size(); // size(4) + [type+content already in mvhd]
     
     // Build trak (Track)
     std::vector<uint8_t> trak = createTrakBox(sps, pps, width, height, timescale, duration, frameCount);
