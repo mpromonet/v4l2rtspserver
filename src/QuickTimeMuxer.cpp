@@ -660,6 +660,14 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write16(avc1, 0xFFFF); // pre_defined
     write32(avc1, avcCSize);
     avc1.insert(avc1.end(), avcC.begin(), avcC.end());
+    
+    // Add btrt (Bit Rate box) - required by some players
+    write32(avc1, 20); // btrt size
+    write32(avc1, 0x62747274); // 'btrt'
+    write32(avc1, 0); // bufferSizeDB
+    write32(avc1, 0); // maxBitrate (0 = unknown)
+    write32(avc1, 0); // avgBitrate (0 = unknown)
+    
     uint32_t avc1Size = 4 + avc1.size(); // size(4) + [type+content already in avc1]
     
     std::vector<uint8_t> stsd;
