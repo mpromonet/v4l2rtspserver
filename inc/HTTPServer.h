@@ -234,10 +234,10 @@ class HTTPServer : public RTSPServer
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
 		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, MyUserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
-		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_enableRTSPS(false), m_enableSRTP(false)
 #else
 		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, MyUserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
-		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_enableRTSPS(false), m_enableSRTP(false)
 #endif			
 		{
 				if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
@@ -259,18 +259,19 @@ class HTTPServer : public RTSPServer
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
                 if (!sslCert.empty()) {
 					this->setTLSFileNames(sslCert.c_str(), sslCert.c_str());
-					// Note: Direct access to private fields removed due to live555 compatibility
-					// The TLS/SRTP functionality will be configured through live555 API when available
+					m_enableRTSPS = enableRTSPS;
+					m_enableSRTP = encryptSRTP;
                 } else {
-					// Reset TLS configuration through live555 API
+					// Reset TLS configuration
+					m_enableRTSPS = false;
+					m_enableSRTP = false;
 				}
 #endif  			
 		}
 
 		bool isRTSPS() { 
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			// Use live555 API instead of direct field access
-			return false; // Placeholder - implement proper check via live555 API
+			return m_enableRTSPS;
 #else
 			return false;
 #endif			
@@ -278,8 +279,7 @@ class HTTPServer : public RTSPServer
 
 		bool isSRTP() { 
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			// Use live555 API instead of direct field access  
-			return false; // Placeholder - implement proper check via live555 API
+			return m_enableSRTP;
 #else
 			return false;
 #endif			
@@ -287,8 +287,7 @@ class HTTPServer : public RTSPServer
 
 		bool isSRTPEncrypted() {
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			// Use live555 API instead of direct field access
-			return false; // Placeholder - implement proper check via live555 API
+			return m_enableSRTP;
 #else
 			return false;
 #endif			
@@ -321,5 +320,7 @@ class HTTPServer : public RTSPServer
     private:
 			const unsigned int m_hlsSegment;
 			std::string  m_webroot;
+			bool m_enableRTSPS;
+			bool m_enableSRTP;
 };
 
