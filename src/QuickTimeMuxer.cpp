@@ -255,13 +255,32 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     );
     
     // Fix stco offset in moov to point to actual mdat data position (after mdat header)
-    // stco is at the end of moov, find it and update the offset
-    size_t stcoPos = moovBox.size() - 8; // Last 8 bytes: version+flags(4) + entry_count(4) + offset(4)
+    // Find 'stco' box in moov and update the chunk offset
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
-    moovBox[stcoPos]   = (actualOffset >> 24) & 0xFF;
-    moovBox[stcoPos+1] = (actualOffset >> 16) & 0xFF;
-    moovBox[stcoPos+2] = (actualOffset >> 8) & 0xFF;
-    moovBox[stcoPos+3] = actualOffset & 0xFF;
+    
+    // Search for 'stco' signature (0x7374636F) in moovBox
+    bool stcoFound = false;
+    for (size_t i = 0; i + 16 < moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x63 && moovBox[i+3] == 0x6F) {
+            // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
+            size_t offsetPos = i + 12;
+            if (offsetPos + 4 <= moovBox.size()) {
+                moovBox[offsetPos]   = (actualOffset >> 24) & 0xFF;
+                moovBox[offsetPos+1] = (actualOffset >> 16) & 0xFF;
+                moovBox[offsetPos+2] = (actualOffset >> 8) & 0xFF;
+                moovBox[offsetPos+3] = actualOffset & 0xFF;
+                stcoFound = true;
+                LOG(DEBUG) << "[Snapshot] Fixed stco offset at position " << offsetPos 
+                          << " to point to 0x" << std::hex << actualOffset << std::dec;
+                break;
+            }
+        }
+    }
+    
+    if (!stcoFound) {
+        LOG(WARN) << "[Snapshot] Could not find stco box in moov to fix offset!";
+    }
     
     mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
     
