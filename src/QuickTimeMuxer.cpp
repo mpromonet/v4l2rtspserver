@@ -690,67 +690,68 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     
     // Build stts (Time-to-Sample)
     std::vector<uint8_t> stts;
-    write32(stts, 0x73747473); // 'stts'
-    write32(stts, 0); // version + flags
+    write32(stts, 24); // size
+    stts.insert(stts.end(), {'s', 't', 't', 's'});
+    write8(stts, 0); // version
+    write8(stts, 0); write8(stts, 0); write8(stts, 0); // flags
     write32(stts, 1); // entry_count
     write32(stts, frameCount); // sample_count
-    write32(stts, 1); // sample_delta
-    uint32_t sttsSize = 4 + stts.size(); // size(4) + [type+content already in stts]
+    write32(stts, 1000); // sample_delta
     
-    // Build stss (Sync Sample - all samples are keyframes for snapshot)
+    // Build stss (Sync Sample)
     std::vector<uint8_t> stss;
-    write32(stss, 0x73747373); // 'stss'
-    write32(stss, 0); // version + flags
+    write32(stss, 20); // size (for 1 frame)
+    stss.insert(stss.end(), {'s', 't', 's', 's'});
+    write8(stss, 0); // version
+    write8(stss, 0); write8(stss, 0); write8(stss, 0); // flags
     write32(stss, frameCount); // entry_count
     for (uint32_t i = 1; i <= frameCount; i++) {
         write32(stss, i); // sample_number
     }
-    uint32_t stssSize = 4 + stss.size(); // size(4) + [type+content already in stss]
     
     // Build stsc (Sample-to-Chunk)
     std::vector<uint8_t> stsc;
-    write32(stsc, 0x73747363); // 'stsc'
-    write32(stsc, 0); // version + flags
+    write32(stsc, 28); // size
+    stsc.insert(stsc.end(), {'s', 't', 's', 'c'});
+    write8(stsc, 0); // version
+    write8(stsc, 0); write8(stsc, 0); write8(stsc, 0); // flags
     write32(stsc, 1); // entry_count
     write32(stsc, 1); // first_chunk
     write32(stsc, frameCount); // samples_per_chunk
     write32(stsc, 1); // sample_description_index
-    uint32_t stscSize = 4 + stsc.size(); // size(4) + [type+content already in stsc]
     
     // Build stsz (Sample Size)
     std::vector<uint8_t> stsz;
-    write32(stsz, 0x7374737A); // 'stsz'
-    write32(stsz, 0); // version + flags
-    write32(stsz, 0); // sample_size = 0 (variable sizes, need entry array)
+    write32(stsz, 24); // size (for 1 frame with 1 entry)
+    stsz.insert(stsz.end(), {'s', 't', 's', 'z'});
+    write8(stsz, 0); // version
+    write8(stsz, 0); write8(stsz, 0); write8(stsz, 0); // flags
+    write32(stsz, 0); // sample_size = 0 (variable sizes)
     write32(stsz, frameCount); // sample_count
-    // Add entry array (one entry per frame)
     for (uint32_t i = 0; i < frameCount; i++) {
-        write32(stsz, 0); // placeholder - will be updated during recording/snapshot
+        write32(stsz, 0); // placeholder
     }
-    uint32_t stszSize = 4 + stsz.size(); // size(4) + [type+content already in stsz]
     
     // Build stco (Chunk Offset)
     std::vector<uint8_t> stco;
-    write32(stco, 0x7374636F); // 'stco'
-    write32(stco, 0); // version + flags
+    write32(stco, 20); // size
+    stco.insert(stco.end(), {'s', 't', 'c', 'o'});
+    write8(stco, 0); // version
+    write8(stco, 0); write8(stco, 0); write8(stco, 0); // flags
     write32(stco, 1); // entry_count
-    write32(stco, 0); // chunk_offset (placeholder - will be updated)
-    uint32_t stcoSize = 4 + stco.size(); // size(4) + [type+content already in stco]
+    write32(stco, 0); // chunk_offset (placeholder)
     
     // Assemble stbl (Sample Table box)
-    // Note: stsd already has size, others need size+type wrapping
     write32(stbl, 0); // size placeholder
     stbl.insert(stbl.end(), {'s', 't', 'b', 'l'});
     
-    // stsd already complete with size
+    // All boxes now have sizes, insert as-is
     stbl.insert(stbl.end(), stsd.begin(), stsd.end());
-    
-    // Other boxes need size prepended (type+content already in vector)
-    write32(stbl, sttsSize); stbl.insert(stbl.end(), stts.begin(), stts.end());
-    write32(stbl, stssSize); stbl.insert(stbl.end(), stss.begin(), stss.end());
-    write32(stbl, stscSize); stbl.insert(stbl.end(), stsc.begin(), stsc.end());
-    write32(stbl, stszSize); stbl.insert(stbl.end(), stsz.begin(), stsz.end());
-    write32(stbl, stcoSize); stbl.insert(stbl.end(), stco.begin(), stco.end());
+    stbl.insert(stbl.end(), stts.begin(), stts.end());
+    stbl.insert(stbl.end(), stss.begin(), stss.end());
+    stbl.insert(stbl.end(), stsc.begin(), stsc.end());
+    stbl.insert(stbl.end(), stsz.begin(), stsz.end());
+    stbl.insert(stbl.end(), stco.begin(), stco.end());
     
     // Update stbl size
     uint32_t stblSize = stbl.size();
