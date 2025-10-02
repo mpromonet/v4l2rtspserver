@@ -366,36 +366,30 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
 std::vector<uint8_t> QuickTimeMuxer::createFtypBox() {
     std::vector<uint8_t> box;
     
-    LOG(DEBUG) << "[createFtypBox] Starting ftyp creation";
-    
-    // Box size (32 bytes total)
-    write32(box, 24);
-    LOG(DEBUG) << "[createFtypBox] After size: box.size()=" << box.size();
+    // Box size placeholder
+    write32(box, 0);
     
     // Box type: 'ftyp'
     write32(box, 0x66747970);
-    LOG(DEBUG) << "[createFtypBox] After type: box.size()=" << box.size();
     
-    // Major brand: 'mp41'
-    write32(box, 0x6D703431);
-    LOG(DEBUG) << "[createFtypBox] After major: box.size()=" << box.size();
+    // Major brand: 'isom'
+    write32(box, 0x69736F6D);
     
     // Minor version
-    write32(box, 0);
-    LOG(DEBUG) << "[createFtypBox] After minor: box.size()=" << box.size();
+    write32(box, 0x200);
     
     // Compatible brands
-    write32(box, 0x6D703431); // 'mp41'
-    LOG(DEBUG) << "[createFtypBox] After compat1: box.size()=" << box.size();
     write32(box, 0x69736F6D); // 'isom'
-    LOG(DEBUG) << "[createFtypBox] After compat2: box.size()=" << box.size();
+    write32(box, 0x69736F32); // 'iso2'
+    write32(box, 0x61766331); // 'avc1'
+    write32(box, 0x6D703431); // 'mp41'
     
-    LOG(DEBUG) << "[createFtypBox] Final ftyp size: " << box.size() << " bytes";
-    LOG(DEBUG) << "[createFtypBox] First 32 bytes: 0x" << std::hex << std::setfill('0');
-    for (size_t i = 0; i < 32 && i < box.size(); i++) {
-        LOG(DEBUG) << std::setw(2) << (int)box[i];
-    }
-    LOG(DEBUG) << std::dec;
+    // Update size
+    uint32_t size = box.size();
+    box[0] = (size >> 24) & 0xFF;
+    box[1] = (size >> 16) & 0xFF;
+    box[2] = (size >> 8) & 0xFF;
+    box[3] = size & 0xFF;
     
     return box;
 }
