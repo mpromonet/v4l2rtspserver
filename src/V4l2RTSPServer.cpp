@@ -58,9 +58,10 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 			
 			if (!outputFile.empty())
 			{
-				// Check if it looks like a V4L2 device path before attempting V4L2 creation
-				bool isV4L2Device = (outputFile.find("/dev/video") == 0);
-				std::string extension = outputFile.substr(outputFile.find_last_of('.') + 1);
+			// Check if it looks like a V4L2 device path before attempting V4L2 creation
+			bool isV4L2Device = (outputFile.find("/dev/video") == 0);
+			size_t dotPos = outputFile.find_last_of('.');
+			std::string extension = (dotPos != std::string::npos) ? outputFile.substr(dotPos + 1) : "";
 				std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 				isMP4File = (extension == "mp4");
 				

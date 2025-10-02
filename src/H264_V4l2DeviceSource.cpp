@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <cstring>
+#include <unistd.h>
 
 #ifdef __linux__
 #include <linux/videodev2.h>
@@ -26,20 +27,20 @@
 #include "logger.h"
 #include "H264_V4l2DeviceSource.h"
 #include "SnapshotManager.h"
-#include "MP4Muxer.h"
+#include "QuickTimeMuxer.h"
 
 // Simple finalization on exit for MP4 files
 static bool g_forceFinalize = false;
 
-// Global list of active MP4Muxers for signal handling
-static std::vector<MP4Muxer*> g_activeMuxers;
+// Global list of active QuickTimeMuxers for signal handling
+static std::vector<QuickTimeMuxer*> g_activeMuxers;
 
 // External function callable from main.cpp sighandler
 extern "C" void forceFinalizeMp4Files() {
 	printf("[MP4 Emergency Finalize] Finalizing %zu active MP4 files\n", g_activeMuxers.size());
 	for (auto muxer : g_activeMuxers) {
 		if (muxer && muxer->isInitialized()) {
-			printf("[MP4 Emergency Finalize] Finalizing MP4 muxer\n");
+			printf("[MP4 Emergency Finalize] Finalizing QuickTime muxer\n");
 			muxer->finalize();
 		}
 	}
@@ -52,9 +53,9 @@ extern "C" void forceFinalizeMp4Files() {
 
 H264_V4L2DeviceSource::~H264_V4L2DeviceSource() {
 	// CRITICAL: Finalize MP4 BEFORE closing file descriptor
-	if (m_mp4Muxer && m_mp4Muxer->isInitialized()) {
-		LOG(INFO) << "[H264_V4l2DeviceSource] Finalizing MP4 muxer in destructor";
-		m_mp4Muxer->finalize();
+	if (m_quickTimeMuxer && m_quickTimeMuxer->isInitialized()) {
+		LOG(INFO) << "[H264_V4l2DeviceSource] Finalizing QuickTime muxer in destructor";
+		m_quickTimeMuxer->finalize();
 	}
 	
 	// CRITICAL: Also close output file descriptor to trigger data flush
@@ -64,7 +65,7 @@ H264_V4L2DeviceSource::~H264_V4L2DeviceSource() {
 		m_outfd = -1;
 	}
 	
-	delete m_mp4Muxer;
+	delete m_quickTimeMuxer;
 }
 
 // split packet in frames					
@@ -184,9 +185,9 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	// Write properly formatted H264 data to output file
 	if (m_outfd != -1 && !outputBuffer.empty()) {
 		if (m_isMP4) {
-			// Initialize MP4 muxer on first keyframe for STREAMING (not snapshots)
-			if (hasKeyFrame && !m_sps.empty() && !m_pps.empty() && !m_mp4Muxer) {
-				m_mp4Muxer = new MP4Muxer();
+			// Initialize QuickTime muxer on first keyframe for STREAMING (not snapshots)
+			if (hasKeyFrame && !m_sps.empty() && !m_pps.empty() && !m_quickTimeMuxer) {
+				m_quickTimeMuxer = new QuickTimeMuxer();
 				
 				// IMPROVED: Get frame dimensions from device with better fallback logic
 				int frameWidth = 0;
@@ -235,39 +236,39 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 					LOG(INFO) << "[MP4Muxer] Using device-provided dimensions: " << frameWidth << "x" << frameHeight;
 				}
 				
-				if (!m_mp4Muxer->initialize(m_outfd, m_sps, m_pps, frameWidth, frameHeight, frameFps)) {
-					LOG(ERROR) << "Failed to initialize MP4 muxer for streaming with dimensions " << frameWidth << "x" << frameHeight;
-					delete m_mp4Muxer;
-					m_mp4Muxer = nullptr;
+				if (!m_quickTimeMuxer->initialize(m_outfd, m_sps, m_pps, frameWidth, frameHeight, frameFps)) {
+					LOG(ERROR) << "Failed to initialize QuickTime muxer for streaming with dimensions " << frameWidth << "x" << frameHeight;
+					delete m_quickTimeMuxer;
+					m_quickTimeMuxer = nullptr;
 					m_isMP4 = false; // Fall back to raw H264
 				} else {
-					LOG(INFO) << "MP4 streaming muxer initialized successfully: " << frameWidth << "x" << frameHeight << " @ " << frameFps << "fps";
-					// Register MP4Muxer for emergency finalization on SIGINT
-					g_activeMuxers.push_back(m_mp4Muxer);
+					LOG(INFO) << "QuickTime streaming muxer initialized successfully: " << frameWidth << "x" << frameHeight << " @ " << frameFps << "fps";
+					// Register QuickTimeMuxer for emergency finalization on SIGINT
+					g_activeMuxers.push_back(m_quickTimeMuxer);
 				}
 			}
 			
-			// Add frame to MP4 muxer for CONTINUOUS STREAMING
-			if (m_mp4Muxer && m_mp4Muxer->isInitialized()) {
+			// Add frame to QuickTime muxer for CONTINUOUS STREAMING
+			if (m_quickTimeMuxer && m_quickTimeMuxer->isInitialized()) {
 				// Add ALL frames (keyframes and non-keyframes) for full stream
 				if (!m_currentFrameData.empty()) {
-					m_mp4Muxer->addFrame(m_currentFrameData.data(), m_currentFrameData.size(), m_currentFrameIsKeyframe);
-					LOG(DEBUG) << "Added frame to MP4 stream: " << m_currentFrameData.size() 
+					m_quickTimeMuxer->addFrame(m_currentFrameData.data(), m_currentFrameData.size(), m_currentFrameIsKeyframe);
+					LOG(DEBUG) << "Added frame to QuickTime stream: " << m_currentFrameData.size() 
 					          << " bytes" << (m_currentFrameIsKeyframe ? " (keyframe)" : "");
 					
 					// CRITICAL: Periodic sync to prevent data loss (but NOT finalization)
 					static int frameCounter = 0;
 					frameCounter++;
 					if (frameCounter % 50 == 0) {
-						LOG(INFO) << "[MP4Muxer] Periodic sync after " << frameCounter << " frames";
-						// Just sync data to disk, don't finalize the file
-						if (m_mp4Muxer->getFileDescriptor() != -1) {
-							fsync(m_mp4Muxer->getFileDescriptor());
-							LOG(DEBUG) << "[MP4Muxer] Synced data to disk";
+						LOG(INFO) << "[QuickTimeMuxer] Periodic sync after " << frameCounter << " frames";
+						// Sync data to disk
+						if (m_quickTimeMuxer->getFileDescriptor() != -1) {
+							fsync(m_quickTimeMuxer->getFileDescriptor());
+							LOG(DEBUG) << "[QuickTimeMuxer] Synced data to disk";
 						}
 					}
 				}
-			} else if (!m_mp4Muxer) {
+			} else if (!m_quickTimeMuxer) {
 				// If muxer not ready, write raw H264 as fallback
 				int written = write(m_outfd, outputBuffer.data(), outputBuffer.size());
 				if (written != (int)outputBuffer.size()) {
@@ -305,10 +306,19 @@ bool H264_V4L2DeviceSource::isKeyFrame(const char* buffer, int size) {
 	return res;
 }
 
-// Simple method to check if output file looks like MP4
+// Method to check if output file looks like MP4 by inspecting the file header
 bool isMP4Output(int fd) {
-	// Simple heuristic: check if we have valid file descriptor
-	// In real implementation, this could be passed as a parameter
-	// For now, we'll detect based on successful MP4 operations
-	return fd > 0; // Will be improved when we integrate with V4l2RTSPServer
+	if (fd <= 0) {
+		return false; // Invalid file descriptor
+	}
+	// Read the first 8 bytes of the file to check for the MP4 signature
+	char header[8] = {0};
+	if (pread(fd, header, sizeof(header), 0) != sizeof(header)) {
+		return false; // Failed to read header
+	}
+	// Check for the 'ftyp' box in the MP4 header
+	if (header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p') {
+		return true; // MP4 file detected
+	}
+	return false; // Not an MP4 file
 }

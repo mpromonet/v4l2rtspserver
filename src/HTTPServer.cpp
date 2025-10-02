@@ -16,13 +16,10 @@
 #include <fstream>
 #include <algorithm>
 #include <cstring>
-#include <iostream>
-
 #include <time.h>
 #include "ByteStreamMemoryBufferSource.hh"
 
 #include "HTTPServer.h"
-#include "TSServerMediaSubsession.h"
 #include "SnapshotManager.h"
 
 u_int32_t HTTPServer::HTTPClientConnection::m_ClientSessionId = 0;
@@ -52,14 +49,14 @@ void HTTPServer::HTTPClientConnection::streamSource(const std::string & content)
 {
 	u_int8_t* buffer = new u_int8_t[content.size()];
 	memcpy(buffer, content.c_str(), content.size());
-	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, content.size()));
+	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, content.size(), True));
 }
 
 void HTTPServer::HTTPClientConnection::streamSource(const std::vector<unsigned char>& binaryData)
 {
 	u_int8_t* buffer = new u_int8_t[binaryData.size()];
 	memcpy(buffer, binaryData.data(), binaryData.size());
-	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, binaryData.size()));
+	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, binaryData.size(), True));
 }
 
 void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)

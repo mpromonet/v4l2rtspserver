@@ -12,7 +12,7 @@
 #include "../inc/SnapshotManager.h"
 #include "../libv4l2cpp/inc/logger.h"
 #include "../libv4l2cpp/inc/V4l2Capture.h"
-#include "../inc/MP4Muxer.h"
+#include "../inc/QuickTimeMuxer.h"
 #include <string>
 #include <vector>
 #include <cstring>
@@ -435,7 +435,7 @@ std::vector<uint8_t> SnapshotManager::findNALUnit(const uint8_t* data, size_t si
 
 // Helper functions for binary data writing (shared with MP4Muxer)
 namespace {
-    // Removed duplicate functions - use writeU32/writeU16/writeU8 from MP4Muxer helper methods instead
+    // Removed duplicate functions - use writeU32/writeU16/writeU8 from QuickTimeMuxer helper methods instead
     
     // Parse SPS to extract video dimensions
     std::pair<int, int> parseSPSDimensions(const std::string& sps) {
@@ -492,11 +492,11 @@ void SnapshotManager::createH264Snapshot(const unsigned char* h264Data, size_t h
     LOG(DEBUG) << "[H264] Creating MP4 snapshot using provided dimensions: " << width << "x" << height;
     LOG(DEBUG) << "[H264] SPS size:" << sps.size() << " PPS size:" << pps.size();
 
-    // Use MP4Muxer for creating the snapshot - NO MORE DUPLICATED LOGIC!
-    std::vector<uint8_t> mp4Data = MP4Muxer::createMP4Snapshot(h264Data, h264Size, sps, pps, width, height);
+    // Use QuickTimeMuxer for creating the snapshot - NO MORE DUPLICATED LOGIC!
+    std::vector<uint8_t> mp4Data = QuickTimeMuxer::createMP4Snapshot(h264Data, h264Size, sps, pps, width, height);
     
     if (mp4Data.empty()) {
-        LOG(ERROR) << "[H264] Failed to create MP4 snapshot using MP4Muxer";
+        LOG(ERROR) << "[H264] Failed to create MP4 snapshot using QuickTimeMuxer";
         return;
     }
 
@@ -515,7 +515,7 @@ void SnapshotManager::createH264Snapshot(const unsigned char* h264Data, size_t h
         m_lastFrameWidth = width;
         m_lastFrameHeight = height;
         
-        LOG(INFO) << "[H264] MP4 snapshot created via MP4Muxer: " << mp4Data.size() << " bytes (" << width << "x" << height << ")";
+        LOG(INFO) << "[H264] MP4 snapshot created via QuickTimeMuxer: " << mp4Data.size() << " bytes (" << width << "x" << height << ")";
     }
     
     // Auto-save snapshot if file path is configured
