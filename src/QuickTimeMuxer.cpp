@@ -487,7 +487,7 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
     write32(tkhd, 0); write32(tkhd, 0); write32(tkhd, 0x40000000);
     write32(tkhd, width << 16); // track width
     write32(tkhd, height << 16); // track height
-    uint32_t tkhdSize = 8 + tkhd.size();
+    uint32_t tkhdSize = 4 + tkhd.size(); // size(4) + tkhd_content
     
     // Build mdia (Media)
     std::vector<uint8_t> mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
