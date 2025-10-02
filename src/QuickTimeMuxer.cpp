@@ -524,7 +524,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
     write32(mdhd, duration); // duration
     write16(mdhd, 0x55C4); // language (undetermined)
     write16(mdhd, 0); // pre_defined
-    uint32_t mdhdSize = 8 + mdhd.size();
+    uint32_t mdhdSize = 4 + mdhd.size(); // size(4) + mdhd_content
     
     // Build hdlr (Handler Reference)
     std::vector<uint8_t> hdlr;
@@ -536,7 +536,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
     const char* handlerName = "VideoHandler";
     for (const char* p = handlerName; *p; p++) write8(hdlr, *p);
     write8(hdlr, 0); // null terminator
-    uint32_t hdlrSize = 8 + hdlr.size();
+    uint32_t hdlrSize = 4 + hdlr.size(); // size(4) + hdlr_content
     
     // Build minf (Media Information)
     std::vector<uint8_t> minf = createMinfBox(sps, pps, width, height, frameCount);
@@ -573,7 +573,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     write32(vmhd, 0x00000001); // version + flags
     write16(vmhd, 0); // graphicsmode
     write16(vmhd, 0); write16(vmhd, 0); write16(vmhd, 0); // opcolor[3]
-    uint32_t vmhdSize = 8 + vmhd.size();
+    uint32_t vmhdSize = 4 + vmhd.size(); // size(4) + vmhd_content
     
     // Build dinf/dref (Data Information)
     std::vector<uint8_t> dref;
