@@ -589,7 +589,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write16(avc1, 0xFFFF); // pre_defined
     write32(avc1, avcCSize);
     avc1.insert(avc1.end(), avcC.begin(), avcC.end());
-    uint32_t avc1Size = 8 + avc1.size();
+    uint32_t avc1Size = 4 + avc1.size(); // size(4) + [type+content already in avc1]
     
     std::vector<uint8_t> stsd;
     write32(stsd, 0x73747364); // 'stsd'
@@ -597,7 +597,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(stsd, 1); // entry_count
     write32(stsd, avc1Size);
     stsd.insert(stsd.end(), avc1.begin(), avc1.end());
-    uint32_t stsdSize = 8 + stsd.size();
+    uint32_t stsdSize = 4 + stsd.size(); // size(4) + [type+content already in stsd]
     
     // Build stts (Time-to-Sample)
     std::vector<uint8_t> stts;
@@ -606,7 +606,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(stts, 1); // entry_count
     write32(stts, frameCount); // sample_count
     write32(stts, 1); // sample_delta
-    uint32_t sttsSize = 8 + stts.size();
+    uint32_t sttsSize = 4 + stts.size(); // size(4) + [type+content already in stts]
     
     // Build stss (Sync Sample - all samples are keyframes for snapshot)
     std::vector<uint8_t> stss;
@@ -616,7 +616,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     for (uint32_t i = 1; i <= frameCount; i++) {
         write32(stss, i); // sample_number
     }
-    uint32_t stssSize = 8 + stss.size();
+    uint32_t stssSize = 4 + stss.size(); // size(4) + [type+content already in stss]
     
     // Build stsc (Sample-to-Chunk)
     std::vector<uint8_t> stsc;
@@ -626,19 +626,22 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(stsc, 1); // first_chunk
     write32(stsc, frameCount); // samples_per_chunk
     write32(stsc, 1); // sample_description_index
-    uint32_t stscSize = 8 + stsc.size();
+    uint32_t stscSize = 4 + stsc.size(); // size(4) + [type+content already in stsc]
     
-    // Build stsz (Sample Size) - will be filled during recording
+    // Build stsz (Sample Size)
+    // For snapshots with single frame, use fixed sample_size (no entries needed)
     std::vector<uint8_t> stsz;
     write32(stsz, 0x7374737A); // 'stsz'
     write32(stsz, 0); // version + flags
-    write32(stsz, 0); // sample_size (0 means variable size)
+    write32(stsz, frameCount == 1 ? 0 : 0); // sample_size: use fixed size for single frame (set in createMP4Snapshot)
     write32(stsz, frameCount); // sample_count
-    // Add actual frame sizes (from m_frames if this is for recording)
-    for (uint32_t i = 0; i < frameCount; i++) {
-        write32(stsz, 0); // placeholder - will be updated during recording
+    // For variable sizes (recording), add entry array
+    if (frameCount != 1) {
+        for (uint32_t i = 0; i < frameCount; i++) {
+            write32(stsz, 0); // placeholder - will be updated during recording
+        }
     }
-    uint32_t stszSize = 8 + stsz.size();
+    uint32_t stszSize = 4 + stsz.size(); // size(4) + [type+content already in stsz]
     
     // Build stco (Chunk Offset)
     std::vector<uint8_t> stco;
@@ -646,13 +649,16 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(stco, 0); // version + flags
     write32(stco, 1); // entry_count
     write32(stco, 0); // chunk_offset (placeholder - will be updated)
-    uint32_t stcoSize = 8 + stco.size();
+    uint32_t stcoSize = 4 + stco.size(); // size(4) + [type+content already in stco]
     
     // Assemble stbl
-    // Each sub-box already has its size field, so we DON'T write it again!
-    // Create boxes with size fields first
+    // Note: xxxSize already includes the size field (4 bytes), so we prepend size then content
+    // Format: size(4) + type(4) + content
     std::vector<uint8_t> stsd_box, stts_box, stss_box, stsc_box, stsz_box, stco_box;
     
+    // Each xxx vector contains: type(4) + content (NO size field yet)
+    // xxxSize = 8 + xxx.size() means: size(4) + type(4) + content
+    // So we write size, then type+content
     write32(stsd_box, stsdSize); stsd_box.insert(stsd_box.end(), stsd.begin(), stsd.end());
     write32(stts_box, sttsSize); stts_box.insert(stts_box.end(), stts.begin(), stts.end());
     write32(stss_box, stssSize); stss_box.insert(stss_box.end(), stss.begin(), stss.end());
