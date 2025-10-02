@@ -700,7 +700,8 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     
     // Build stss (Sync Sample)
     std::vector<uint8_t> stss;
-    write32(stss, 20); // size (for 1 frame)
+    uint32_t stssSize = 16 + frameCount * 4; // header(16) + entries(frameCount*4)
+    write32(stss, stssSize);
     stss.insert(stss.end(), {'s', 't', 's', 's'});
     write8(stss, 0); // version
     write8(stss, 0); write8(stss, 0); write8(stss, 0); // flags
@@ -722,7 +723,8 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     
     // Build stsz (Sample Size)
     std::vector<uint8_t> stsz;
-    write32(stsz, 24); // size (for 1 frame with 1 entry)
+    uint32_t stszSize = 20 + frameCount * 4; // header(20) + entries(frameCount*4)
+    write32(stsz, stszSize);
     stsz.insert(stsz.end(), {'s', 't', 's', 'z'});
     write8(stsz, 0); // version
     write8(stsz, 0); write8(stsz, 0); write8(stsz, 0); // flags
