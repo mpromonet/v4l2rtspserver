@@ -162,7 +162,7 @@ int main(int argc, char** argv)
 
 	// decode parameters
 	int c = 0;     
-	while ((c = getopt (argc, argv, "v::Q:O:b:j:J:d:" "I:P:p:m::u:M::ct:S::x:X" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
+	while ((c = getopt (argc, argv, "v::Q:O:b:j:J:d::" "I:P:p:m::u:M::ct:S::x:X" "R:U:" "rwBsf::F:W:H:G:" "A:C:a:" "Vh")) != -1)
 	{
 		switch (c)
 		{
@@ -261,14 +261,22 @@ int main(int argc, char** argv)
 		if (arg[0] == '-') {
 			printf("Warning: Skipping unparsed option '%s' - options must come before device path\n", arg.c_str());
 		} else {
+			printf("Adding device to list: %s\n", arg.c_str());
 			devList.push_back(arg);
 		}
 		optind++;
 	}
 	if (devList.empty())
 	{
+		printf("No devices specified, using default: %s\n", dev_name);
 		devList.push_back(dev_name);
 	}
+	
+	// Early debug output before logger is initialized
+	printf("Parsed arguments:\n");
+	printf("  Output file (-O): %s\n", outputFile.empty() ? "(none)" : outputFile.c_str());
+	printf("  Snapshot file (-j): %s\n", snapshotFilePath.empty() ? "(none)" : snapshotFilePath.c_str());
+	printf("  Device count: %zu\n", devList.size());
 	
 	// default format tries
 	if ((videoformatList.empty()) && (format!=0)) {
