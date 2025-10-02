@@ -267,7 +267,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     LOG(DEBUG) << std::dec;
     
     bool stcoFound = false;
-    for (size_t i = 0; i + 16 < moovBox.size(); i++) {
+    for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
             moovBox[i+2] == 0x63 && moovBox[i+3] == 0x6F) {
             // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
