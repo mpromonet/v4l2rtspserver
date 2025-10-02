@@ -49,12 +49,7 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 		V4l2Capture* videoCapture = V4l2Capture::create(inParam);
 		if (videoCapture)
 		{
-			// Set device format information in SnapshotManager for pixel format support
-			SnapshotManager::getInstance().setDeviceFormat(
-				videoCapture->getFormat(), 
-				videoCapture->getWidth(), 
-				videoCapture->getHeight()
-			);
+			// Note: Device format info removed - SnapshotManager now supports only MJPEG and H264
 			
 			int outfd = -1;
 			bool isMP4File = false; // Initialize to false by default

@@ -232,18 +232,8 @@ void V4L2DeviceSource::postFrame(char * frame, int frameSize, const timeval &ref
 	// Process raw frame for snapshot if enabled and device has raw format
 	if (SnapshotManager::getInstance().isEnabled() && m_device) {
 		unsigned int format = m_device->getVideoFormat();
-		// Check if this is a YUV/raw format that can be converted to images
-#ifdef __linux__
-		if (format == V4L2_PIX_FMT_YUYV || format == V4L2_PIX_FMT_UYVY || 
-		    format == V4L2_PIX_FMT_YUV420 || format == V4L2_PIX_FMT_NV12 ||
-		    format == V4L2_PIX_FMT_RGB24 || format == V4L2_PIX_FMT_BGR24) {
-			// Pass raw frame data for YUV->image conversion
-			SnapshotManager::getInstance().processRawFrame(
-				(unsigned char*)frame, frameSize, 
-				m_device->getWidth(), m_device->getHeight()
-			);
-		}
-#endif
+		// Note: Raw YUV->JPEG conversion removed - not reliable without external libs (libjpeg)
+		// For YUV formats, snapshots are not supported (only MJPEG and H264 are supported)
 	}
 	
 	processFrame(frame,frameSize,ref);
