@@ -32,16 +32,19 @@
 extern "C" void registerMP4FileDescriptor(int fd);
 
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
-					const V4L2DeviceParameters& inParam,
-					int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
+				const V4L2DeviceParameters& inParam,
+				int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
+				const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
 
 	StreamReplicator* videoReplicator = NULL;
     std::string videoDev(inParam.m_devName);
 	if (!videoDev.empty())
 	{
 		// Init video capture
-		LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
+		LOG(NOTICE) << "Create V4L2 Source from device: " << videoDev;
+		if (!outputFile.empty()) {
+			LOG(INFO) << "Output file for this device: " << outputFile;
+		}
 		
 		V4l2Capture* videoCapture = V4l2Capture::create(inParam);
 		if (videoCapture)
@@ -56,25 +59,32 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 			int outfd = -1;
 			bool isMP4File = false; // Initialize to false by default
 			
-			if (!outputFile.empty())
-			{
-			// Check if it looks like a V4L2 device path before attempting V4L2 creation
-			bool isV4L2Device = (outputFile.find("/dev/video") == 0);
-			size_t dotPos = outputFile.find_last_of('.');
-			std::string extension = (dotPos != std::string::npos) ? outputFile.substr(dotPos + 1) : "";
-				std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-				isMP4File = (extension == "mp4");
-				
-				if (isV4L2Device) {
-				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
-				out = V4l2Output::create(outparam);
-					if (out != NULL) {
-					outfd = out->getFd();
-					LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
-				} else {
-						LOG(WARN) << "Cannot open V4L2 output device:" << outputFile;
-					}
+		if (!outputFile.empty())
+		{
+		// Check if it looks like a V4L2 device path before attempting V4L2 creation
+		// V4L2 devices should start with /dev/ and not have typical file extensions
+		bool isV4L2Device = (outputFile.find("/dev/") == 0);
+		size_t dotPos = outputFile.find_last_of('.');
+		std::string extension = (dotPos != std::string::npos) ? outputFile.substr(dotPos + 1) : "";
+			std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+			isMP4File = (extension == "mp4");
+			
+			// If it has a file extension, it's definitely not a V4L2 device
+			if (!extension.empty() && (extension == "mp4" || extension == "h264" || extension == "h265" || extension == "jpg" || extension == "jpeg")) {
+				isV4L2Device = false;
+				LOG(INFO) << "Output path has file extension '" << extension << "', treating as regular file";
+			}
+			
+			if (isV4L2Device) {
+			V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
+			out = V4l2Output::create(outparam);
+				if (out != NULL) {
+				outfd = out->getFd();
+				LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
+			} else {
+					LOG(WARN) << "Cannot open V4L2 output device:" << outputFile;
 				}
+			}
 				
 				if (outfd == -1) {
 					// Try to open as regular file for writing

@@ -256,7 +256,13 @@ int main(int argc, char** argv)
 	std::list<std::string> devList;
 	while (optind<argc)
 	{
-		devList.push_back(argv[optind]);
+		std::string arg = argv[optind];
+		// Skip arguments that look like options but weren't parsed (e.g., -vv after device path)
+		if (arg[0] == '-') {
+			printf("Warning: Skipping unparsed option '%s' - options must come before device path\n", arg.c_str());
+		} else {
+			devList.push_back(arg);
+		}
 		optind++;
 	}
 	if (devList.empty())
@@ -286,6 +292,18 @@ int main(int argc, char** argv)
 	// init logger
 	initLogger(verbose);
 	LOG(NOTICE) << "Version: " << VERSION << " live555 version:" << LIVEMEDIA_LIBRARY_VERSION_STRING;
+	
+	// Log parsed devices for debugging
+	LOG(INFO) << "Parsed " << devList.size() << " device(s):";
+	for (std::list<std::string>::iterator it = devList.begin(); it != devList.end(); ++it) {
+		LOG(INFO) << "  Device: " << *it;
+	}
+	if (!outputFile.empty()) {
+		LOG(INFO) << "Output file (-O): " << outputFile;
+	}
+	if (!snapshotFilePath.empty()) {
+		LOG(INFO) << "Snapshot file (-j): " << snapshotFilePath;
+	}
      	
 	
 	// create RTSP server
