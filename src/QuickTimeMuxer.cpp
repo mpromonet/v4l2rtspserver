@@ -259,6 +259,13 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
     
     // Search for 'stco' signature (0x7374636F) in moovBox
+    LOG(DEBUG) << "[Snapshot] Searching for stco in moovBox (size=" << moovBox.size() << " bytes)";
+    LOG(DEBUG) << "[Snapshot] moovBox first 32 bytes: 0x" << std::hex << std::setfill('0');
+    for (size_t i = 0; i < 32 && i < moovBox.size(); i++) {
+        LOG(DEBUG) << std::setw(2) << (int)moovBox[i];
+    }
+    LOG(DEBUG) << std::dec;
+    
     bool stcoFound = false;
     for (size_t i = 0; i + 16 < moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
@@ -266,13 +273,15 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
             // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
             size_t offsetPos = i + 12;
             if (offsetPos + 4 <= moovBox.size()) {
+                uint32_t oldOffset = (moovBox[offsetPos] << 24) | (moovBox[offsetPos+1] << 16) | 
+                                     (moovBox[offsetPos+2] << 8) | moovBox[offsetPos+3];
                 moovBox[offsetPos]   = (actualOffset >> 24) & 0xFF;
                 moovBox[offsetPos+1] = (actualOffset >> 16) & 0xFF;
                 moovBox[offsetPos+2] = (actualOffset >> 8) & 0xFF;
                 moovBox[offsetPos+3] = actualOffset & 0xFF;
                 stcoFound = true;
                 LOG(DEBUG) << "[Snapshot] Fixed stco offset at position " << offsetPos 
-                          << " to point to 0x" << std::hex << actualOffset << std::dec;
+                          << " (old: 0x" << std::hex << oldOffset << ", new: 0x" << actualOffset << ")" << std::dec;
                 break;
             }
         }
@@ -280,6 +289,14 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     
     if (!stcoFound) {
         LOG(WARN) << "[Snapshot] Could not find stco box in moov to fix offset!";
+        LOG(WARN) << "[Snapshot] Dumping moovBox for debugging...";
+        for (size_t i = 0; i < moovBox.size(); i += 32) {
+            LOG(WARN) << "[Snapshot] moovBox[" << i << "]: " << std::hex << std::setfill('0');
+            for (size_t j = 0; j < 32 && i+j < moovBox.size(); j++) {
+                LOG(WARN) << std::setw(2) << (int)moovBox[i+j];
+            }
+            LOG(WARN) << std::dec;
+        }
     }
     
     mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
