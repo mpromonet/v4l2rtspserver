@@ -584,7 +584,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     write32(dref, 12); // size
     write32(dref, 0x75726C20); // 'url '
     write32(dref, 1); // version + flags (self-contained)
-    uint32_t drefSize = 8 + dref.size();
+    uint32_t drefSize = 4 + dref.size(); // size(4) + dref_content
     
     // Create dref box with size field
     std::vector<uint8_t> drefBox;
