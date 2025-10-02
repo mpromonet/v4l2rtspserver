@@ -289,14 +289,36 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     
     if (!stcoFound) {
         LOG(WARN) << "[Snapshot] Could not find stco box in moov to fix offset!";
-        LOG(WARN) << "[Snapshot] Dumping moovBox for debugging...";
-        for (size_t i = 0; i < moovBox.size(); i += 32) {
-            LOG(WARN) << "[Snapshot] moovBox[" << i << "]: " << std::hex << std::setfill('0');
-            for (size_t j = 0; j < 32 && i+j < moovBox.size(); j++) {
-                LOG(WARN) << std::setw(2) << (int)moovBox[i+j];
+    }
+    
+    // Fix stsz entry_sizes[0] to contain actual frame size
+    // Find 'stsz' box and update the first entry
+    uint32_t frameSize = mdatContent.size(); // Total size of all data in mdat (SPS + PPS + Frame)
+    
+    bool stszFound = false;
+    for (size_t i = 0; i + 24 <= moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
+            // Found 'stsz', structure: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) + entries...
+            // Skip to first entry: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) = 16 bytes
+            size_t entryPos = i + 16;
+            if (entryPos + 4 <= moovBox.size()) {
+                uint32_t oldSize = (moovBox[entryPos] << 24) | (moovBox[entryPos+1] << 16) | 
+                                   (moovBox[entryPos+2] << 8) | moovBox[entryPos+3];
+                moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
+                moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
+                moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
+                moovBox[entryPos+3] = frameSize & 0xFF;
+                stszFound = true;
+                LOG(DEBUG) << "[Snapshot] Fixed stsz entry_sizes[0] at position " << entryPos 
+                          << " (old: " << oldSize << ", new: " << frameSize << ")";
+                break;
             }
-            LOG(WARN) << std::dec;
         }
+    }
+    
+    if (!stszFound) {
+        LOG(WARN) << "[Snapshot] Could not find stsz box in moov to fix entry size!";
     }
     
     mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
@@ -629,17 +651,14 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     uint32_t stscSize = 4 + stsc.size(); // size(4) + [type+content already in stsc]
     
     // Build stsz (Sample Size)
-    // For snapshots with single frame, use fixed sample_size (no entries needed)
     std::vector<uint8_t> stsz;
     write32(stsz, 0x7374737A); // 'stsz'
     write32(stsz, 0); // version + flags
-    write32(stsz, frameCount == 1 ? 0 : 0); // sample_size: use fixed size for single frame (set in createMP4Snapshot)
+    write32(stsz, 0); // sample_size = 0 (variable sizes, need entry array)
     write32(stsz, frameCount); // sample_count
-    // For variable sizes (recording), add entry array
-    if (frameCount != 1) {
-        for (uint32_t i = 0; i < frameCount; i++) {
-            write32(stsz, 0); // placeholder - will be updated during recording
-        }
+    // Add entry array (one entry per frame)
+    for (uint32_t i = 0; i < frameCount; i++) {
+        write32(stsz, 0); // placeholder - will be updated during recording/snapshot
     }
     uint32_t stszSize = 4 + stsz.size(); // size(4) + [type+content already in stsz]
     
