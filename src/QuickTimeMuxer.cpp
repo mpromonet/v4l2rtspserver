@@ -196,18 +196,30 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     auto ftypBox = createFtypBox();
     mp4Data.insert(mp4Data.end(), ftypBox.begin(), ftypBox.end());
     
-    // Create moov box
+    // Create mdat box with frame data FIRST (for proper offset calculation)
+    std::vector<uint8_t> frameData(h264Data, h264Data + dataSize);
+    auto mdatBox = createMdatBox(frameData);
+    uint32_t mdatOffset = ftypBox.size(); // Offset where mdat starts
+    mp4Data.insert(mp4Data.end(), mdatBox.begin(), mdatBox.end());
+    
+    // Create moov box AFTER mdat (standard MP4 structure for streaming)
+    // Note: stco offset in moov needs to point to mdat data
     auto moovBox = createVideoTrackMoovBox(
         std::vector<uint8_t>(sps.begin(), sps.end()),
         std::vector<uint8_t>(pps.begin(), pps.end()),
         width, height, fps, 1
     );
-    mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
     
-    // Create mdat box with frame data
-    std::vector<uint8_t> frameData(h264Data, h264Data + dataSize);
-    auto mdatBox = createMdatBox(frameData);
-    mp4Data.insert(mp4Data.end(), mdatBox.begin(), mdatBox.end());
+    // Fix stco offset in moov to point to actual mdat position
+    // stco is at the end of moov, find it and update the offset
+    size_t stcoPos = moovBox.size() - 8; // Last 8 bytes: version+flags(4) + entry_count(4) + offset(4)
+    uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
+    moovBox[stcoPos]   = (actualOffset >> 24) & 0xFF;
+    moovBox[stcoPos+1] = (actualOffset >> 16) & 0xFF;
+    moovBox[stcoPos+2] = (actualOffset >> 8) & 0xFF;
+    moovBox[stcoPos+3] = actualOffset & 0xFF;
+    
+    mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
     
     return mp4Data;
 }
