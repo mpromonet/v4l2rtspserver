@@ -547,14 +547,21 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
     // Build minf (Media Information)
     std::vector<uint8_t> minf = createMinfBox(sps, pps, width, height, frameCount);
     
+    // Create mdhd and hdlr boxes with size fields
+    std::vector<uint8_t> mdhdBox;
+    write32(mdhdBox, mdhdSize);
+    mdhdBox.insert(mdhdBox.end(), mdhd.begin(), mdhd.end());
+    
+    std::vector<uint8_t> hdlrBox;
+    write32(hdlrBox, hdlrSize);
+    hdlrBox.insert(hdlrBox.end(), hdlr.begin(), hdlr.end());
+    
     // Assemble mdia
-    uint32_t mdiaSize = 8 + mdhdSize + hdlrSize + minf.size();
+    uint32_t mdiaSize = 8 + mdhdBox.size() + hdlrBox.size() + minf.size();
     write32(mdia, mdiaSize);
     write32(mdia, 0x6D646961); // 'mdia'
-    write32(mdia, mdhdSize);
-    mdia.insert(mdia.end(), mdhd.begin(), mdhd.end());
-    write32(mdia, hdlrSize);
-    mdia.insert(mdia.end(), hdlr.begin(), hdlr.end());
+    mdia.insert(mdia.end(), mdhdBox.begin(), mdhdBox.end());
+    mdia.insert(mdia.end(), hdlrBox.begin(), hdlrBox.end());
     mdia.insert(mdia.end(), minf.begin(), minf.end());
     
     return mdia;
@@ -594,12 +601,16 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     // Build stbl (Sample Table)
     std::vector<uint8_t> stbl = createStblBox(sps, pps, width, height, frameCount);
     
+    // Create vmhd box with size field
+    std::vector<uint8_t> vmhdBox;
+    write32(vmhdBox, vmhdSize);
+    vmhdBox.insert(vmhdBox.end(), vmhd.begin(), vmhd.end());
+    
     // Assemble minf
-    uint32_t minfSize = 8 + vmhdSize + dinf.size() + stbl.size();
+    uint32_t minfSize = 8 + vmhdBox.size() + dinf.size() + stbl.size();
     write32(minf, minfSize);
     write32(minf, 0x6D696E66); // 'minf'
-    write32(minf, vmhdSize);
-    minf.insert(minf.end(), vmhd.begin(), vmhd.end());
+    minf.insert(minf.end(), vmhdBox.begin(), vmhdBox.end());
     minf.insert(minf.end(), dinf.begin(), dinf.end());
     minf.insert(minf.end(), stbl.begin(), stbl.end());
     
