@@ -162,6 +162,36 @@ bool QuickTimeMuxer::writeMoovBox() {
         m_width, m_height, m_fps, m_frameCount
     );
     
+    // Update stsz entry_sizes with actual frame sizes from m_frames
+    // Find 'stsz' box and update entries
+    bool stszFound = false;
+    for (size_t i = 0; i + 20 + m_frames.size() * 4 <= moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
+            // Found 'stsz', update entries
+            size_t entriesStart = i + 16; // After 'stsz' + version/flags + sample_size + sample_count
+            
+            for (size_t j = 0; j < m_frames.size(); j++) {
+                size_t entryPos = entriesStart + j * 4;
+                if (entryPos + 4 <= moovBox.size()) {
+                    uint32_t frameSize = m_frames[j].size;
+                    moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
+                    moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
+                    moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
+                    moovBox[entryPos+3] = frameSize & 0xFF;
+                }
+            }
+            
+            stszFound = true;
+            LOG(DEBUG) << "[QuickTimeMuxer] Updated stsz with " << m_frames.size() << " frame sizes";
+            break;
+        }
+    }
+    
+    if (!stszFound) {
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
+    }
+    
     // Write moov at the end of file
     written = write(m_fd, moovBox.data(), moovBox.size());
     if (written != static_cast<ssize_t>(moovBox.size())) {
