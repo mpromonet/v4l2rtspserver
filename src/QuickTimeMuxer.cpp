@@ -281,7 +281,7 @@ std::vector<uint8_t> QuickTimeMuxer::createFtypBox() {
     LOG(DEBUG) << "[createFtypBox] Starting ftyp creation";
     
     // Box size (32 bytes total)
-    write32(box, 32);
+    write32(box, 24);
     LOG(DEBUG) << "[createFtypBox] After size: box.size()=" << box.size();
     
     // Box type: 'ftyp'
