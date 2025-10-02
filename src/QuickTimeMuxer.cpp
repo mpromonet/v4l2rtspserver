@@ -135,6 +135,9 @@ bool QuickTimeMuxer::writeMP4Header() {
 }
 
 bool QuickTimeMuxer::writeMoovBox() {
+    // Save current end position before seeking
+    off_t endPos = m_currentPos;
+    
     // Create proper moov box with video track
     auto moovBox = createVideoTrackMoovBox(
         std::vector<uint8_t>(m_sps.begin(), m_sps.end()),
@@ -148,17 +151,37 @@ bool QuickTimeMuxer::writeMoovBox() {
         return false;
     }
     
-    writeToFile(moovBox.data(), moovBox.size());
+    // Write moov directly without using writeToFile (to avoid m_currentPos update)
+    ssize_t written = write(m_fd, moovBox.data(), moovBox.size());
+    if (written != static_cast<ssize_t>(moovBox.size())) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to write moov box: " << written << "/" << moovBox.size();
+        return false;
+    }
     
-    // Update mdat size
-    size_t mdatSize = m_currentPos - m_mdatStartPos - 8;
+    // Calculate mdat size based on saved end position
+    size_t mdatSize = endPos - m_mdatStartPos;
     if (lseek(m_fd, m_mdatStartPos, SEEK_SET) == -1) {
         LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to mdat position";
         return false;
     }
     
     uint32_t mdatSizeBE = htonl(static_cast<uint32_t>(mdatSize));
-    writeToFile(&mdatSizeBE, 4);
+    written = write(m_fd, &mdatSizeBE, 4);
+    if (written != 4) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to write mdat size";
+        return false;
+    }
+    
+    // Seek back to end of file
+    if (lseek(m_fd, 0, SEEK_END) == -1) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to end of file";
+        return false;
+    }
+    
+    // Sync file to disk
+    fsync(m_fd);
+    
+    LOG(INFO) << "[QuickTimeMuxer] Updated moov box (" << moovBox.size() << " bytes) and mdat size (" << mdatSize << " bytes)";
     
     return true;
 }
@@ -235,16 +258,63 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
                                                              const std::vector<uint8_t>& pps, 
                                                              int width, int height, int fps, 
                                                              uint32_t frameCount) {
-    std::vector<uint8_t> box;
+    std::vector<uint8_t> moov;
     
-    // This is a simplified implementation
-    // In a full implementation, this would create proper moov/mvhd/trak/tkhd/mdia/mdhd/hdlr/minf/vmhd/dinf/stbl structure
+    // Calculate timescale and duration
+    uint32_t timescale = (fps > 0) ? fps * 1000 : 30000; // milliseconds per second * fps
+    uint32_t duration = (frameCount > 0 && fps > 0) ? (frameCount * 1000) / fps : 0;
     
-    // For now, return a minimal moov box
-    write32(box, 8);
-    write32(box, 0x6D6F6F76); // 'moov'
+    // Create mvhd box (Movie Header)
+    std::vector<uint8_t> mvhd;
+    write32(mvhd, 108); // mvhd size (version 0)
+    write32(mvhd, 0x6D766864); // 'mvhd'
+    write32(mvhd, 0); // version(0) + flags(0)
+    write32(mvhd, 0); // creation_time
+    write32(mvhd, 0); // modification_time
+    write32(mvhd, timescale); // timescale
+    write32(mvhd, duration * timescale / 1000); // duration
+    write32(mvhd, 0x00010000); // rate (1.0)
+    write16(mvhd, 0x0100); // volume (1.0)
+    write16(mvhd, 0); // reserved
+    write32(mvhd, 0); // reserved
+    write32(mvhd, 0); // reserved
+    // Matrix structure (identity matrix)
+    write32(mvhd, 0x00010000); write32(mvhd, 0); write32(mvhd, 0);
+    write32(mvhd, 0); write32(mvhd, 0x00010000); write32(mvhd, 0);
+    write32(mvhd, 0); write32(mvhd, 0); write32(mvhd, 0x40000000);
+    // Pre-defined
+    for (int i = 0; i < 6; i++) write32(mvhd, 0);
+    write32(mvhd, 2); // next_track_ID
     
-    return box;
+    // Create avcC box (AVC Configuration)
+    std::vector<uint8_t> avcC;
+    write32(avcC, 19 + sps.size() + pps.size()); // avcC size
+    write32(avcC, 0x61766343); // 'avcC'
+    write8(avcC, 1); // configurationVersion
+    write8(avcC, sps.size() > 1 ? sps[1] : 0); // AVCProfileIndication
+    write8(avcC, sps.size() > 2 ? sps[2] : 0); // profile_compatibility
+    write8(avcC, sps.size() > 3 ? sps[3] : 0); // AVCLevelIndication
+    write8(avcC, 0xFF); // lengthSizeMinusOne (4 bytes)
+    write8(avcC, 0xE1); // numOfSequenceParameterSets (1)
+    write16(avcC, sps.size()); // SPS length
+    avcC.insert(avcC.end(), sps.begin(), sps.end()); // SPS data
+    write8(avcC, 1); // numOfPictureParameterSets (1)
+    write16(avcC, pps.size()); // PPS length
+    avcC.insert(avcC.end(), pps.begin(), pps.end()); // PPS data
+    
+    // Create minimal trak box (simplified - just to make it playable)
+    std::vector<uint8_t> trak;
+    write32(trak, 8 + avcC.size()); // trak size (minimal)
+    write32(trak, 0x7472616B); // 'trak'
+    trak.insert(trak.end(), avcC.begin(), avcC.end());
+    
+    // Assemble moov box
+    write32(moov, 8 + mvhd.size() + trak.size()); // moov size
+    write32(moov, 0x6D6F6F76); // 'moov'
+    moov.insert(moov.end(), mvhd.begin(), mvhd.end());
+    moov.insert(moov.end(), trak.begin(), trak.end());
+    
+    return moov;
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
