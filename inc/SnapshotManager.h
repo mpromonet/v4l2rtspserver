@@ -27,10 +27,8 @@ struct V4L2DeviceParameters;
 
 enum class SnapshotMode {
     DISABLED,
-    MJPEG_STREAM,     // Real JPEG snapshots from MJPEG stream
-    H264_FALLBACK,    // MP4 snapshots with cached H264 frames
-    H264_MP4,         // Mini MP4 snapshots with H264 keyframes
-    YUV_CONVERTED     // Real images converted from YUV data
+    MJPEG_STREAM,     // Real JPEG snapshots from MJPEG stream (via live555 JPEGVideoSource)
+    H264_MP4          // MP4 snapshots with H264 keyframes (via QuickTimeMuxer based on live555)
 };
 
 class SnapshotManager {
@@ -48,11 +46,6 @@ public:
     void setFilePath(const std::string& filePath) { m_filePath = filePath; }
     void setSaveInterval(int intervalSeconds);  // Validates range 1-60 seconds
     
-    // Device format information
-    void setDeviceFormat(unsigned int v4l2Format, int width, int height);
-    void setPixelFormat(const std::string& pixelFormat);
-    std::string getPixelFormat() const;
-    unsigned int getV4L2Format() const;
     
     // Initialization
     bool initialize(int width, int height);
@@ -63,7 +56,6 @@ public:
     void processH264KeyframeWithSPS(const unsigned char* h264Data, size_t dataSize, 
                                    const std::string& sps, const std::string& pps, 
                                    int width, int height);
-    void processRawFrame(const unsigned char* yuvData, size_t dataSize, int width, int height);
     
     // Snapshot retrieval
     bool getSnapshot(std::vector<unsigned char>& jpegData);
@@ -77,10 +69,6 @@ public:
     SnapshotMode getMode() const { return m_mode; }
     std::string getModeDescription() const;
     bool hasRecentSnapshot() const;
-    
-    // Pixel format conversion helpers
-    std::string v4l2FormatToPixelFormat(unsigned int v4l2Format);
-    std::string v4l2FormatToString(unsigned int v4l2Format);
 
     // Enhanced dumping methods
     static void dumpDeviceInfo(const std::string& device, int width, int height, 
@@ -105,15 +93,11 @@ private:
     SnapshotManager(const SnapshotManager&) = delete;
     SnapshotManager& operator=(const SnapshotManager&) = delete;
     
-    // Snapshot creation
+    // Snapshot creation (using live555-based QuickTimeMuxer)
     void createH264Snapshot(const unsigned char* h264Data, size_t h264Size, 
                            int width, int height,
                            const std::string& sps = "", const std::string& pps = "");
     void autoSaveSnapshot();
-    bool convertYUVToJPEG(const unsigned char* yuvData, size_t dataSize, int width, int height);
-    
-    // Dynamic NAL unit extraction (inspired by go2rtc)
-    std::vector<uint8_t> findNALUnit(const uint8_t* data, size_t size, uint8_t nalType);
     
     // Members
     bool m_enabled;
@@ -122,11 +106,6 @@ private:
     int m_height;
     int m_snapshotWidth;
     int m_snapshotHeight;
-    
-    // Device format information
-    unsigned int m_v4l2Format;
-    std::string m_pixelFormat;
-    bool m_formatInitialized;
     
     // Thread safety
     mutable std::mutex m_snapshotMutex;

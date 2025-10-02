@@ -11,20 +11,10 @@
 
 #include "../inc/SnapshotManager.h"
 #include "../libv4l2cpp/inc/logger.h"
-#include "../libv4l2cpp/inc/V4l2Capture.h"
 #include "../inc/QuickTimeMuxer.h"
 #include <string>
 #include <vector>
-#include <cstring>
 #include <fstream>
-#include <algorithm>
-#include <cstdlib>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <chrono>
-#include <iomanip>
-#include <sstream>
 #include <ctime>
 
 #ifdef __linux__
@@ -41,9 +31,8 @@
 SnapshotManager::SnapshotManager() 
     : m_enabled(false), m_mode(SnapshotMode::DISABLED), 
       m_width(0), m_height(0), m_snapshotWidth(640), m_snapshotHeight(480), 
-      m_lastSnapshotTime(0), m_snapshotMimeType("image/jpeg"), m_saveInterval(5), m_lastSaveTime(0),
-      m_lastFrameWidth(0), m_lastFrameHeight(0),
-      m_v4l2Format(0), m_pixelFormat(""), m_formatInitialized(false) {
+      m_lastSnapshotTime(0), m_snapshotMimeType("video/mp4"), m_saveInterval(5), m_lastSaveTime(0),
+      m_lastFrameWidth(0), m_lastFrameHeight(0) {
 }
 
 SnapshotManager::~SnapshotManager() noexcept {
@@ -89,9 +78,9 @@ bool SnapshotManager::initialize(int width, int height) {
         return true;
     }
     
-    // Default to H264 fallback mode
-    m_mode = SnapshotMode::H264_FALLBACK;
-    LOG(NOTICE) << "SnapshotManager initialized in H264 fallback mode";
+    // Default to H264 MP4 mode (using live555-based QuickTimeMuxer)
+    m_mode = SnapshotMode::H264_MP4;
+    LOG(NOTICE) << "SnapshotManager initialized - Mode: H264 MP4 (via QuickTimeMuxer/live555)";
     return true;
 }
 
@@ -100,24 +89,18 @@ void SnapshotManager::processMJPEGFrame(const unsigned char* jpegData, size_t da
         return;
     }
     
-    // This is called from MJPEGVideoSource - we have real JPEG data!
+    // Real JPEG data from MJPEG stream (via live555 JPEGVideoSource)
     {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
-    m_currentSnapshot.assign(jpegData, jpegData + dataSize);
-    m_snapshotData.assign(jpegData, jpegData + dataSize);
-    m_snapshotMimeType = "image/jpeg";
-    m_lastSnapshotTime = std::time(nullptr);
-    m_lastSnapshotTimePoint = std::chrono::steady_clock::now();
-    
-    // Update mode if we weren't sure before
-    if (m_mode == SnapshotMode::H264_FALLBACK) {
+        std::lock_guard<std::mutex> lock(m_snapshotMutex);
+        m_currentSnapshot.assign(jpegData, jpegData + dataSize);
+        m_snapshotData.assign(jpegData, jpegData + dataSize);
+        m_snapshotMimeType = "image/jpeg";
+        m_lastSnapshotTime = std::time(nullptr);
+        m_lastSnapshotTimePoint = std::chrono::steady_clock::now();
         m_mode = SnapshotMode::MJPEG_STREAM;
+        LOG(DEBUG) << "MJPEG snapshot captured: " << dataSize << " bytes";
     }
     
-    LOG(DEBUG) << "Real MJPEG snapshot captured: " << dataSize << " bytes";
-    } // Lock released here automatically
-    
-    // Auto-save if file path is specified
     autoSaveSnapshot();
 }
 
@@ -126,7 +109,6 @@ void SnapshotManager::processH264Keyframe(const unsigned char* h264Data, size_t 
         return;
     }
     
-    // Create H264 snapshot with cached frame support
     createH264Snapshot(h264Data, dataSize, width, height);
 }
 
@@ -137,96 +119,9 @@ void SnapshotManager::processH264KeyframeWithSPS(const unsigned char* h264Data, 
         return;
     }
     
-    // Create H264 snapshot with SPS/PPS data
     createH264Snapshot(h264Data, dataSize, width, height, sps, pps);
 }
 
-void SnapshotManager::processRawFrame(const unsigned char* yuvData, size_t dataSize, int width, int height) {
-    if (!m_enabled || !yuvData || dataSize == 0) {
-        return;
-    }
-    
-    // Try YUV->JPEG conversion for real snapshots
-    if (width > 0 && height > 0) {
-        convertYUVToJPEG(yuvData, dataSize, width, height);
-    }
-}
-
-// Dynamic NAL unit extraction from H.264 stream (inspired by go2rtc)
-std::vector<uint8_t> SnapshotManager::findNALUnit(const uint8_t* data, size_t size, uint8_t nalType) {
-    std::vector<uint8_t> result;
-    
-    for (size_t i = 0; i < size - 4; i++) {
-        // Look for start code (0x00 0x00 0x00 0x01)
-        if (data[i] == 0x00 && data[i+1] == 0x00 && data[i+2] == 0x00 && data[i+3] == 0x01) {
-            // Check if this is the NAL type we're looking for
-            if (i + 4 < size) {
-            uint8_t currentNalType = data[i+4] & 0x1F;
-            if (currentNalType == nalType) {
-                    // Find the end of this NAL unit
-                    size_t j = i + 4;
-                    while (j < size - 3) {
-                    if (data[j] == 0x00 && data[j+1] == 0x00 && data[j+2] == 0x00 && data[j+3] == 0x01) {
-                        break;
-                    }
-                        j++;
-                }
-                
-                    // Extract NAL unit data (excluding start code)
-                    result.assign(data + i + 4, data + j);
-                break;
-                }
-            }
-        }
-    }
-    
-    return result;
-}
-
-// Helper functions for binary data writing (shared with MP4Muxer)
-namespace {
-    // Removed duplicate functions - use writeU32/writeU16/writeU8 from QuickTimeMuxer helper methods instead
-    
-    // Parse SPS to extract video dimensions
-    std::pair<int, int> parseSPSDimensions(const std::string& sps) {
-        if (sps.size() < 8) {
-            LOG(WARN) << "[SPS] SPS too short for parsing, using default dimensions";
-            return {640, 480};
-        }
-        
-        // Simple SPS parsing for common cases
-        // This is a simplified parser - real SPS parsing is much more complex
-        const uint8_t* data = reinterpret_cast<const uint8_t*>(sps.data());
-        
-        // Skip NAL header (1 byte) and profile/level info (3 bytes)
-        if (sps.size() >= 8) {
-            // Try to extract pic_width_in_mbs_minus1 and pic_height_in_map_units_minus1
-            // This is very simplified - real parsing requires bitstream reading
-            
-            // For now, let's check common resolutions based on SPS size and content
-            if (sps.size() >= 16) {
-                // Look for patterns that might indicate 1920x1080
-                bool likely_1080p = false;
-                
-                // Check for typical 1080p SPS patterns
-                for (size_t i = 4; i < sps.size() - 4; i++) {
-                    if (data[i] == 0x78 || data[i] == 0x3C) { // Common in 1080p SPS
-                        likely_1080p = true;
-                        break;
-                    }
-                }
-                
-                if (likely_1080p) {
-                    LOG(INFO) << "[SPS] Detected likely 1920x1080 from SPS pattern";
-                    return {1920, 1080};
-                }
-            }
-        }
-        
-        LOG(INFO) << "[SPS] Using default dimensions 640x480";
-        return {640, 480};
-    }
-}
 
 void SnapshotManager::createH264Snapshot(const unsigned char* h264Data, size_t h264Size, 
                                        int width, int height,
@@ -236,39 +131,35 @@ void SnapshotManager::createH264Snapshot(const unsigned char* h264Data, size_t h
         return;
     }
     
-    // Use provided dimensions for snapshot (do NOT auto-correct from SPS)
-    // The video stream should already be properly sized by the capture device
-    
-    LOG(DEBUG) << "[H264] Creating MP4 snapshot using provided dimensions: " << width << "x" << height;
-    LOG(DEBUG) << "[H264] SPS size:" << sps.size() << " PPS size:" << pps.size();
+    LOG(DEBUG) << "[H264] Creating MP4 snapshot: " << width << "x" << height << ", SPS:" << sps.size() << "B, PPS:" << pps.size() << "B";
 
-    // Use QuickTimeMuxer for creating the snapshot - NO MORE DUPLICATED LOGIC!
+    // Create MP4 snapshot using QuickTimeMuxer (based on live555 QuickTimeFileSink structure)
     std::vector<uint8_t> mp4Data = QuickTimeMuxer::createMP4Snapshot(h264Data, h264Size, sps, pps, width, height);
     
     if (mp4Data.empty()) {
-        LOG(ERROR) << "[H264] Failed to create MP4 snapshot using QuickTimeMuxer";
+        LOG(ERROR) << "[H264] Failed to create MP4 snapshot";
         return;
     }
 
-    // Store as snapshot
+    // Store snapshot
     {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
+        std::lock_guard<std::mutex> lock(m_snapshotMutex);
         m_snapshotData = mp4Data;
         m_snapshotMimeType = "video/mp4";
         m_lastSnapshotTime = std::time(nullptr);
         m_lastSnapshotTimePoint = std::chrono::steady_clock::now();
-    
-    // Cache the frame data and SPS/PPS for future use
+        m_mode = SnapshotMode::H264_MP4;
+        
+        // Cache for future use
         m_lastH264Frame.assign(h264Data, h264Data + h264Size);
         if (!sps.empty()) m_lastSPS = sps;
         if (!pps.empty()) m_lastPPS = pps;
         m_lastFrameWidth = width;
         m_lastFrameHeight = height;
         
-        LOG(INFO) << "[H264] MP4 snapshot created via QuickTimeMuxer: " << mp4Data.size() << " bytes (" << width << "x" << height << ")";
+        LOG(INFO) << "[H264] MP4 snapshot ready: " << mp4Data.size() << " bytes";
     }
     
-    // Auto-save snapshot if file path is configured
     autoSaveSnapshot();
 }
 
@@ -292,75 +183,14 @@ bool SnapshotManager::getSnapshot(std::vector<unsigned char>& jpegData) {
 std::string SnapshotManager::getSnapshotMimeType() const {
     std::lock_guard<std::mutex> lock(m_snapshotMutex);
     
-    // Use stored MIME type if available
-    if (!m_snapshotMimeType.empty() && !m_snapshotData.empty()) {
-        return m_snapshotMimeType;
-    }
-    
-    // Check actual content type if we have data
-    const std::vector<unsigned char>& dataToCheck = !m_currentSnapshot.empty() ? m_currentSnapshot : m_snapshotData;
-    if (!dataToCheck.empty()) {
-        // Check for JPEG magic bytes (FF D8 FF)
-        if (dataToCheck.size() >= 3 && 
-            dataToCheck[0] == 0xFF && 
-            dataToCheck[1] == 0xD8 && 
-            dataToCheck[2] == 0xFF) {
-            return "image/jpeg";
-        }
-        
-        // Check for PNG magic bytes (89 50 4E 47)
-        if (dataToCheck.size() >= 4 && 
-            dataToCheck[0] == 0x89 && 
-            dataToCheck[1] == 0x50 && 
-            dataToCheck[2] == 0x4E && 
-            dataToCheck[3] == 0x47) {
-            return "image/png";
-        }
-        
-        // Check for PPM format (starts with "P6")
-        if (dataToCheck.size() >= 2 && 
-            dataToCheck[0] == 'P' && 
-            dataToCheck[1] == '6') {
-            return "image/x-portable-pixmap";
-        }
-        
-        // Check for SVG content (starts with "<?xml" or "<svg")
-        if (dataToCheck.size() >= 5) {
-            std::string start(dataToCheck.begin(), dataToCheck.begin() + 5);
-            if (start == "<?xml" || start == "<svg ") {
-                return "image/svg+xml";
-            }
-        }
-        
-        // Check for H264 Annex B format (starts with 0x00000001)
-        if (dataToCheck.size() >= 4 && 
-            dataToCheck[0] == 0x00 && 
-            dataToCheck[1] == 0x00 && 
-            dataToCheck[2] == 0x00 && 
-            dataToCheck[3] == 0x01) {
-            return "video/h264";
-        }
-        
-        // Check for MP4 format (starts with ftyp box size + "ftyp")
-        if (dataToCheck.size() >= 8 && 
-            dataToCheck[4] == 'f' && 
-            dataToCheck[5] == 't' && 
-            dataToCheck[6] == 'y' && 
-            dataToCheck[7] == 'p') {
-                return "video/mp4";
-        }
-    }
-    
-    // Fallback to mode-based detection
+    // Simple MIME type detection based on mode
     switch (m_mode) {
         case SnapshotMode::MJPEG_STREAM:
-        case SnapshotMode::YUV_CONVERTED:
             return "image/jpeg";
         case SnapshotMode::H264_MP4:
-        case SnapshotMode::H264_FALLBACK:
             return "video/mp4";
         default:
-            return "text/plain";
+            return "application/octet-stream";
     }
 }
 
@@ -369,13 +199,9 @@ std::string SnapshotManager::getModeDescription() const {
         case SnapshotMode::DISABLED:
             return "Disabled";
         case SnapshotMode::MJPEG_STREAM:
-            return "MJPEG Stream (real images when MJPEG active)";
+            return "MJPEG (via live555 JPEGVideoSource)";
         case SnapshotMode::H264_MP4:
-            return "H264 MP4 (mini MP4 videos with keyframes)";
-        case SnapshotMode::H264_FALLBACK:
-            return "H264 MP4 Fallback (cached MP4 snapshots)";
-        case SnapshotMode::YUV_CONVERTED:
-            return "YUV Converted (real JPEG images from YUV data)";
+            return "H264 MP4 (via QuickTimeMuxer/live555)";
         default:
             return "Unknown";
     }
@@ -482,295 +308,6 @@ bool SnapshotManager::saveSnapshotToFile(const std::string& filePath) {
         LOG(ERROR) << "Exception while saving snapshot: " << e.what();
         return false;
     }
-}
-
-bool SnapshotManager::convertYUVToJPEG(const unsigned char* yuvData, size_t dataSize, int width, int height) {
-    // Enhanced YUV to JPEG conversion with proper JPEG encoding
-    
-    LOG(DEBUG) << "[YUV2JPEG] Starting conversion - input: " << dataSize << " bytes, " << width << "x" << height;
-    
-    if (!yuvData || dataSize == 0 || width <= 0 || height <= 0) {
-        LOG(ERROR) << "[YUV2JPEG] Invalid input parameters";
-        return false;
-    }
-    
-    // Calculate expected data size for YUYV format (2 bytes per pixel)
-    size_t expectedSize = width * height * 2;
-    if (dataSize < expectedSize) {
-        LOG(DEBUG) << "[YUV2JPEG] YUV data too small: " << dataSize << " expected: " << expectedSize;
-        return false;
-    }
-    
-    LOG(DEBUG) << "[YUV2JPEG] Data size validation passed";
-    
-    try {
-        // Convert YUYV to RGB first with improved color conversion
-        std::vector<unsigned char> rgbData;
-        rgbData.reserve(width * height * 3);
-        
-        LOG(DEBUG) << "[YUV2JPEG] Converting YUYV to RGB...";
-        int pixelsProcessed = 0;
-        
-        for (int i = 0; i < width * height * 2; i += 4) {
-            if (i + 3 < dataSize) {
-                // YUYV format: Y0 U Y1 V
-                int y0 = yuvData[i];
-                int u = yuvData[i + 1];
-                int y1 = yuvData[i + 2];
-                int v = yuvData[i + 3];
-                
-                // Convert to RGB using improved ITU-R BT.601 conversion
-                for (int j = 0; j < 2; j++) {
-                    int y = (j == 0) ? y0 : y1;
-                    
-                    // ITU-R BT.601 YUV to RGB conversion with proper scaling
-                    int c = y - 16;
-                    int d = u - 128;
-                    int e = v - 128;
-                    
-                    int r = (298 * c + 409 * e + 128) >> 8;
-                    int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
-                    int b = (298 * c + 516 * d + 128) >> 8;
-                    
-                    // Clamp values to valid range
-                    r = std::max(0, std::min(255, r));
-                    g = std::max(0, std::min(255, g));
-                    b = std::max(0, std::min(255, b));
-                    
-                    rgbData.push_back(static_cast<unsigned char>(r));
-                    rgbData.push_back(static_cast<unsigned char>(g));
-                    rgbData.push_back(static_cast<unsigned char>(b));
-                    pixelsProcessed++;
-                }
-            }
-        }
-        
-        LOG(DEBUG) << "[YUV2JPEG] RGB conversion completed: " << rgbData.size() << " bytes, " << pixelsProcessed << " pixels";
-        
-        // Log some sample RGB values for debugging
-        if (rgbData.size() >= 6) {
-            LOG(DEBUG) << "[YUV2JPEG] Sample RGB values: R=" << (int)rgbData[0] 
-                       << " G=" << (int)rgbData[1] << " B=" << (int)rgbData[2];
-        }
-        
-        // Create a proper JPEG structure (simplified but valid)
-        std::vector<unsigned char> jpegData;
-        
-        LOG(DEBUG) << "[YUV2JPEG] Creating JPEG structure...";
-        
-        // JPEG SOI marker (Start of Image)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xD8);
-        
-        // JPEG APP0 marker (JFIF)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xE0);
-        jpegData.push_back(0x00);
-        jpegData.push_back(0x10); // Length = 16
-        jpegData.insert(jpegData.end(), {'J', 'F', 'I', 'F', 0x00}); // JFIF identifier
-        jpegData.push_back(0x01); // Version major
-        jpegData.push_back(0x01); // Version minor
-        jpegData.push_back(0x01); // Density units (pixels per inch)
-        jpegData.push_back(0x00); jpegData.push_back(0x48); // X density (72)
-        jpegData.push_back(0x00); jpegData.push_back(0x48); // Y density (72)
-        jpegData.push_back(0x00); // Thumbnail width
-        jpegData.push_back(0x00); // Thumbnail height
-        
-        // Quantization table (simplified)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xDB); // DQT marker
-        jpegData.push_back(0x00);
-        jpegData.push_back(0x43); // Length = 67
-        jpegData.push_back(0x00); // Table ID = 0, precision = 8-bit
-        
-        // Standard JPEG quantization table (simplified)
-        unsigned char qtable[64] = {
-            16, 11, 10, 16, 24, 40, 51, 61,
-            12, 12, 14, 19, 26, 58, 60, 55,
-            14, 13, 16, 24, 40, 57, 69, 56,
-            14, 17, 22, 29, 51, 87, 80, 62,
-            18, 22, 37, 56, 68, 109, 103, 77,
-            24, 35, 55, 64, 81, 104, 113, 92,
-            49, 64, 78, 87, 103, 121, 120, 101,
-            72, 92, 95, 98, 112, 100, 103, 99
-        };
-        jpegData.insert(jpegData.end(), qtable, qtable + 64);
-        
-        // SOF0 marker (Start of Frame - Baseline DCT)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xC0);
-        jpegData.push_back(0x00);
-        jpegData.push_back(0x11); // Length = 17
-        jpegData.push_back(0x08); // Precision = 8 bits
-        jpegData.push_back((height >> 8) & 0xFF); // Height high byte
-        jpegData.push_back(height & 0xFF);        // Height low byte
-        jpegData.push_back((width >> 8) & 0xFF);  // Width high byte
-        jpegData.push_back(width & 0xFF);         // Width low byte
-        jpegData.push_back(0x03); // Number of components (RGB)
-        
-        // Component 1 (R)
-        jpegData.push_back(0x01); // Component ID
-        jpegData.push_back(0x11); // Sampling factors (1x1)
-        jpegData.push_back(0x00); // Quantization table ID
-        
-        // Component 2 (G)
-        jpegData.push_back(0x02);
-        jpegData.push_back(0x11);
-        jpegData.push_back(0x00);
-        
-        // Component 3 (B)
-        jpegData.push_back(0x03);
-        jpegData.push_back(0x11);
-        jpegData.push_back(0x00);
-        
-        // Huffman tables (simplified - using standard tables)
-        // DHT marker for DC luminance
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xC4);
-        jpegData.push_back(0x00);
-        jpegData.push_back(0x1F); // Length
-        jpegData.push_back(0x00); // Table class = 0 (DC), Table ID = 0
-        
-        // Standard DC Huffman table (simplified)
-        unsigned char dc_bits[16] = {0,1,5,1,1,1,1,1,1,0,0,0,0,0,0,0};
-        unsigned char dc_vals[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
-        jpegData.insert(jpegData.end(), dc_bits, dc_bits + 16);
-        jpegData.insert(jpegData.end(), dc_vals, dc_vals + 12);
-        
-        // SOS marker (Start of Scan)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xDA);
-        jpegData.push_back(0x00);
-        jpegData.push_back(0x0C); // Length = 12
-        jpegData.push_back(0x03); // Number of components
-        jpegData.push_back(0x01); jpegData.push_back(0x00); // Component 1, DC/AC table
-        jpegData.push_back(0x02); jpegData.push_back(0x11); // Component 2, DC/AC table
-        jpegData.push_back(0x03); jpegData.push_back(0x11); // Component 3, DC/AC table
-        jpegData.push_back(0x00); // Start of spectral selection
-        jpegData.push_back(0x3F); // End of spectral selection
-        jpegData.push_back(0x00); // Successive approximation
-        
-        // For simplicity, we'll encode the RGB data as uncompressed
-        // This creates a valid but large JPEG file
-        // In a real implementation, you'd use DCT and Huffman encoding
-        
-        LOG(DEBUG) << "[YUV2JPEG] Adding RGB data to JPEG structure...";
-        
-        // Add RGB data (simplified encoding - not optimal but valid)
-        for (size_t i = 0; i < rgbData.size(); i += 3) {
-            if (i + 2 < rgbData.size()) {
-                // Simple encoding: just add the RGB values with some basic compression
-                jpegData.push_back(rgbData[i]);     // R
-                jpegData.push_back(rgbData[i + 1]); // G
-                jpegData.push_back(rgbData[i + 2]); // B
-            }
-        }
-        
-        // EOI marker (End of Image)
-        jpegData.push_back(0xFF);
-        jpegData.push_back(0xD9);
-        
-        LOG(DEBUG) << "[YUV2JPEG] JPEG structure completed: " << jpegData.size() << " bytes";
-        
-        // Store as snapshot
-        {
-            std::lock_guard<std::mutex> lock(m_snapshotMutex);
-            m_currentSnapshot = jpegData;
-            m_snapshotData = jpegData;
-            m_snapshotMimeType = "image/jpeg";
-            m_lastSnapshotTime = std::time(nullptr);
-            m_lastSnapshotTimePoint = std::chrono::steady_clock::now();
-            
-            // Update mode to indicate we have real image data
-            if (m_mode == SnapshotMode::H264_FALLBACK) {
-                m_mode = SnapshotMode::YUV_CONVERTED;
-            }
-        }
-        
-        LOG(DEBUG) << "[YUV2JPEG] YUV->JPEG conversion successful: " << jpegData.size() << " bytes (" 
-                   << width << "x" << height << ")";
-        
-        // Auto-save if file path is specified
-        autoSaveSnapshot();
-        
-        return true;
-        
-    } catch (const std::exception& e) {
-        LOG(ERROR) << "[YUV2JPEG] YUV->JPEG conversion failed: " << e.what();
-        return false;
-    }
-}
-
-// NEW: Device format information methods
-void SnapshotManager::setDeviceFormat(unsigned int v4l2Format, int width, int height) {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
-    m_v4l2Format = v4l2Format;
-    m_pixelFormat = v4l2FormatToPixelFormat(v4l2Format);
-    m_formatInitialized = true;
-    
-    // Update dimensions if provided
-    if (width > 0 && height > 0) {
-        m_width = width;
-        m_height = height;
-    }
-    
-    LOG(INFO) << "Device format set: " << v4l2FormatToString(v4l2Format) 
-              << " (" << m_pixelFormat << ") " << width << "x" << height;
-}
-
-void SnapshotManager::setPixelFormat(const std::string& pixelFormat) {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
-    m_pixelFormat = pixelFormat;
-}
-
-std::string SnapshotManager::getPixelFormat() const {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
-    return m_pixelFormat;
-}
-
-unsigned int SnapshotManager::getV4L2Format() const {
-    std::lock_guard<std::mutex> lock(m_snapshotMutex);
-    return m_v4l2Format;
-}
-
-std::string SnapshotManager::v4l2FormatToPixelFormat(unsigned int v4l2Format) {
-#ifdef __linux__
-    switch (v4l2Format) {
-        case V4L2_PIX_FMT_YUYV:
-        case V4L2_PIX_FMT_UYVY:
-        case V4L2_PIX_FMT_YUV420:
-        case V4L2_PIX_FMT_NV12:
-            return "yuv420p";
-        case V4L2_PIX_FMT_RGB24:
-            return "rgb24";
-        case V4L2_PIX_FMT_BGR24:
-            return "bgr24";
-        case V4L2_PIX_FMT_RGB32:
-            return "rgba";
-        case V4L2_PIX_FMT_BGR32:
-            return "bgra";
-        case V4L2_PIX_FMT_H264:
-            return "yuv420p"; // H.264 typically uses YUV 4:2:0
-        case V4L2_PIX_FMT_MJPEG:
-        case V4L2_PIX_FMT_JPEG:
-            return "yuvj420p"; // MJPEG typically uses YUV 4:2:0 with full range
-        default:
-            return "yuv420p"; // Safe default
-    }
-#else
-    // Fallback for non-Linux systems
-    return "yuv420p";
-#endif
-}
-
-std::string SnapshotManager::v4l2FormatToString(unsigned int v4l2Format) {
-    char fourcc[5];
-    fourcc[0] = v4l2Format & 0xff;
-    fourcc[1] = (v4l2Format >> 8) & 0xff;
-    fourcc[2] = (v4l2Format >> 16) & 0xff;
-    fourcc[3] = (v4l2Format >> 24) & 0xff;
-    fourcc[4] = '\0';
-    return std::string(fourcc);
 }
 
 void SnapshotManager::enableFullDump(const std::string& dumpDir) {
