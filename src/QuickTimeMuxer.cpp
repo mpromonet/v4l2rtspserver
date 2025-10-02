@@ -642,39 +642,51 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(avcCBox, 0x61766343); // 'avcC'
     avcCBox.insert(avcCBox.end(), avcC.begin(), avcC.end());
     
+    // Build avc1 sample entry (following old MP4Muxer.cpp structure exactly)
     std::vector<uint8_t> avc1;
-    write32(avc1, 0x61766331); // 'avc1'
-    write32(avc1, 0); write16(avc1, 0); // reserved[6]
+    write32(avc1, 0); // size placeholder
+    avc1.insert(avc1.end(), {'a', 'v', 'c', '1'});
+    // reserved[6]
+    for (int i = 0; i < 6; i++) write8(avc1, 0);
     write16(avc1, 1); // data_reference_index
-    write16(avc1, 0); write16(avc1, 0); // pre_defined, reserved
-    write32(avc1, 0); write32(avc1, 0); write32(avc1, 0); // pre_defined[3]
+    // pre_defined and reserved[16]
+    for (int i = 0; i < 16; i++) write8(avc1, 0);
     write16(avc1, width); // width
     write16(avc1, height); // height
     write32(avc1, 0x00480000); // horizresolution
     write32(avc1, 0x00480000); // vertresolution
     write32(avc1, 0); // reserved
     write16(avc1, 1); // frame_count
-    for (int i = 0; i < 32; i++) write8(avc1, 0); // compressorname[32]
+    // compressorname[32]
+    for (int i = 0; i < 32; i++) write8(avc1, 0);
     write16(avc1, 0x0018); // depth
     write16(avc1, 0xFFFF); // pre_defined
+    
+    // Add avcC box
     avc1.insert(avc1.end(), avcCBox.begin(), avcCBox.end());
     
-    // Add btrt (Bit Rate box) - required by some players
-    write32(avc1, 20); // btrt size
-    write32(avc1, 0x62747274); // 'btrt'
-    write32(avc1, 0); // bufferSizeDB
-    write32(avc1, 0); // maxBitrate (0 = unknown)
-    write32(avc1, 0); // avgBitrate (0 = unknown)
+    // Update avc1 size
+    uint32_t avc1Size = avc1.size();
+    avc1[0] = (avc1Size >> 24) & 0xFF;
+    avc1[1] = (avc1Size >> 16) & 0xFF;
+    avc1[2] = (avc1Size >> 8) & 0xFF;
+    avc1[3] = avc1Size & 0xFF;
     
-    uint32_t avc1Size = 4 + avc1.size(); // size(4) + [type+content already in avc1]
-    
+    // Build stsd (Sample Description box)
     std::vector<uint8_t> stsd;
-    write32(stsd, 0x73747364); // 'stsd'
-    write32(stsd, 0); // version + flags
+    write32(stsd, 0); // size placeholder
+    stsd.insert(stsd.end(), {'s', 't', 's', 'd'});
+    write8(stsd, 0); // version
+    write8(stsd, 0); write8(stsd, 0); write8(stsd, 0); // flags
     write32(stsd, 1); // entry_count
-    write32(stsd, avc1Size);
     stsd.insert(stsd.end(), avc1.begin(), avc1.end());
-    uint32_t stsdSize = 4 + stsd.size(); // size(4) + [type+content already in stsd]
+    
+    // Update stsd size
+    uint32_t stsdSize = stsd.size();
+    stsd[0] = (stsdSize >> 24) & 0xFF;
+    stsd[1] = (stsdSize >> 16) & 0xFF;
+    stsd[2] = (stsdSize >> 8) & 0xFF;
+    stsd[3] = stsdSize & 0xFF;
     
     // Build stts (Time-to-Sample)
     std::vector<uint8_t> stts;
@@ -725,31 +737,27 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(stco, 0); // chunk_offset (placeholder - will be updated)
     uint32_t stcoSize = 4 + stco.size(); // size(4) + [type+content already in stco]
     
-    // Assemble stbl
-    // Note: xxxSize already includes the size field (4 bytes), so we prepend size then content
-    // Format: size(4) + type(4) + content
-    std::vector<uint8_t> stsd_box, stts_box, stss_box, stsc_box, stsz_box, stco_box;
+    // Assemble stbl (Sample Table box)
+    // Note: stsd already has size, others need size+type wrapping
+    write32(stbl, 0); // size placeholder
+    stbl.insert(stbl.end(), {'s', 't', 'b', 'l'});
     
-    // Each xxx vector contains: type(4) + content (NO size field yet)
-    // xxxSize = 8 + xxx.size() means: size(4) + type(4) + content
-    // So we write size, then type+content
-    write32(stsd_box, stsdSize); stsd_box.insert(stsd_box.end(), stsd.begin(), stsd.end());
-    write32(stts_box, sttsSize); stts_box.insert(stts_box.end(), stts.begin(), stts.end());
-    write32(stss_box, stssSize); stss_box.insert(stss_box.end(), stss.begin(), stss.end());
-    write32(stsc_box, stscSize); stsc_box.insert(stsc_box.end(), stsc.begin(), stsc.end());
-    write32(stsz_box, stszSize); stsz_box.insert(stsz_box.end(), stsz.begin(), stsz.end());
-    write32(stco_box, stcoSize); stco_box.insert(stco_box.end(), stco.begin(), stco.end());
+    // stsd already complete with size
+    stbl.insert(stbl.end(), stsd.begin(), stsd.end());
     
-    uint32_t stblSize = 8 + stsd_box.size() + stts_box.size() + stss_box.size() + 
-                        stsc_box.size() + stsz_box.size() + stco_box.size();
-    write32(stbl, stblSize);
-    write32(stbl, 0x7374626C); // 'stbl'
-    stbl.insert(stbl.end(), stsd_box.begin(), stsd_box.end());
-    stbl.insert(stbl.end(), stts_box.begin(), stts_box.end());
-    stbl.insert(stbl.end(), stss_box.begin(), stss_box.end());
-    stbl.insert(stbl.end(), stsc_box.begin(), stsc_box.end());
-    stbl.insert(stbl.end(), stsz_box.begin(), stsz_box.end());
-    stbl.insert(stbl.end(), stco_box.begin(), stco_box.end());
+    // Other boxes need size prepended (type+content already in vector)
+    write32(stbl, sttsSize); stbl.insert(stbl.end(), stts.begin(), stts.end());
+    write32(stbl, stssSize); stbl.insert(stbl.end(), stss.begin(), stss.end());
+    write32(stbl, stscSize); stbl.insert(stbl.end(), stsc.begin(), stsc.end());
+    write32(stbl, stszSize); stbl.insert(stbl.end(), stsz.begin(), stsz.end());
+    write32(stbl, stcoSize); stbl.insert(stbl.end(), stco.begin(), stco.end());
+    
+    // Update stbl size
+    uint32_t stblSize = stbl.size();
+    stbl[0] = (stblSize >> 24) & 0xFF;
+    stbl[1] = (stblSize >> 16) & 0xFF;
+    stbl[2] = (stblSize >> 8) & 0xFF;
+    stbl[3] = stblSize & 0xFF;
     
     return stbl;
 }
