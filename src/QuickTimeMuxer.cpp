@@ -198,6 +198,12 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     mp4Data.insert(mp4Data.end(), ftypBox.begin(), ftypBox.end());
     
     LOG(DEBUG) << "[Snapshot] ftyp size: " << ftypBox.size() << " bytes";
+    LOG(DEBUG) << "[Snapshot] mp4Data size after ftyp: " << mp4Data.size() << " bytes";
+    LOG(DEBUG) << "[Snapshot] mp4Data first 32 bytes after ftyp: 0x" << std::hex << std::setfill('0');
+    for (size_t i = 0; i < 32 && i < mp4Data.size(); i++) {
+        LOG(DEBUG) << std::setw(2) << (int)mp4Data[i];
+    }
+    LOG(DEBUG) << std::dec;
     
     // Prepare mdat content: SPS + PPS + Frame (each with 4-byte length prefix)
     std::vector<uint8_t> mdatContent;
@@ -232,6 +238,13 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     
     uint32_t mdatOffset = ftypBox.size(); // Offset where mdat starts
     mp4Data.insert(mp4Data.end(), mdatBox.begin(), mdatBox.end());
+    
+    LOG(DEBUG) << "[Snapshot] mp4Data size after mdat: " << mp4Data.size() << " bytes";
+    LOG(DEBUG) << "[Snapshot] mp4Data first 32 bytes after mdat: 0x" << std::hex << std::setfill('0');
+    for (size_t i = 0; i < 32 && i < mp4Data.size(); i++) {
+        LOG(DEBUG) << std::setw(2) << (int)mp4Data[i];
+    }
+    LOG(DEBUG) << std::dec;
     
     // Create moov box AFTER mdat (standard MP4 structure for streaming)
     // Note: stco offset in moov needs to point to SPS (first data in mdat)
