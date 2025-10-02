@@ -592,11 +592,15 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     write32(dref, 1); // version + flags (self-contained)
     uint32_t drefSize = 8 + dref.size();
     
+    // Create dref box with size field
+    std::vector<uint8_t> drefBox;
+    write32(drefBox, drefSize);
+    drefBox.insert(drefBox.end(), dref.begin(), dref.end());
+    
     std::vector<uint8_t> dinf;
-    write32(dinf, 8 + drefSize);
+    write32(dinf, 8 + drefBox.size());
     write32(dinf, 0x64696E66); // 'dinf'
-    write32(dinf, drefSize);
-    dinf.insert(dinf.end(), dref.begin(), dref.end());
+    dinf.insert(dinf.end(), drefBox.begin(), drefBox.end());
     
     // Build stbl (Sample Table)
     std::vector<uint8_t> stbl = createStblBox(sps, pps, width, height, frameCount);
