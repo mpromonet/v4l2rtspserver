@@ -498,12 +498,16 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
     // Build mdia (Media)
     std::vector<uint8_t> mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
     
+    // Create tkhd box with size field
+    std::vector<uint8_t> tkhdBox;
+    write32(tkhdBox, tkhdSize);
+    tkhdBox.insert(tkhdBox.end(), tkhd.begin(), tkhd.end());
+    
     // Assemble trak
-    uint32_t trakSize = 8 + tkhdSize + mdia.size();
+    uint32_t trakSize = 8 + tkhdBox.size() + mdia.size();
     write32(trak, trakSize);
     write32(trak, 0x7472616B); // 'trak'
-    write32(trak, tkhdSize);
-    trak.insert(trak.end(), tkhd.begin(), tkhd.end());
+    trak.insert(trak.end(), tkhdBox.begin(), tkhdBox.end());
     trak.insert(trak.end(), mdia.begin(), mdia.end());
     
     return trak;
