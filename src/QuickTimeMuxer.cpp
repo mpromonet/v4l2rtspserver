@@ -622,12 +622,12 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     std::vector<uint8_t> stbl;
     
     // Build stsd (Sample Description)
+    // avcC configuration record (content only, type and size added below)
     std::vector<uint8_t> avcC;
-    write32(avcC, 0x61766343); // 'avcC'
     write8(avcC, 1); // configurationVersion
-    write8(avcC, sps.size() > 1 ? sps[1] : 0x42); // AVCProfileIndication
-    write8(avcC, sps.size() > 2 ? sps[2] : 0xC0); // profile_compatibility
-    write8(avcC, sps.size() > 3 ? sps[3] : 0x1E); // AVCLevelIndication
+    write8(avcC, sps.size() > 1 ? sps[1] : 0x64); // AVCProfileIndication
+    write8(avcC, sps.size() > 2 ? sps[2] : 0x00); // profile_compatibility
+    write8(avcC, sps.size() > 3 ? sps[3] : 0x28); // AVCLevelIndication
     write8(avcC, 0xFF); // lengthSizeMinusOne
     write8(avcC, 0xE1); // numOfSequenceParameterSets
     write16(avcC, sps.size());
@@ -635,7 +635,12 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write8(avcC, 1); // numOfPictureParameterSets
     write16(avcC, pps.size());
     avcC.insert(avcC.end(), pps.begin(), pps.end());
-    uint32_t avcCSize = 8 + avcC.size();
+    
+    // avcC box (size + type + content)
+    std::vector<uint8_t> avcCBox;
+    write32(avcCBox, 8 + avcC.size()); // size
+    write32(avcCBox, 0x61766343); // 'avcC'
+    avcCBox.insert(avcCBox.end(), avcC.begin(), avcC.end());
     
     std::vector<uint8_t> avc1;
     write32(avc1, 0x61766331); // 'avc1'
@@ -652,8 +657,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     for (int i = 0; i < 32; i++) write8(avc1, 0); // compressorname[32]
     write16(avc1, 0x0018); // depth
     write16(avc1, 0xFFFF); // pre_defined
-    write32(avc1, avcCSize);
-    avc1.insert(avc1.end(), avcC.begin(), avcC.end());
+    avc1.insert(avc1.end(), avcCBox.begin(), avcCBox.end());
     
     // Add btrt (Bit Rate box) - required by some players
     write32(avc1, 20); // btrt size
