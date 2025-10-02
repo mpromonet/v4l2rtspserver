@@ -22,7 +22,7 @@
 
 QuickTimeMuxer::QuickTimeMuxer() 
     : m_initialized(false), m_fd(-1), m_width(0), m_height(0), m_fps(30),
-      m_mdatStartPos(0), m_moovStartPos(0), m_currentPos(0), 
+      m_mdatStartPos(0), m_currentPos(0),
       m_frameCount(0), m_keyFrameCount(0) {
 }
 
@@ -120,12 +120,8 @@ bool QuickTimeMuxer::writeMP4Header() {
     auto ftypBox = createFtypBox();
     writeToFile(ftypBox.data(), ftypBox.size());
     
-    // Write placeholder moov box (will be updated in finalize)
-    m_moovStartPos = m_currentPos;
-    auto moovBox = createMinimalMoovBox();
-    writeToFile(moovBox.data(), moovBox.size());
-    
-    // Write mdat box header
+    // Write mdat box header (media data will follow)
+    // Note: We'll write moov AFTER mdat (at the end) as per live555 approach
     m_mdatStartPos = m_currentPos;
     uint32_t mdatSize = 0; // Will be updated later
     writeToFile(&mdatSize, 4);
@@ -135,53 +131,47 @@ bool QuickTimeMuxer::writeMP4Header() {
 }
 
 bool QuickTimeMuxer::writeMoovBox() {
-    // Save current end position before seeking
-    off_t endPos = m_currentPos;
+    // Calculate mdat size (from mdat start to current position)
+    size_t mdatDataSize = m_currentPos - m_mdatStartPos - 8; // -8 for size+type
+    size_t mdatTotalSize = mdatDataSize + 8;
     
-    // Create proper moov box with video track
+    // Update mdat size at the beginning
+    if (lseek(m_fd, m_mdatStartPos, SEEK_SET) == -1) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to mdat position";
+        return false;
+    }
+    
+    uint32_t mdatSizeBE = htonl(static_cast<uint32_t>(mdatTotalSize));
+    ssize_t written = write(m_fd, &mdatSizeBE, 4);
+    if (written != 4) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to write mdat size";
+        return false;
+    }
+    
+    // Seek to end of file to append moov
+    if (lseek(m_fd, 0, SEEK_END) == -1) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to end of file";
+        return false;
+    }
+    
+    // Create and write moov box at the end (live555 style)
     auto moovBox = createVideoTrackMoovBox(
         std::vector<uint8_t>(m_sps.begin(), m_sps.end()),
         std::vector<uint8_t>(m_pps.begin(), m_pps.end()),
         m_width, m_height, m_fps, m_frameCount
     );
     
-    // Seek to moov position and overwrite
-    if (lseek(m_fd, m_moovStartPos, SEEK_SET) == -1) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to moov position";
-        return false;
-    }
-    
-    // Write moov directly without using writeToFile (to avoid m_currentPos update)
-    ssize_t written = write(m_fd, moovBox.data(), moovBox.size());
+    // Write moov at the end of file
+    written = write(m_fd, moovBox.data(), moovBox.size());
     if (written != static_cast<ssize_t>(moovBox.size())) {
         LOG(ERROR) << "[QuickTimeMuxer] Failed to write moov box: " << written << "/" << moovBox.size();
-        return false;
-    }
-    
-    // Calculate mdat size based on saved end position
-    size_t mdatSize = endPos - m_mdatStartPos;
-    if (lseek(m_fd, m_mdatStartPos, SEEK_SET) == -1) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to mdat position";
-        return false;
-    }
-    
-    uint32_t mdatSizeBE = htonl(static_cast<uint32_t>(mdatSize));
-    written = write(m_fd, &mdatSizeBE, 4);
-    if (written != 4) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to write mdat size";
-        return false;
-    }
-    
-    // Seek back to end of file
-    if (lseek(m_fd, 0, SEEK_END) == -1) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to end of file";
         return false;
     }
     
     // Sync file to disk
     fsync(m_fd);
     
-    LOG(INFO) << "[QuickTimeMuxer] Updated moov box (" << moovBox.size() << " bytes) and mdat size (" << mdatSize << " bytes)";
+    LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes)";
     
     return true;
 }

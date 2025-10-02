@@ -56,7 +56,6 @@ private:
     
     // File position tracking
     size_t m_mdatStartPos;
-    size_t m_moovStartPos;
     size_t m_currentPos;
     
     // Frame counting
