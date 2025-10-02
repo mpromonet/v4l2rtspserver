@@ -649,21 +649,27 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     uint32_t stcoSize = 8 + stco.size();
     
     // Assemble stbl
-    uint32_t stblSize = 8 + stsdSize + sttsSize + stssSize + stscSize + stszSize + stcoSize;
+    // Each sub-box already has its size field, so we DON'T write it again!
+    // Create boxes with size fields first
+    std::vector<uint8_t> stsd_box, stts_box, stss_box, stsc_box, stsz_box, stco_box;
+    
+    write32(stsd_box, stsdSize); stsd_box.insert(stsd_box.end(), stsd.begin(), stsd.end());
+    write32(stts_box, sttsSize); stts_box.insert(stts_box.end(), stts.begin(), stts.end());
+    write32(stss_box, stssSize); stss_box.insert(stss_box.end(), stss.begin(), stss.end());
+    write32(stsc_box, stscSize); stsc_box.insert(stsc_box.end(), stsc.begin(), stsc.end());
+    write32(stsz_box, stszSize); stsz_box.insert(stsz_box.end(), stsz.begin(), stsz.end());
+    write32(stco_box, stcoSize); stco_box.insert(stco_box.end(), stco.begin(), stco.end());
+    
+    uint32_t stblSize = 8 + stsd_box.size() + stts_box.size() + stss_box.size() + 
+                        stsc_box.size() + stsz_box.size() + stco_box.size();
     write32(stbl, stblSize);
     write32(stbl, 0x7374626C); // 'stbl'
-    write32(stbl, stsdSize);
-    stbl.insert(stbl.end(), stsd.begin(), stsd.end());
-    write32(stbl, sttsSize);
-    stbl.insert(stbl.end(), stts.begin(), stts.end());
-    write32(stbl, stssSize);
-    stbl.insert(stbl.end(), stss.begin(), stss.end());
-    write32(stbl, stscSize);
-    stbl.insert(stbl.end(), stsc.begin(), stsc.end());
-    write32(stbl, stszSize);
-    stbl.insert(stbl.end(), stsz.begin(), stsz.end());
-    write32(stbl, stcoSize);
-    stbl.insert(stbl.end(), stco.begin(), stco.end());
+    stbl.insert(stbl.end(), stsd_box.begin(), stsd_box.end());
+    stbl.insert(stbl.end(), stts_box.begin(), stts_box.end());
+    stbl.insert(stbl.end(), stss_box.begin(), stss_box.end());
+    stbl.insert(stbl.end(), stsc_box.begin(), stsc_box.end());
+    stbl.insert(stbl.end(), stsz_box.begin(), stsz_box.end());
+    stbl.insert(stbl.end(), stco_box.begin(), stco_box.end());
     
     return stbl;
 }
