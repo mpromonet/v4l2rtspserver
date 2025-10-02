@@ -76,13 +76,31 @@ private:
     bool writeMP4Header();
     bool writeMoovBox();
     
-    // Static helper methods
+    // Static helper methods - based on live555 QuickTimeFileSink structure
     static std::vector<uint8_t> createFtypBox();
     static std::vector<uint8_t> createMinimalMoovBox();
     static std::vector<uint8_t> createVideoTrackMoovBox(const std::vector<uint8_t>& sps, 
                                                        const std::vector<uint8_t>& pps, 
                                                        int width, int height, int fps, 
                                                        uint32_t frameCount);
+    static std::vector<uint8_t> createTrakBox(const std::vector<uint8_t>& sps,
+                                             const std::vector<uint8_t>& pps,
+                                             int width, int height,
+                                             uint32_t timescale, uint32_t duration,
+                                             uint32_t frameCount);
+    static std::vector<uint8_t> createMdiaBox(const std::vector<uint8_t>& sps,
+                                             const std::vector<uint8_t>& pps,
+                                             int width, int height,
+                                             uint32_t timescale, uint32_t duration,
+                                             uint32_t frameCount);
+    static std::vector<uint8_t> createMinfBox(const std::vector<uint8_t>& sps,
+                                             const std::vector<uint8_t>& pps,
+                                             int width, int height,
+                                             uint32_t frameCount);
+    static std::vector<uint8_t> createStblBox(const std::vector<uint8_t>& sps,
+                                             const std::vector<uint8_t>& pps,
+                                             int width, int height,
+                                             uint32_t frameCount);
     static std::vector<uint8_t> createMdatBox(const std::vector<uint8_t>& frameData);
     static void write32(std::vector<uint8_t>& vec, uint32_t value);
     static void write16(std::vector<uint8_t>& vec, uint16_t value);
