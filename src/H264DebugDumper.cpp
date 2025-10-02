@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstdint>
 
 // Static instance
 FullDataDumper* FullDataDumper::instance = nullptr;
