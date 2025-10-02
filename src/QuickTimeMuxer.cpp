@@ -395,14 +395,18 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
     
     // Assemble moov box
     // moov structure: size(4) + type(4) + mvhd (with its own size/type) + trak
-    // mvhd already includes its size field, so we just append it directly
-    uint32_t moovSize = 8 + mvhdSize + trak.size();
+    // Calculate moov size: moov_header(8) + mvhd_box(with size) + trak_box
+    // mvhd needs to include its own size field (4 bytes) first
+    std::vector<uint8_t> mvhdBox;
+    write32(mvhdBox, mvhdSize); // mvhd size
+    mvhdBox.insert(mvhdBox.end(), mvhd.begin(), mvhd.end());
+    
+    uint32_t moovSize = 8 + mvhdBox.size() + trak.size();
     write32(moov, moovSize); // moov size
     write32(moov, 0x6D6F6F76); // 'moov'
     
-    // Append mvhd box (which includes its own size + type + content)
-    write32(moov, mvhdSize); // mvhd size
-    moov.insert(moov.end(), mvhd.begin(), mvhd.end());
+    // Append mvhd box (with size field)
+    moov.insert(moov.end(), mvhdBox.begin(), mvhdBox.end());
     
     // Append trak box
     moov.insert(moov.end(), trak.begin(), trak.end());
