@@ -412,8 +412,8 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
     // This creates a complete, valid MP4 moov box with all necessary atoms
     
     std::vector<uint8_t> moov;
-    uint32_t timescale = (fps > 0) ? fps : 30; // H.264 timescale (frames per second)
-    uint32_t duration = frameCount; // duration in timescale units
+    uint32_t timescale = (fps > 0) ? fps * 1000 : 30000; // H.264 timescale (fps * 1000)
+    uint32_t duration = frameCount * 1000; // duration in timescale units
     
     // Build mvhd (Movie Header)
     std::vector<uint8_t> mvhd;
