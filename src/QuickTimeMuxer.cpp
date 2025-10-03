@@ -869,21 +869,15 @@ std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& f
         .build("mdat");
 }
 
+// Helper functions for writing multi-byte values (used in legacy code paths)
 void QuickTimeMuxer::write32(std::vector<uint8_t>& vec, uint32_t value) {
-    vec.push_back((value >> 24) & 0xFF);
-    vec.push_back((value >> 16) & 0xFF);
-    vec.push_back((value >> 8) & 0xFF);
-    vec.push_back(value & 0xFF);
+    vec.push_back((value >> 24) & 0xFF); vec.push_back((value >> 16) & 0xFF);
+    vec.push_back((value >> 8) & 0xFF);  vec.push_back(value & 0xFF);
 }
-
 void QuickTimeMuxer::write16(std::vector<uint8_t>& vec, uint16_t value) {
-    vec.push_back((value >> 8) & 0xFF);
-    vec.push_back(value & 0xFF);
+    vec.push_back((value >> 8) & 0xFF); vec.push_back(value & 0xFF);
 }
-
-void QuickTimeMuxer::write8(std::vector<uint8_t>& vec, uint8_t value) {
-    vec.push_back(value);
-}
+void QuickTimeMuxer::write8(std::vector<uint8_t>& vec, uint8_t value) { vec.push_back(value); }
 
 // getNALTypeName and getCurrentTimestamp removed - were only used for debug logging
 
