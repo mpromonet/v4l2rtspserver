@@ -227,9 +227,20 @@ void V4L2DeviceSource::postFrame(char * frame, int frameSize, const timeval &ref
 	m_in.notify(tv.tv_sec, frameSize);
 	LOG(DEBUG) << "postFrame\ttimestamp:" << ref.tv_sec << "." << ref.tv_usec << "\tsize:" << frameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms";
 	
-	// Process raw frame for snapshot if enabled and device has raw format
+	// Process frame for snapshot if enabled
 	if (SnapshotManager::getInstance().isEnabled() && m_device) {
 		unsigned int format = m_device->getVideoFormat();
+#ifdef __linux__
+		// Process MJPEG frames directly for snapshots (independent of RTSP clients)
+		if (format == V4L2_PIX_FMT_MJPEG || format == V4L2_PIX_FMT_JPEG) {
+			// MJPEG frame is already compressed JPEG - pass directly to SnapshotManager
+			SnapshotManager::getInstance().processMJPEGFrame(
+				reinterpret_cast<const unsigned char*>(frame), 
+				frameSize
+			);
+			LOG(DEBUG) << "Processed MJPEG frame for snapshot: " << frameSize << " bytes";
+		}
+#endif
 		// Note: Raw YUV->JPEG conversion removed - not reliable without external libs (libjpeg)
 		// For YUV formats, snapshots are not supported (only MJPEG and H264 are supported)
 	}
