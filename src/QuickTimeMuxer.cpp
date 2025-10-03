@@ -565,16 +565,9 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createFtypBox() {
-    return BoxBuilder()
-        .add32(0x200)           // minor_version
-        .addString("isom")      // major_brand
-        .addString("iso2")      // compatible_brands
-        .addString("avc1")
-        .addString("mp41")
-        .build("ftyp");
+    return BoxBuilder().add32(0x200).addString("isom").addString("iso2")
+        .addString("avc1").addString("mp41").build("ftyp");
 }
-
-// createMinimalMoovBox removed - was not used
 
 std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<uint8_t>& sps, 
                                                              const std::vector<uint8_t>& pps, 
@@ -839,10 +832,8 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
-    // Note: For snapshots, frameData should already contain SPS+PPS+Frame with length prefixes
-    return BoxBuilder()
-        .addBytes(frameData.data(), frameData.size())
-        .build("mdat");
+    // frameData should already contain SPS+PPS+Frame with length prefixes
+    return BoxBuilder().addBytes(frameData.data(), frameData.size()).build("mdat");
 }
 
 // Helper functions for writing multi-byte values (used in legacy code paths)
