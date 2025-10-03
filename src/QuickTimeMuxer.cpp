@@ -785,14 +785,14 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     avc1[2] = (avc1Size >> 8) & 0xFF;
     avc1[3] = avc1Size & 0xFF;
     
-    // Build stsd (Sample Description box)
-    std::vector<uint8_t> stsd;
-    write32(stsd, 0); // size placeholder
-    stsd.insert(stsd.end(), {'s', 't', 's', 'd'});
-    write8(stsd, 0); // version
-    write8(stsd, 0); write8(stsd, 0); write8(stsd, 0); // flags
-    write32(stsd, 1); // entry_count
-    stsd.insert(stsd.end(), avc1.begin(), avc1.end());
+    // Build stsd (Sample Description box) using BoxBuilder
+    BoxBuilder stsdBuilder;
+    stsdBuilder.add32(0)              // size placeholder
+               .addString("stsd")
+               .add32(0)              // version/flags
+               .add32(1)              // entry_count
+               .addBytes(avc1.data(), avc1.size());
+    auto stsd = stsdBuilder.getData();
     
     // Update stsd size
     uint32_t stsdSize = stsd.size();
