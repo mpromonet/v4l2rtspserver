@@ -118,4 +118,8 @@ private:
     void updateFrameSizes(std::vector<uint8_t>& moovBox);
     void updateKeyframes(std::vector<uint8_t>& moovBox);
     void updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
+    
+    // Static helper methods for createMP4Snapshot (Step 20)
+    static void updateChunkOffsetStatic(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
+    static void updateFrameSizeStatic(std::vector<uint8_t>& moovBox, uint32_t frameSize);
 };

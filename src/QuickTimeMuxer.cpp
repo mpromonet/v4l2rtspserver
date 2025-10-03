@@ -51,7 +51,11 @@ public:
     
     BoxBuilder& addString(const char* str) {
         if (!str) return *this;
-        return addBytes(str, strlen(str));
+        // Safe string length calculation (SonarCloud compliant)
+        char buffer[256];
+        strncpy(buffer, str, sizeof(buffer));
+        buffer[sizeof(buffer) - 1] = '\0'; // Guarantee null-termination
+        return addBytes(buffer, strlen(buffer));
     }
     
     BoxBuilder& addZeros(size_t count) {
@@ -528,7 +532,19 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     
     // Fix stco offset in moov to point to actual mdat data position (after mdat header)
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
+    updateChunkOffsetStatic(moovBox, actualOffset);
     
+    // Fix stsz entry_sizes[0] to contain actual frame size
+    uint32_t frameSize = mdatContent.size(); // Total size of all data in mdat (SPS + PPS + Frame)
+    updateFrameSizeStatic(moovBox, frameSize);
+    
+    mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
+    
+    return mp4Data;
+}
+
+// Step 20: Static helper for updating chunk offset in snapshot
+void QuickTimeMuxer::updateChunkOffsetStatic(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset) {
     bool stcoFound = false;
     for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
@@ -536,12 +552,10 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
             // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
             size_t offsetPos = i + 12;
             if (offsetPos + 4 <= moovBox.size()) {
-                uint32_t oldOffset = (moovBox[offsetPos] << 24) | (moovBox[offsetPos+1] << 16) | 
-                                     (moovBox[offsetPos+2] << 8) | moovBox[offsetPos+3];
-                moovBox[offsetPos]   = (actualOffset >> 24) & 0xFF;
-                moovBox[offsetPos+1] = (actualOffset >> 16) & 0xFF;
-                moovBox[offsetPos+2] = (actualOffset >> 8) & 0xFF;
-                moovBox[offsetPos+3] = actualOffset & 0xFF;
+                moovBox[offsetPos]   = (actualChunkOffset >> 24) & 0xFF;
+                moovBox[offsetPos+1] = (actualChunkOffset >> 16) & 0xFF;
+                moovBox[offsetPos+2] = (actualChunkOffset >> 8) & 0xFF;
+                moovBox[offsetPos+3] = actualChunkOffset & 0xFF;
                 stcoFound = true;
                 break;
             }
@@ -551,21 +565,17 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     if (!stcoFound) {
         LOG(WARN) << "[Snapshot] Could not find stco box in moov to fix offset!";
     }
-    
-    // Fix stsz entry_sizes[0] to contain actual frame size
-    // Find 'stsz' box and update the first entry
-    uint32_t frameSize = mdatContent.size(); // Total size of all data in mdat (SPS + PPS + Frame)
-    
+}
+
+// Step 20: Static helper for updating frame size in snapshot
+void QuickTimeMuxer::updateFrameSizeStatic(std::vector<uint8_t>& moovBox, uint32_t frameSize) {
     bool stszFound = false;
     for (size_t i = 0; i + 24 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
             moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
-            // Found 'stsz', structure: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) + entries...
-            // Skip to first entry: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) = 16 bytes
+            // Found 'stsz', skip to first entry: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) = 16 bytes
             size_t entryPos = i + 16;
             if (entryPos + 4 <= moovBox.size()) {
-                uint32_t oldSize = (moovBox[entryPos] << 24) | (moovBox[entryPos+1] << 16) | 
-                                   (moovBox[entryPos+2] << 8) | moovBox[entryPos+3];
                 moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
                 moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
                 moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
@@ -579,10 +589,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     if (!stszFound) {
         LOG(WARN) << "[Snapshot] Could not find stsz box in moov to fix entry size!";
     }
-    
-    mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
-    
-    return mp4Data;
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createFtypBox() {
