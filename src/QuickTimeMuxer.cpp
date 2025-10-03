@@ -764,30 +764,27 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     write32(avcCBox, 0x61766343); // 'avcC'
     avcCBox.insert(avcCBox.end(), avcC.begin(), avcC.end());
     
-    // Build avc1 sample entry (following old MP4Muxer.cpp structure exactly)
-    std::vector<uint8_t> avc1;
-    write32(avc1, 0); // size placeholder
-    avc1.insert(avc1.end(), {'a', 'v', 'c', '1'});
-    // reserved[6]
-    for (int i = 0; i < 6; i++) write8(avc1, 0);
-    write16(avc1, 1); // data_reference_index
-    // pre_defined and reserved[16]
-    for (int i = 0; i < 16; i++) write8(avc1, 0);
-    write16(avc1, width); // width
-    write16(avc1, height); // height
-    write32(avc1, 0x00480000); // horizresolution
-    write32(avc1, 0x00480000); // vertresolution
-    write32(avc1, 0); // reserved
-    write16(avc1, 1); // frame_count
-    // compressorname[32]
-    for (int i = 0; i < 32; i++) write8(avc1, 0);
-    write16(avc1, 0x0018); // depth
-    write16(avc1, 0xFFFF); // pre_defined
+    // Build avc1 sample entry using BoxBuilder
+    BoxBuilder avc1Builder;
+    avc1Builder.add32(0)              // size placeholder
+               .addString("avc1")
+               .addZeros(6)           // reserved[6]
+               .add16(1)              // data_reference_index
+               .addZeros(16)          // pre_defined and reserved[16]
+               .add16(width).add16(height)
+               .add32(0x00480000)     // horizresolution
+               .add32(0x00480000)     // vertresolution
+               .add32(0)              // reserved
+               .add16(1)              // frame_count
+               .addZeros(32)          // compressorname[32]
+               .add16(0x0018)         // depth
+               .add16(0xFFFF);        // pre_defined
     
-    // Add avcC box
-    avc1.insert(avc1.end(), avcCBox.begin(), avcCBox.end());
+    // Add avcC box and build
+    avc1Builder.addBytes(avcCBox.data(), avcCBox.size());
+    auto avc1 = avc1Builder.getData(); // Get without build() to update size manually
     
-    // Update avc1 size
+    // Update avc1 size placeholder
     uint32_t avc1Size = avc1.size();
     avc1[0] = (avc1Size >> 24) & 0xFF;
     avc1[1] = (avc1Size >> 16) & 0xFF;
