@@ -587,46 +587,32 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
     uint32_t timescale = (fps > 0) ? fps * 1000 : 30000; // H.264 timescale (fps * 1000)
     uint32_t duration = frameCount * 1000; // duration in timescale units
     
-    // Build mvhd (Movie Header)
-    std::vector<uint8_t> mvhd;
-    write32(mvhd, 0x6D766864); // 'mvhd'
-    write32(mvhd, 0); // version(0) + flags(0)
-    write32(mvhd, 0); // creation_time
-    write32(mvhd, 0); // modification_time
-    write32(mvhd, timescale); // timescale
-    write32(mvhd, duration); // duration
-    write32(mvhd, 0x00010000); // rate (1.0)
-    write16(mvhd, 0x0100); // volume (1.0)
-    write16(mvhd, 0); // reserved
-    write32(mvhd, 0); write32(mvhd, 0); // reserved[2]
-    // Matrix structure (identity matrix)
-    write32(mvhd, 0x00010000); write32(mvhd, 0); write32(mvhd, 0);
-    write32(mvhd, 0); write32(mvhd, 0x00010000); write32(mvhd, 0);
-    write32(mvhd, 0); write32(mvhd, 0); write32(mvhd, 0x40000000);
-    // Pre-defined
-    for (int i = 0; i < 6; i++) write32(mvhd, 0);
-    write32(mvhd, 2); // next_track_ID
-    uint32_t mvhdSize = 4 + mvhd.size(); // size(4) + [type+content already in mvhd]
+    // Build mvhd (Movie Header) using BoxBuilder
+    auto mvhd = BoxBuilder()
+        .add32(0)                       // version/flags
+        .add32(0).add32(0)              // creation_time, modification_time
+        .add32(timescale)               // timescale
+        .add32(duration)                // duration
+        .add32(0x00010000)              // rate (1.0)
+        .add16(0x0100).add16(0)         // volume (1.0), reserved
+        .add32(0).add32(0)              // reserved[2]
+        // Matrix structure (identity matrix)
+        .add32(0x00010000).add32(0).add32(0)
+        .add32(0).add32(0x00010000).add32(0)
+        .add32(0).add32(0).add32(0x40000000)
+        // Pre-defined[6]
+        .add32(0).add32(0).add32(0).add32(0).add32(0).add32(0)
+        .add32(2)                       // next_track_ID
+        .build("mvhd");
     
     // Build trak (Track)
-    std::vector<uint8_t> trak = createTrakBox(sps, pps, width, height, timescale, duration, frameCount);
+    auto trak = createTrakBox(sps, pps, width, height, timescale, duration, frameCount);
     
-    // Assemble moov box
-    // moov structure: size(4) + type(4) + mvhd (with its own size/type) + trak
-    // Calculate moov size: moov_header(8) + mvhd_box(with size) + trak_box
-    // mvhd needs to include its own size field (4 bytes) first
-    std::vector<uint8_t> mvhdBox;
-    write32(mvhdBox, mvhdSize); // mvhd size
-    mvhdBox.insert(mvhdBox.end(), mvhd.begin(), mvhd.end());
-    
-    uint32_t moovSize = 8 + mvhdBox.size() + trak.size();
-    write32(moov, moovSize); // moov size
+    // Assemble moov box: moov_header(8) + mvhd + trak
+    uint32_t moovSize = 8 + mvhd.size() + trak.size();
+    write32(moov, moovSize);
     write32(moov, 0x6D6F6F76); // 'moov'
-    
-    // Append mvhd box (with size field)
-    moov.insert(moov.end(), mvhdBox.begin(), mvhdBox.end());
-    
-    // Append trak box
+    moov.insert(moov.end(), mvhd.begin(), mvhd.end());
     moov.insert(moov.end(), trak.begin(), trak.end());
     
     return moov;
