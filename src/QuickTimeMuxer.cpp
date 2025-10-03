@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <unistd.h>
 #include <cstring>
+#include <errno.h>
 #include <sstream>
 #include <iomanip>
 #include <chrono>
@@ -316,13 +317,19 @@ bool QuickTimeMuxer::writeMoovBox() {
         return false;
     }
     
+    // CRITICAL: Sync data to disk BEFORE truncate
+    // Otherwise ftruncate may not work correctly with buffered data
+    fsync(m_fd);
+    
     // Truncate file to current position (remove any garbage after moov)
     off_t finalSize = moovStart + moovBox.size();
     if (ftruncate(m_fd, finalSize) == -1) {
-        LOG(WARN) << "[QuickTimeMuxer] Failed to truncate file to " << finalSize << " bytes";
+        LOG(WARN) << "[QuickTimeMuxer] Failed to truncate file to " << finalSize << " bytes (errno: " << errno << ")";
+    } else {
+        LOG(DEBUG) << "[QuickTimeMuxer] Truncated file to " << finalSize << " bytes";
     }
     
-    // Sync file to disk
+    // Final sync after truncate
     fsync(m_fd);
     
     LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes), final file size " << finalSize;
