@@ -663,48 +663,33 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
                                                     uint32_t frameCount) {
     std::vector<uint8_t> mdia;
     
-    // Build mdhd (Media Header)
-    std::vector<uint8_t> mdhd;
-    write32(mdhd, 0x6D646864); // 'mdhd'
-    write32(mdhd, 0); // version + flags
-    write32(mdhd, 0); // creation_time
-    write32(mdhd, 0); // modification_time
-    write32(mdhd, timescale); // timescale
-    write32(mdhd, duration); // duration
-    write16(mdhd, 0x55C4); // language (undetermined)
-    write16(mdhd, 0); // pre_defined
-    uint32_t mdhdSize = 4 + mdhd.size(); // size(4) + mdhd_content
+    // Build mdhd (Media Header) using BoxBuilder
+    auto mdhd = BoxBuilder()
+        .add32(0)                       // version/flags
+        .add32(0).add32(0)              // creation_time, modification_time
+        .add32(timescale)               // timescale
+        .add32(duration)                // duration
+        .add16(0x55C4).add16(0)         // language (undetermined), pre_defined
+        .build("mdhd");
     
-    // Build hdlr (Handler Reference)
-    std::vector<uint8_t> hdlr;
-    write32(hdlr, 0x68646C72); // 'hdlr'
-    write32(hdlr, 0); // version + flags
-    write32(hdlr, 0); // pre_defined
-    write32(hdlr, 0x76696465); // handler_type = 'vide'
-    write32(hdlr, 0); write32(hdlr, 0); write32(hdlr, 0); // reserved[3]
-    const char* handlerName = "VideoHandler";
-    for (const char* p = handlerName; *p; p++) write8(hdlr, *p);
-    write8(hdlr, 0); // null terminator
-    uint32_t hdlrSize = 4 + hdlr.size(); // size(4) + hdlr_content
+    // Build hdlr (Handler Reference) using BoxBuilder
+    auto hdlr = BoxBuilder()
+        .add32(0)                       // version/flags
+        .add32(0)                       // pre_defined
+        .add32(0x76696465)              // handler_type = 'vide'
+        .add32(0).add32(0).add32(0)     // reserved[3]
+        .addString("VideoHandler")      // handler name (with null terminator)
+        .build("hdlr");
     
     // Build minf (Media Information)
-    std::vector<uint8_t> minf = createMinfBox(sps, pps, width, height, frameCount);
-    
-    // Create mdhd and hdlr boxes with size fields
-    std::vector<uint8_t> mdhdBox;
-    write32(mdhdBox, mdhdSize);
-    mdhdBox.insert(mdhdBox.end(), mdhd.begin(), mdhd.end());
-    
-    std::vector<uint8_t> hdlrBox;
-    write32(hdlrBox, hdlrSize);
-    hdlrBox.insert(hdlrBox.end(), hdlr.begin(), hdlr.end());
+    auto minf = createMinfBox(sps, pps, width, height, frameCount);
     
     // Assemble mdia
-    uint32_t mdiaSize = 8 + mdhdBox.size() + hdlrBox.size() + minf.size();
+    uint32_t mdiaSize = 8 + mdhd.size() + hdlr.size() + minf.size();
     write32(mdia, mdiaSize);
     write32(mdia, 0x6D646961); // 'mdia'
-    mdia.insert(mdia.end(), mdhdBox.begin(), mdhdBox.end());
-    mdia.insert(mdia.end(), hdlrBox.begin(), hdlrBox.end());
+    mdia.insert(mdia.end(), mdhd.begin(), mdhd.end());
+    mdia.insert(mdia.end(), hdlr.begin(), hdlr.end());
     mdia.insert(mdia.end(), minf.begin(), minf.end());
     
     return mdia;
