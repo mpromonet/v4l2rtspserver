@@ -85,6 +85,7 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 					// Check for MJPEG + MP4 combination (not supported)
 					std::string rtpFormat(BaseServerMediaSubsession::getVideoRtpFormat(videoCapture->getFormat()));
 					if (isMP4File && rtpFormat == "video/JPEG") {
+						// MJPEG cannot be stored in MP4 container - block only .mp4 files
 						LOG(ERROR) << "MJPEG format cannot be recorded to MP4 container!";
 						LOG(ERROR) << "MP4 requires H.264/H.265 codec, but device is outputting MJPEG.";
 						LOG(ERROR) << "Solutions:";
@@ -92,9 +93,15 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 						LOG(ERROR) << "  2. Remove -O parameter to disable recording";
 						LOG(ERROR) << "  3. Change output file extension to .mjpeg: -O output.mjpeg";
 						LOG(WARN) << "Skipping MP4 recording due to format mismatch";
-						// Don't open the file
+						// Don't open the file (only .mp4 is blocked, .mjpeg files are allowed)
 					} else {
 						// Try to open as regular file for writing
+						// Special message for MJPEG raw stream recording
+						if (!isMP4File && rtpFormat == "video/JPEG" && extension == "mjpeg") {
+							LOG(NOTICE) << "Recording MJPEG raw stream to: " << outputFile;
+							LOG(NOTICE) << "Note: This is a raw MJPEG stream, not a standard video container.";
+							LOG(NOTICE) << "To convert to MP4: ffmpeg -i " << outputFile << " -c:v libx264 output.mp4";
+						}
 						LOG(INFO) << (isV4L2Device ? "V4L2 output failed, trying regular file: " : (isMP4File ? "Opening MP4 file: " : "Opening regular file: ")) << outputFile;
 						outfd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
 						if (outfd != -1) {
