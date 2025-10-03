@@ -207,6 +207,79 @@ bool QuickTimeMuxer::writeMoovBox() {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
     }
     
+    // Fix stss (sync samples) to contain only actual keyframes, not all frames
+    // Find 'stss' box and rebuild with only keyframe indices
+    bool stssFound = false;
+    for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x73 && moovBox[i+3] == 0x73) {
+            // Found 'stss'
+            // Count actual keyframes
+            std::vector<uint32_t> keyframeIndices;
+            for (size_t j = 0; j < m_frames.size(); j++) {
+                if (m_frames[j].isKeyFrame) {
+                    keyframeIndices.push_back(j + 1); // 1-based index
+                }
+            }
+            
+            // Rebuild stss box with correct keyframe count
+            size_t oldStssSize = (moovBox[i-4] << 24) | (moovBox[i-3] << 16) | 
+                                  (moovBox[i-2] << 8) | moovBox[i-1];
+            size_t newStssSize = 16 + keyframeIndices.size() * 4;
+            
+            // Update size
+            moovBox[i-4] = (newStssSize >> 24) & 0xFF;
+            moovBox[i-3] = (newStssSize >> 16) & 0xFF;
+            moovBox[i-2] = (newStssSize >> 8) & 0xFF;
+            moovBox[i-1] = newStssSize & 0xFF;
+            
+            // Update entry count
+            size_t entryCountPos = i + 8; // After 'stss' + version/flags
+            moovBox[entryCountPos]   = (keyframeIndices.size() >> 24) & 0xFF;
+            moovBox[entryCountPos+1] = (keyframeIndices.size() >> 16) & 0xFF;
+            moovBox[entryCountPos+2] = (keyframeIndices.size() >> 8) & 0xFF;
+            moovBox[entryCountPos+3] = keyframeIndices.size() & 0xFF;
+            
+            // Write keyframe indices
+            size_t entriesStart = i + 12;
+            for (size_t j = 0; j < keyframeIndices.size(); j++) {
+                size_t entryPos = entriesStart + j * 4;
+                if (entryPos + 4 <= moovBox.size()) {
+                    uint32_t idx = keyframeIndices[j];
+                    moovBox[entryPos]   = (idx >> 24) & 0xFF;
+                    moovBox[entryPos+1] = (idx >> 16) & 0xFF;
+                    moovBox[entryPos+2] = (idx >> 8) & 0xFF;
+                    moovBox[entryPos+3] = idx & 0xFF;
+                }
+            }
+            
+            // If stss is now smaller, we need to adjust moov size
+            if (newStssSize < oldStssSize) {
+                // Shift remaining data
+                size_t stssEnd = i - 4 + oldStssSize;
+                size_t newStssEnd = i - 4 + newStssSize;
+                size_t remainingSize = moovBox.size() - stssEnd;
+                memmove(&moovBox[newStssEnd], &moovBox[stssEnd], remainingSize);
+                moovBox.resize(moovBox.size() - (oldStssSize - newStssSize));
+                
+                // Update moov size
+                uint32_t moovSize = moovBox.size();
+                moovBox[0] = (moovSize >> 24) & 0xFF;
+                moovBox[1] = (moovSize >> 16) & 0xFF;
+                moovBox[2] = (moovSize >> 8) & 0xFF;
+                moovBox[3] = moovSize & 0xFF;
+            }
+            
+            stssFound = true;
+            LOG(DEBUG) << "[QuickTimeMuxer] Fixed stss: " << keyframeIndices.size() << " keyframes";
+            break;
+        }
+    }
+    
+    if (!stssFound) {
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stss box in moov to fix keyframes!";
+    }
+    
     // Fix stco (chunk offset) to point to actual mdat data position
     // stco must point to where frames start in the file (after ftyp and mdat header)
     uint32_t actualChunkOffset = m_mdatStartPos + 8; // mdat header is 8 bytes (size + 'mdat')
