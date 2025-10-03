@@ -76,6 +76,7 @@ vlc /tmp/http_snapshot.mp4 # HTTP snapshot
 
 ```bash
 # Start server with MJPEG (NO -O parameter!)
+# Note: Both -fMJPEG and -fMJPG work (MJPEG is alias for MJPG)
 ./v4l2rtspserver -fMJPEG -W 640 -H 480 -F 30 \
   -j /tmp/snapshot.jpg \
   /dev/video0 -vv
@@ -146,7 +147,13 @@ ffmpeg -i /tmp/recording.mjpeg -c:v libx264 /tmp/output.mp4
 ## Troubleshooting
 
 ### "Cannot set pixelformat to:MJPE"
-**Problem**: Camera doesn't support MJPEG.  
+**Problem**: Old version that truncated `-fMJPEG` to `MJPE`.  
+**Solution**: 
+1. Update to latest version (commit bfa4b00 or later) - now `-fMJPEG` works correctly
+2. Or use `-fMJPG` (4-character format code)
+
+### "Cannot set pixelformat to:MJPG"
+**Problem**: Camera doesn't support MJPEG format.  
 **Solution**: Use `-fH264` instead (Raspberry Pi Camera supports H.264 natively).
 
 ### "test_O.mp4 doesn't play"
