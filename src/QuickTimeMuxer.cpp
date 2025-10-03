@@ -156,9 +156,14 @@ bool QuickTimeMuxer::writeMoovBox() {
         return false;
     }
     
-    // Seek to end of file to append moov
-    if (lseek(m_fd, 0, SEEK_END) == -1) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to end of file";
+    // Calculate where moov should be written (right after mdat)
+    // IMPORTANT: Use calculated position, NOT lseek(SEEK_END), because
+    // file might have garbage at the end from previous writes
+    off_t moovStart = m_mdatStartPos + mdatTotalSize;
+    
+    // Seek to the calculated position to write moov
+    if (lseek(m_fd, moovStart, SEEK_SET) == -1) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to moov position";
         return false;
     }
     
@@ -198,9 +203,6 @@ bool QuickTimeMuxer::writeMoovBox() {
     if (!stszFound) {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
     }
-    
-    // Get current position (before writing moov)
-    off_t moovStart = lseek(m_fd, 0, SEEK_CUR);
     
     // Write moov at the end of file
     written = write(m_fd, moovBox.data(), moovBox.size());
