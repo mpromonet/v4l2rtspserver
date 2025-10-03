@@ -817,17 +817,13 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .add32(1000)                // sample_delta
         .build("stts");
     
-    // Build stss (Sync Sample)
-    std::vector<uint8_t> stss;
-    uint32_t stssSize = 16 + frameCount * 4; // header(16) + entries(frameCount*4)
-    write32(stss, stssSize);
-    stss.insert(stss.end(), {'s', 't', 's', 's'});
-    write8(stss, 0); // version
-    write8(stss, 0); write8(stss, 0); write8(stss, 0); // flags
-    write32(stss, frameCount); // entry_count
+    // Build stss (Sync Sample) using BoxBuilder
+    BoxBuilder stssBuilder;
+    stssBuilder.add32(0).add32(frameCount); // version/flags, entry_count
     for (uint32_t i = 1; i <= frameCount; i++) {
-        write32(stss, i); // sample_number
+        stssBuilder.add32(i); // sample_number
     }
+    auto stss = stssBuilder.build("stss");
     
     // Build stsc (Sample-to-Chunk)
     auto stsc = BoxBuilder()
@@ -837,18 +833,15 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .add32(1)                   // sample_description_index
         .build("stsc");
     
-    // Build stsz (Sample Size)
-    std::vector<uint8_t> stsz;
-    uint32_t stszSize = 20 + frameCount * 4; // header(20) + entries(frameCount*4)
-    write32(stsz, stszSize);
-    stsz.insert(stsz.end(), {'s', 't', 's', 'z'});
-    write8(stsz, 0); // version
-    write8(stsz, 0); write8(stsz, 0); write8(stsz, 0); // flags
-    write32(stsz, 0); // sample_size = 0 (variable sizes)
-    write32(stsz, frameCount); // sample_count
+    // Build stsz (Sample Size) using BoxBuilder
+    BoxBuilder stszBuilder;
+    stszBuilder.add32(0)            // version/flags
+               .add32(0)            // sample_size = 0 (variable sizes)
+               .add32(frameCount);  // sample_count
     for (uint32_t i = 0; i < frameCount; i++) {
-        write32(stsz, 0); // placeholder
+        stszBuilder.add32(0); // placeholder
     }
+    auto stsz = stszBuilder.build("stsz");
     
     // Build stco (Chunk Offset)
     auto stco = BoxBuilder()
