@@ -213,15 +213,7 @@ bool QuickTimeMuxer::writeMoovBox() {
     size_t mdatTotalSize = mdatDataSize + 8;
     
     // Update mdat size at the beginning
-    if (lseek(m_fd, m_mdatStartPos, SEEK_SET) == -1) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to mdat position";
-        return false;
-    }
-    
-    uint32_t mdatSizeBE = htonl(static_cast<uint32_t>(mdatTotalSize));
-    ssize_t written = write(m_fd, &mdatSizeBE, 4);
-    if (written != 4) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to write mdat size";
+    if (!updateMdatSize(mdatTotalSize)) {
         return false;
     }
     
@@ -243,37 +235,45 @@ bool QuickTimeMuxer::writeMoovBox() {
     );
     
     // Update stsz entry_sizes with actual frame sizes from m_frames
-    // Find 'stsz' box and update entries
-    bool stszFound = false;
-    for (size_t i = 0; i + 20 + m_frames.size() * 4 <= moovBox.size(); i++) {
-        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
-            moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
-            // Found 'stsz', update entries
-            size_t entriesStart = i + 16; // After 'stsz' + version/flags + sample_size + sample_count
-            
-            for (size_t j = 0; j < m_frames.size(); j++) {
-                size_t entryPos = entriesStart + j * 4;
-                if (entryPos + 4 <= moovBox.size()) {
-                    uint32_t frameSize = m_frames[j].size;
-                    moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
-                    moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
-                    moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
-                    moovBox[entryPos+3] = frameSize & 0xFF;
-                }
-            }
-            
-            stszFound = true;
-            LOG(DEBUG) << "[QuickTimeMuxer] Updated stsz with " << m_frames.size() << " frame sizes";
-            break;
-        }
-    }
-    
-    if (!stszFound) {
-        LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
-    }
+    updateFrameSizes(moovBox);
     
     // Fix stss (sync samples) to contain only actual keyframes, not all frames
-    // Find 'stss' box and rebuild with only keyframe indices
+    updateKeyframes(moovBox);
+    
+    // Fix stco (chunk offset) to point to actual mdat data position
+    // stco must point to where frames start in the file (after ftyp and mdat header)
+    uint32_t actualChunkOffset = m_mdatStartPos + 8; // mdat header is 8 bytes (size + 'mdat')
+    updateChunkOffset(moovBox, actualChunkOffset);
+    
+    // Write moov at the end of file
+    ssize_t written = write(m_fd, moovBox.data(), moovBox.size());
+    if (written != static_cast<ssize_t>(moovBox.size())) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to write moov box: " << written << "/" << moovBox.size();
+        return false;
+    }
+    
+    // CRITICAL: Sync data to disk BEFORE truncate
+    // Otherwise ftruncate may not work correctly with buffered data
+    fsync(m_fd);
+    
+    // Truncate file to current position (remove any garbage after moov)
+    off_t finalSize = moovStart + moovBox.size();
+    if (ftruncate(m_fd, finalSize) == -1) {
+        LOG(WARN) << "[QuickTimeMuxer] Failed to truncate file to " << finalSize << " bytes (errno: " << errno << ")";
+    } else {
+        LOG(DEBUG) << "[QuickTimeMuxer] Truncated file to " << finalSize << " bytes";
+    }
+    
+    // Final sync after truncate
+    fsync(m_fd);
+    
+    LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes), final file size " << finalSize;
+    
+    return true;
+}
+
+// Step 19.3: Extract keyframes update logic
+void QuickTimeMuxer::updateKeyframes(std::vector<uint8_t>& moovBox) {
     bool stssFound = false;
     for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
@@ -387,11 +387,10 @@ bool QuickTimeMuxer::writeMoovBox() {
     if (!stssFound) {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stss box in moov to fix keyframes!";
     }
-    
-    // Fix stco (chunk offset) to point to actual mdat data position
-    // stco must point to where frames start in the file (after ftyp and mdat header)
-    uint32_t actualChunkOffset = m_mdatStartPos + 8; // mdat header is 8 bytes (size + 'mdat')
-    
+}
+
+// Step 19.4: Extract chunk offset update logic
+void QuickTimeMuxer::updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset) {
     bool stcoFound = false;
     for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
@@ -416,30 +415,52 @@ bool QuickTimeMuxer::writeMoovBox() {
     if (!stcoFound) {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stco box in moov to fix chunk offset!";
     }
+}
+
+// Step 19.2: Extract frame sizes update logic
+void QuickTimeMuxer::updateFrameSizes(std::vector<uint8_t>& moovBox) {
+    bool stszFound = false;
+    for (size_t i = 0; i + 20 + m_frames.size() * 4 <= moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
+            // Found 'stsz', update entries
+            size_t entriesStart = i + 16; // After 'stsz' + version/flags + sample_size + sample_count
+            
+            for (size_t j = 0; j < m_frames.size(); j++) {
+                size_t entryPos = entriesStart + j * 4;
+                if (entryPos + 4 <= moovBox.size()) {
+                    uint32_t frameSize = m_frames[j].size;
+                    moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
+                    moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
+                    moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
+                    moovBox[entryPos+3] = frameSize & 0xFF;
+                }
+            }
+            
+            stszFound = true;
+            LOG(DEBUG) << "[QuickTimeMuxer] Updated stsz with " << m_frames.size() << " frame sizes";
+            break;
+        }
+    }
     
-    // Write moov at the end of file
-    written = write(m_fd, moovBox.data(), moovBox.size());
-    if (written != static_cast<ssize_t>(moovBox.size())) {
-        LOG(ERROR) << "[QuickTimeMuxer] Failed to write moov box: " << written << "/" << moovBox.size();
+    if (!stszFound) {
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
+    }
+}
+
+// Step 19.1: Extract mdat size update logic
+bool QuickTimeMuxer::updateMdatSize(size_t mdatTotalSize) {
+    if (lseek(m_fd, m_mdatStartPos, SEEK_SET) == -1) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to seek to mdat position";
         return false;
     }
     
-    // CRITICAL: Sync data to disk BEFORE truncate
-    // Otherwise ftruncate may not work correctly with buffered data
-    fsync(m_fd);
-    
-    // Truncate file to current position (remove any garbage after moov)
-    off_t finalSize = moovStart + moovBox.size();
-    if (ftruncate(m_fd, finalSize) == -1) {
-        LOG(WARN) << "[QuickTimeMuxer] Failed to truncate file to " << finalSize << " bytes (errno: " << errno << ")";
-    } else {
-        LOG(DEBUG) << "[QuickTimeMuxer] Truncated file to " << finalSize << " bytes";
+    uint32_t mdatSizeBE = htonl(static_cast<uint32_t>(mdatTotalSize));
+    ssize_t written = write(m_fd, &mdatSizeBE, 4);
+    if (written != 4) {
+        LOG(ERROR) << "[QuickTimeMuxer] Failed to write mdat size";
+        return false;
     }
-    
-    // Final sync after truncate
-    fsync(m_fd);
-    
-    LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes), final file size " << finalSize;
     
     return true;
 }

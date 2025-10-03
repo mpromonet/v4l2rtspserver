@@ -112,4 +112,10 @@ private:
     static void write32(std::vector<uint8_t>& vec, uint32_t value);
     static void write16(std::vector<uint8_t>& vec, uint16_t value);
     static void write8(std::vector<uint8_t>& vec, uint8_t value);
+    
+    // Helper methods for writeMoovBox (Step 19)
+    bool updateMdatSize(size_t mdatTotalSize);
+    void updateFrameSizes(std::vector<uint8_t>& moovBox);
+    void updateKeyframes(std::vector<uint8_t>& moovBox);
+    void updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
 };
