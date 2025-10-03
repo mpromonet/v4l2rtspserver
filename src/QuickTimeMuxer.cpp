@@ -625,41 +625,32 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
                                                     uint32_t frameCount) {
     std::vector<uint8_t> trak;
     
-    // Build tkhd (Track Header)
-    std::vector<uint8_t> tkhd;
-    write32(tkhd, 0x746B6864); // 'tkhd'
-    write32(tkhd, 0x0000000F); // version(0) + flags(enabled|in_movie|in_preview)
-    write32(tkhd, 0); // creation_time
-    write32(tkhd, 0); // modification_time
-    write32(tkhd, 1); // track_ID
-    write32(tkhd, 0); // reserved
-    write32(tkhd, duration); // duration
-    write32(tkhd, 0); write32(tkhd, 0); // reserved[2]
-    write16(tkhd, 0); // layer
-    write16(tkhd, 0); // alternate_group
-    write16(tkhd, 0); // volume (0 for video)
-    write16(tkhd, 0); // reserved
-    // Matrix
-    write32(tkhd, 0x00010000); write32(tkhd, 0); write32(tkhd, 0);
-    write32(tkhd, 0); write32(tkhd, 0x00010000); write32(tkhd, 0);
-    write32(tkhd, 0); write32(tkhd, 0); write32(tkhd, 0x40000000);
-    write32(tkhd, width << 16); // track width
-    write32(tkhd, height << 16); // track height
-    uint32_t tkhdSize = 4 + tkhd.size(); // size(4) + tkhd_content
+    // Build tkhd (Track Header) using BoxBuilder
+    auto tkhd = BoxBuilder()
+        .add32(0x0000000F)              // version/flags (enabled|in_movie|in_preview)
+        .add32(0).add32(0)              // creation_time, modification_time
+        .add32(1)                       // track_ID
+        .add32(0)                       // reserved
+        .add32(duration)                // duration
+        .add32(0).add32(0)              // reserved[2]
+        .add16(0).add16(0)              // layer, alternate_group
+        .add16(0).add16(0)              // volume (0 for video), reserved
+        // Matrix (identity)
+        .add32(0x00010000).add32(0).add32(0)
+        .add32(0).add32(0x00010000).add32(0)
+        .add32(0).add32(0).add32(0x40000000)
+        .add32(width << 16)             // track width
+        .add32(height << 16)            // track height
+        .build("tkhd");
     
     // Build mdia (Media)
-    std::vector<uint8_t> mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
-    
-    // Create tkhd box with size field
-    std::vector<uint8_t> tkhdBox;
-    write32(tkhdBox, tkhdSize);
-    tkhdBox.insert(tkhdBox.end(), tkhd.begin(), tkhd.end());
+    auto mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
     
     // Assemble trak
-    uint32_t trakSize = 8 + tkhdBox.size() + mdia.size();
+    uint32_t trakSize = 8 + tkhd.size() + mdia.size();
     write32(trak, trakSize);
     write32(trak, 0x7472616B); // 'trak'
-    trak.insert(trak.end(), tkhdBox.begin(), tkhdBox.end());
+    trak.insert(trak.end(), tkhd.begin(), tkhd.end());
     trak.insert(trak.end(), mdia.begin(), mdia.end());
     
     return trak;
