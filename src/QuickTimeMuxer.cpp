@@ -139,8 +139,12 @@ bool QuickTimeMuxer::writeMP4Header() {
 }
 
 bool QuickTimeMuxer::writeMoovBox() {
+    // CRITICAL: Save current position BEFORE any lseek operations
+    // because lseek will change file pointer and invalidate m_currentPos
+    off_t actualDataEnd = m_currentPos;
+    
     // Calculate mdat size (from mdat start to current position)
-    size_t mdatDataSize = m_currentPos - m_mdatStartPos - 8; // -8 for size+type
+    size_t mdatDataSize = actualDataEnd - m_mdatStartPos - 8; // -8 for size+type
     size_t mdatTotalSize = mdatDataSize + 8;
     
     // Update mdat size at the beginning
@@ -157,8 +161,7 @@ bool QuickTimeMuxer::writeMoovBox() {
     }
     
     // Calculate where moov should be written (right after mdat)
-    // IMPORTANT: Use calculated position, NOT lseek(SEEK_END), because
-    // file might have garbage at the end from previous writes
+    // Use the saved position, not m_currentPos (which may be corrupted by lseek/write)
     off_t moovStart = m_mdatStartPos + mdatTotalSize;
     
     // Seek to the calculated position to write moov
