@@ -19,11 +19,11 @@
 
 class DeviceSourceFactory {
     public:
-		static FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, V4L2DeviceSource::CaptureMode captureMode = V4L2DeviceSource::CAPTURE_INTERNAL_THREAD, int outfd = -1, bool repeatConfig = true) {
+		static FramedSource* createFramedSource(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, V4L2DeviceSource::CaptureMode captureMode = V4L2DeviceSource::CAPTURE_INTERNAL_THREAD, int outfd = -1, bool repeatConfig = true, bool isMP4 = false) {
             FramedSource* source = NULL;
             if (format == V4L2_PIX_FMT_H264)
             {
-                source = H264_V4L2DeviceSource::createNew(*env, devCapture, outfd, queueSize, captureMode, repeatConfig, false);
+                source = H264_V4L2DeviceSource::createNew(*env, devCapture, outfd, queueSize, captureMode, repeatConfig, false, isMP4);
             }
             else if (format == V4L2_PIX_FMT_HEVC)
             {
@@ -36,9 +36,9 @@ class DeviceSourceFactory {
             return source;
         }
 
-        static StreamReplicator* createStreamReplicator(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, V4L2DeviceSource::CaptureMode captureMode = V4L2DeviceSource::CAPTURE_INTERNAL_THREAD, int outfd = -1, bool repeatConfig = true) {
+        static StreamReplicator* createStreamReplicator(UsageEnvironment* env, int format, DeviceInterface* devCapture, int queueSize = 5, V4L2DeviceSource::CaptureMode captureMode = V4L2DeviceSource::CAPTURE_INTERNAL_THREAD, int outfd = -1, bool repeatConfig = true, bool isMP4 = false) {
             StreamReplicator* replicator = NULL;
-            FramedSource* framedSource = DeviceSourceFactory::createFramedSource(env, format, devCapture, queueSize, captureMode, outfd, repeatConfig);
+            FramedSource* framedSource = DeviceSourceFactory::createFramedSource(env, format, devCapture, queueSize, captureMode, outfd, repeatConfig, isMP4);
             if (framedSource != NULL) 
             {						
                 // extend buffer size if needed

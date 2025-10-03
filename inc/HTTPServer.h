@@ -14,6 +14,7 @@
 #pragma once
 
 #include <list>
+#include <vector>
 
 // hacking private members RTSPServer::fWeServeSRTP & RTSPServer::fWeEncryptSRTP
 #define private protected
@@ -144,6 +145,7 @@ class HTTPServer : public RTSPServer
 			void sendHeader(const char* contentType, unsigned int contentLength);		
 			void streamSource(FramedSource* source);	
 			void streamSource(const std::string & content);
+			void streamSource(const std::vector<unsigned char>& binaryData);
 			ServerMediaSubsession* getSubsesion(const char* urlSuffix);
 			bool sendFile(char const* urlSuffix);
 			bool sendM3u8PlayList(char const* urlSuffix);
@@ -232,10 +234,10 @@ class HTTPServer : public RTSPServer
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT	<	1611187200
 		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, MyUserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
-		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		  : RTSPServer(env, ourSocketIPv4, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_enableRTSPS(false), m_enableSRTP(false)
 #else
 		HTTPServer(UsageEnvironment& env, int ourSocketIPv4, int ourSocketIPv6, Port rtspPort, MyUserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds, unsigned int hlsSegment, const std::string & webroot, const std::string & sslCert, bool enableRTSPS)
-		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot)
+		  : RTSPServer(env, ourSocketIPv4, ourSocketIPv6, rtspPort, authDatabase, reclamationTestSeconds), m_hlsSegment(hlsSegment), m_webroot(webroot), m_enableRTSPS(false), m_enableSRTP(false)
 #endif			
 		{
 				if ( (!m_webroot.empty()) && (*m_webroot.rend() != '/') ) {
@@ -257,24 +259,19 @@ class HTTPServer : public RTSPServer
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200      
                 if (!sslCert.empty()) {
 					this->setTLSFileNames(sslCert.c_str(), sslCert.c_str());
-					fWeServeSRTP = true;
-					fWeEncryptSRTP = encryptSRTP;
-					if (enableRTSPS) {
-						fOurConnectionsUseTLS = true;
-					} else {
-						fOurConnectionsUseTLS = false;
-					}
+					m_enableRTSPS = enableRTSPS;
+					m_enableSRTP = encryptSRTP;
                 } else {
-					fOurConnectionsUseTLS = false;
-					fWeServeSRTP = false;
-					fWeEncryptSRTP = false;
+					// Reset TLS configuration
+					m_enableRTSPS = false;
+					m_enableSRTP = false;
 				}
 #endif  			
 		}
 
 		bool isRTSPS() { 
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			return fOurConnectionsUseTLS; 
+			return m_enableRTSPS;
 #else
 			return false;
 #endif			
@@ -282,7 +279,7 @@ class HTTPServer : public RTSPServer
 
 		bool isSRTP() { 
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			return fWeServeSRTP; 
+			return m_enableSRTP;
 #else
 			return false;
 #endif			
@@ -290,7 +287,7 @@ class HTTPServer : public RTSPServer
 
 		bool isSRTPEncrypted() {
 #if LIVEMEDIA_LIBRARY_VERSION_INT >= 1642723200
-			return fWeEncryptSRTP; 
+			return m_enableSRTP;
 #else
 			return false;
 #endif			
@@ -323,5 +320,7 @@ class HTTPServer : public RTSPServer
     private:
 			const unsigned int m_hlsSegment;
 			std::string  m_webroot;
+			bool m_enableRTSPS;
+			bool m_enableSRTP;
 };
 

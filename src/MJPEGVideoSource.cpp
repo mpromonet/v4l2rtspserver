@@ -92,6 +92,13 @@ void MJPEGVideoSource::afterGettingFrame(unsigned frameSize,unsigned numTruncate
 
 	if (headerSize != 0) {
 	    LOG(DEBUG) << "headerSize:" << headerSize;
+	    
+	    // Process MJPEG frame for snapshot if enabled (before moving data)
+	    if (SnapshotManager::getInstance().isEnabled()) {
+	        // Save the complete MJPEG frame for snapshot
+	        SnapshotManager::getInstance().processMJPEGFrame(fTo, frameSize);
+	    }
+	    
 	    fFrameSize = frameSize - headerSize;
 	    memmove( fTo, fTo + headerSize, fFrameSize );
 	} else {

@@ -10,8 +10,11 @@
 ** -------------------------------------------------------------------------*/
 
 #include <dirent.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include <sstream>
+#include <algorithm>
 
 #include "logger.h"
 #include "V4l2Capture.h"
@@ -19,38 +22,99 @@
 #include "V4l2RTSPServer.h"
 #include "DeviceSourceFactory.h"
 #include "VideoCaptureAccess.h"
+#include "SnapshotManager.h"
 
 #ifdef HAVE_ALSA
 #include "ALSACapture.h"
 #endif
 
+// External function from main.cpp for MP4 finalization on SIGINT
+extern "C" void registerMP4FileDescriptor(int fd);
+
 StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
-					const V4L2DeviceParameters& inParam,
-					int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
+				const V4L2DeviceParameters& inParam,
+				int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
+				const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
 
 	StreamReplicator* videoReplicator = NULL;
     std::string videoDev(inParam.m_devName);
 	if (!videoDev.empty())
 	{
 		// Init video capture
-		LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
+		LOG(NOTICE) << "Create V4L2 Source from device: " << videoDev;
+		if (!outputFile.empty()) {
+			LOG(INFO) << "Output file for this device: " << outputFile;
+		}
 		
 		V4l2Capture* videoCapture = V4l2Capture::create(inParam);
 		if (videoCapture)
 		{
-			int outfd = -1;
+			// Note: Device format info removed - SnapshotManager now supports only MJPEG and H264
 			
-			if (!outputFile.empty())
-			{
-				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
-				out = V4l2Output::create(outparam);
-				if (out != NULL)
-				{
-					outfd = out->getFd();
-					LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
-				} else {
-					LOG(WARN) << "Cannot open output:" << outputFile;
+			int outfd = -1;
+			bool isMP4File = false; // Initialize to false by default
+			
+		if (!outputFile.empty())
+		{
+		// Check if it looks like a V4L2 device path before attempting V4L2 creation
+		// V4L2 devices should start with /dev/ and not have typical file extensions
+		bool isV4L2Device = (outputFile.find("/dev/") == 0);
+		size_t dotPos = outputFile.find_last_of('.');
+		std::string extension = (dotPos != std::string::npos) ? outputFile.substr(dotPos + 1) : "";
+			std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+			isMP4File = (extension == "mp4");
+			
+			// If it has a file extension, it's definitely not a V4L2 device
+			if (!extension.empty() && (extension == "mp4" || extension == "h264" || extension == "h265" || extension == "jpg" || extension == "jpeg")) {
+				isV4L2Device = false;
+				LOG(INFO) << "Output path has file extension '" << extension << "', treating as regular file";
+			}
+			
+			if (isV4L2Device) {
+			V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
+			out = V4l2Output::create(outparam);
+				if (out != NULL) {
+				outfd = out->getFd();
+				LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
+			} else {
+					LOG(WARN) << "Cannot open V4L2 output device:" << outputFile;
+				}
+			}
+				
+				if (outfd == -1) {
+					// Check for MJPEG + MP4 combination (not supported)
+					std::string rtpFormat(BaseServerMediaSubsession::getVideoRtpFormat(videoCapture->getFormat()));
+					if (isMP4File && rtpFormat == "video/JPEG") {
+						// MJPEG cannot be stored in MP4 container - block only .mp4 files
+						LOG(ERROR) << "MJPEG format cannot be recorded to MP4 container!";
+						LOG(ERROR) << "MP4 requires H.264/H.265 codec, but device is outputting MJPEG.";
+						LOG(ERROR) << "Solutions:";
+						LOG(ERROR) << "  1. Use -fH264 for hardware H.264 encoding (recommended for Raspberry Pi Camera)";
+						LOG(ERROR) << "  2. Remove -O parameter to disable recording";
+						LOG(ERROR) << "  3. Change output file extension to .mjpeg: -O output.mjpeg";
+						LOG(WARN) << "Skipping MP4 recording due to format mismatch";
+						// Don't open the file (only .mp4 is blocked, .mjpeg files are allowed)
+					} else {
+						// Try to open as regular file for writing
+						// Special message for MJPEG raw stream recording
+						if (!isMP4File && rtpFormat == "video/JPEG" && extension == "mjpeg") {
+							LOG(NOTICE) << "Recording MJPEG raw stream to: " << outputFile;
+							LOG(NOTICE) << "Note: This is a raw MJPEG stream, not a standard video container.";
+							LOG(NOTICE) << "To convert to MP4: ffmpeg -i " << outputFile << " -c:v libx264 output.mp4";
+						}
+						LOG(INFO) << (isV4L2Device ? "V4L2 output failed, trying regular file: " : (isMP4File ? "Opening MP4 file: " : "Opening regular file: ")) << outputFile;
+						outfd = open(outputFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+						if (outfd != -1) {
+							LOG(INFO) << "Opened " << (isMP4File ? "MP4" : "regular") << " file for output: " << outputFile << " fd:" << outfd;
+							
+							// Register MP4 file descriptor for proper finalization on SIGINT
+							if (isMP4File) {
+								registerMP4FileDescriptor(outfd);
+							}
+						} else {
+							LOG(WARN) << "Cannot open output:" << outputFile << " err:" << strerror(errno);
+						}
+					}
 				}
 			}
 			
@@ -59,11 +123,16 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 				delete videoCapture;
 			} else {
-				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, captureMode, outfd, repeatConfig);
+				// Create VideoCaptureAccess and set the FPS from device parameters
+				VideoCaptureAccess* videoCaptureAccess = new VideoCaptureAccess(videoCapture);
+				videoCaptureAccess->setStoredFps(inParam.m_fps); // Set FPS from device parameters
+				LOG(INFO) << "Set VideoCaptureAccess FPS to " << inParam.m_fps;
+				
+				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), videoCaptureAccess, queueSize, captureMode, outfd, repeatConfig, isMP4File);
 				if (videoReplicator == NULL) 
 				{
 					LOG(FATAL) << "Unable to create source for device " << videoDev;
-					delete videoCapture;
+					delete videoCaptureAccess; // This will also delete videoCapture
 				}
 			}
 		}

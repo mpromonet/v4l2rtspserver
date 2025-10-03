@@ -8,7 +8,9 @@
 ** -------------------------------------------------------------------------*/
 
 #include <sstream>
+#ifdef __linux__
 #include <linux/videodev2.h>
+#endif
 
 // project
 #include "BaseServerMediaSubsession.h"
@@ -79,6 +81,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 	{ 
 		std::string sampling;
 		DeviceInterface* device = source->getDevice();
+#ifdef __linux__
 		switch (device->getVideoFormat()) {
 			case V4L2_PIX_FMT_YUV444: sampling = "YCbCr-4:4:4"; break;
 			case V4L2_PIX_FMT_UYVY  : sampling = "YCbCr-4:2:2"; break;
@@ -89,6 +92,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(UsageEnvironment& env, Groupsock
 			case V4L2_PIX_FMT_BGR24 : sampling = "BGR"        ; break;
 			case V4L2_PIX_FMT_BGR32 : sampling = "BGRA"       ; break;
 		}
+#else
+		// Default sampling for non-Linux platforms
+		sampling = "YCbCr-4:2:2";
+#endif
 		videoSink = RawVideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, device->getWidth(), device->getHeight(), 8, sampling.c_str(),"BT709-2");
     } 
 #endif	

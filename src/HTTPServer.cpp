@@ -15,10 +15,11 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
-
+#include <cstring>
 #include <time.h>
 #include "ByteStreamMemoryBufferSource.hh"
 #include "HTTPServer.h"
+#include "SnapshotManager.h"
 
 #include "BaseServerMediaSubsession.h"
 
@@ -49,7 +50,14 @@ void HTTPServer::HTTPClientConnection::streamSource(const std::string & content)
 {
 	u_int8_t* buffer = new u_int8_t[content.size()];
 	memcpy(buffer, content.c_str(), content.size());
-	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, content.size()));
+	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, content.size(), True));
+}
+
+void HTTPServer::HTTPClientConnection::streamSource(const std::vector<unsigned char>& binaryData)
+{
+	u_int8_t* buffer = new u_int8_t[binaryData.size()];
+	memcpy(buffer, binaryData.data(), binaryData.size());
+	this->streamSource(ByteStreamMemoryBufferSource::createNew(envir(), buffer, binaryData.size(), True));
 }
 
 void HTTPServer::HTTPClientConnection::streamSource(FramedSource* source)
@@ -240,50 +248,30 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const* ur
 		this->sendHeader("text/plain", content.size());
 		this->streamSource(content);
 	}
-	else if (strncmp(urlSuffix, "getSnapshot", strlen("getSnapshot")) == 0) 
+	else if (strncmp(urlSuffix, "snapshot", strlen("snapshot")) == 0) 
 	{
-		std::string streamName(urlSuffix);
-		size_t pos = streamName.find_last_of("?");
-		if (pos != std::string::npos)
-		{
-			streamName.erase(pos);
-		}
-		else 
-		{
-			streamName.clear();
-		}
-		ServerMediaSessionIterator it(fOurServer);
-		ServerMediaSession* serverSession = NULL;
-		while ( (serverSession = it.next()) != NULL) {
-			if ((serverSession->streamName() == streamName) || streamName.empty()) {
-				break;
+		// Get snapshot from SnapshotManager
+		std::vector<unsigned char> snapshotData;
+		if (SnapshotManager::getInstance().getSnapshot(snapshotData) && !snapshotData.empty()) {
+			// Get MIME type from SnapshotManager
+			std::string mimeType = SnapshotManager::getInstance().getSnapshotMimeType();
+			
+			this->sendHeader(mimeType.c_str(), snapshotData.size());
+			// Stream binary data directly without string conversion
+			this->streamSource(snapshotData);
+		} else {
+			// No snapshot available
+			std::ostringstream os;
+			os << "Snapshot Status:\n";
+			os << "Mode: " << SnapshotManager::getInstance().getModeDescription() << "\n";
+			os << "Recent snapshot: " << (SnapshotManager::getInstance().hasRecentSnapshot() ? "Yes" : "No") << "\n";
+			if (!SnapshotManager::getInstance().isEnabled()) {
+				os << "Snapshots are disabled. Use -j parameter to enable.\n";
 			}
-		}
-		BaseServerMediaSubsession* baseSubsession = NULL;
-		if (serverSession != NULL) 
-		{
-			ServerMediaSubsessionIterator subIt(*serverSession);
-			ServerMediaSubsession* subsession = subIt.next();
-			if (subsession != NULL) {
-				baseSubsession = dynamic_cast<BaseServerMediaSubsession*>(subsession);
-			}
-		}
-
-		if (baseSubsession) {	
-			std::string format = baseSubsession->getFormat();
-			size_t pos = format.find("video");
-			if (pos != std::string::npos) {
-				format.replace(pos, 5, "image");
-			}
-			std::string content = baseSubsession->getLastFrame();
-			this->sendHeader(format.c_str(), content.size());
-			this->streamSource(content);
-		}
-		else
-		{
-			handleHTTPCmd_notFound();
-			fIsActive = False;
-			return;			  
+			
+			std::string errorMsg = os.str();
+			this->sendHeader("text/plain", errorMsg.size());
+			this->streamSource(errorMsg);
 		}
 	}
 	else if (strncmp(urlSuffix, "getStreamList", strlen("getStreamList")) == 0) 
