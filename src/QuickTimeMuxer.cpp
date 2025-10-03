@@ -701,48 +701,36 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
                                                     uint32_t frameCount) {
     std::vector<uint8_t> minf;
     
-    // Build vmhd (Video Media Header)
-    std::vector<uint8_t> vmhd;
-    write32(vmhd, 0x766D6864); // 'vmhd'
-    write32(vmhd, 0x00000001); // version + flags
-    write16(vmhd, 0); // graphicsmode
-    write16(vmhd, 0); write16(vmhd, 0); write16(vmhd, 0); // opcolor[3]
-    uint32_t vmhdSize = 4 + vmhd.size(); // size(4) + vmhd_content
+    // Build vmhd (Video Media Header) using BoxBuilder
+    auto vmhd = BoxBuilder()
+        .add32(0x00000001)              // version/flags
+        .add16(0)                       // graphicsmode
+        .add16(0).add16(0).add16(0)     // opcolor[3]
+        .build("vmhd");
     
-    // Build dinf/dref (Data Information)
-    std::vector<uint8_t> dref;
-    write32(dref, 0x64726566); // 'dref'
-    write32(dref, 0); // version + flags
-    write32(dref, 1); // entry_count
-    // url entry
-    write32(dref, 12); // size
-    write32(dref, 0x75726C20); // 'url '
-    write32(dref, 1); // version + flags (self-contained)
-    uint32_t drefSize = 4 + dref.size(); // size(4) + dref_content
+    // Build dref (Data Reference) using BoxBuilder
+    auto dref = BoxBuilder()
+        .add32(0)                       // version/flags
+        .add32(1)                       // entry_count
+        // url entry (self-contained)
+        .add32(12)                      // entry size
+        .add32(0x75726C20)              // 'url '
+        .add32(1)                       // version/flags (self-contained)
+        .build("dref");
     
-    // Create dref box with size field
-    std::vector<uint8_t> drefBox;
-    write32(drefBox, drefSize);
-    drefBox.insert(drefBox.end(), dref.begin(), dref.end());
-    
-    std::vector<uint8_t> dinf;
-    write32(dinf, 8 + drefBox.size());
-    write32(dinf, 0x64696E66); // 'dinf'
-    dinf.insert(dinf.end(), drefBox.begin(), drefBox.end());
+    // Build dinf (Data Information) using BoxBuilder
+    auto dinf = BoxBuilder()
+        .addBytes(dref.data(), dref.size())
+        .build("dinf");
     
     // Build stbl (Sample Table)
-    std::vector<uint8_t> stbl = createStblBox(sps, pps, width, height, frameCount);
-    
-    // Create vmhd box with size field
-    std::vector<uint8_t> vmhdBox;
-    write32(vmhdBox, vmhdSize);
-    vmhdBox.insert(vmhdBox.end(), vmhd.begin(), vmhd.end());
+    auto stbl = createStblBox(sps, pps, width, height, frameCount);
     
     // Assemble minf
-    uint32_t minfSize = 8 + vmhdBox.size() + dinf.size() + stbl.size();
+    uint32_t minfSize = 8 + vmhd.size() + dinf.size() + stbl.size();
     write32(minf, minfSize);
     write32(minf, 0x6D696E66); // 'minf'
-    minf.insert(minf.end(), vmhdBox.begin(), vmhdBox.end());
+    minf.insert(minf.end(), vmhd.begin(), vmhd.end());
     minf.insert(minf.end(), dinf.begin(), dinf.end());
     minf.insert(minf.end(), stbl.begin(), stbl.end());
     
