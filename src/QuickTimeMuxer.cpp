@@ -25,12 +25,16 @@
 QuickTimeMuxer::QuickTimeMuxer() 
     : m_initialized(false), m_fd(-1), m_width(0), m_height(0), m_fps(30),
       m_mdatStartPos(0), m_currentPos(0),
-      m_frameCount(0), m_keyFrameCount(0) {
+      m_frameCount(0), m_keyFrameCount(0),
+      m_bufferMaxSize(1024 * 1024), m_flushIntervalMs(1000) {  // 1MB buffer, 1 second interval
+    m_writeBuffer.reserve(m_bufferMaxSize);
+    m_lastFlushTime = std::chrono::steady_clock::now();
 }
 
 QuickTimeMuxer::~QuickTimeMuxer() noexcept {
     try {
         if (m_initialized) {
+            flushBufferToDisk(true); // Flush buffer before finalize
             finalize();
         }
     } catch (...) {
@@ -103,6 +107,11 @@ bool QuickTimeMuxer::addFrame(const unsigned char* h264Data, size_t dataSize, bo
         m_keyFrameCount++;
     }
     
+    // Check if we should flush buffer to disk (on keyframes at intervals)
+    if (shouldFlushBuffer(isKeyFrame)) {
+        flushBufferToDisk(false); // Regular scheduled flush (no fsync)
+    }
+    
     LOG(DEBUG) << "[QuickTimeMuxer] Added frame " << m_frameCount << " (" << dataSize << " bytes" 
                << (isKeyFrame ? ", keyframe" : "") << ") at offset " << frameInfo.offset;
     
@@ -113,6 +122,9 @@ bool QuickTimeMuxer::finalize() {
     if (!m_initialized) {
         return false;
     }
+    
+    // CRITICAL: Flush buffer before finalizing
+    flushBufferToDisk(true);
     
     // Write moov box with proper metadata
     if (!writeMoovBox()) {
@@ -338,12 +350,20 @@ bool QuickTimeMuxer::writeMoovBox() {
 }
 
 void QuickTimeMuxer::writeToFile(const void* data, size_t size) {
-    if (m_fd != -1) {
-        ssize_t written = write(m_fd, data, size);
-        if (written != static_cast<ssize_t>(size)) {
-            LOG(ERROR) << "[QuickTimeMuxer] Write error: " << written << "/" << size;
-        }
-        m_currentPos += written;
+    if (m_fd == -1 || !data || size == 0) {
+        return;
+    }
+    
+    // Add data to write buffer
+    const uint8_t* bytes = static_cast<const uint8_t*>(data);
+    m_writeBuffer.insert(m_writeBuffer.end(), bytes, bytes + size);
+    m_currentPos += size;
+    
+    // Check if buffer is getting too large (force flush)
+    if (m_writeBuffer.size() >= m_bufferMaxSize) {
+        LOG(WARN) << "[QuickTimeMuxer] Buffer size limit reached (" << m_writeBuffer.size() 
+                  << " bytes), forcing flush";
+        flushBufferToDisk(true);
     }
 }
 
@@ -948,4 +968,53 @@ std::string QuickTimeMuxer::getCurrentTimestamp() {
     ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
     ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
     return ss.str();
+}
+
+// Flush write buffer to disk (like old MP4Muxer)
+void QuickTimeMuxer::flushBufferToDisk(bool force) {
+    if (m_writeBuffer.empty() || m_fd < 0) {
+        return;
+    }
+    
+    // Write buffered data to disk
+    size_t totalWritten = 0;
+    while (totalWritten < m_writeBuffer.size()) {
+        ssize_t written = write(m_fd, m_writeBuffer.data() + totalWritten, 
+                                m_writeBuffer.size() - totalWritten);
+        if (written <= 0) {
+            LOG(ERROR) << "[QuickTimeMuxer] Failed to flush buffer: " << written;
+            break;
+        }
+        totalWritten += written;
+    }
+    
+    if (totalWritten == m_writeBuffer.size()) {
+        LOG(DEBUG) << "[QuickTimeMuxer] Flushed " << totalWritten << " bytes to disk" 
+                   << (force ? " (forced)" : "");
+    } else {
+        LOG(ERROR) << "[QuickTimeMuxer] Partial flush: " << totalWritten << "/" << m_writeBuffer.size();
+    }
+    
+    // Optionally force data to physical disk (only on forced flush or finalize)
+    if (force && m_fd >= 0) {
+        fsync(m_fd);
+    }
+    
+    // Clear buffer and update flush time
+    m_writeBuffer.clear();
+    m_lastFlushTime = std::chrono::steady_clock::now();
+}
+
+// Check if buffer should be flushed (on keyframes at intervals)
+bool QuickTimeMuxer::shouldFlushBuffer(bool isKeyFrame) {
+    // Only flush on keyframes
+    if (!isKeyFrame) {
+        return false;
+    }
+    
+    // Check time interval since last flush
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceFlush = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastFlushTime);
+    
+    return timeSinceFlush.count() >= m_flushIntervalMs;
 }

@@ -70,10 +70,18 @@ private:
     };
     std::vector<FrameInfo> m_frames;
     
+    // Write buffer for performance (like old MP4Muxer)
+    std::vector<uint8_t> m_writeBuffer;
+    size_t m_bufferMaxSize;
+    int m_flushIntervalMs;
+    std::chrono::steady_clock::time_point m_lastFlushTime;
+    
     // Helper methods
     void writeToFile(const void* data, size_t size);
     bool writeMP4Header();
     bool writeMoovBox();
+    void flushBufferToDisk(bool force);
+    bool shouldFlushBuffer(bool isKeyFrame);
     
     // Static helper methods - based on live555 QuickTimeFileSink structure
     static std::vector<uint8_t> createFtypBox();
