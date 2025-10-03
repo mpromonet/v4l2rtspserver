@@ -472,14 +472,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     auto ftypBox = createFtypBox();
     mp4Data.insert(mp4Data.end(), ftypBox.begin(), ftypBox.end());
     
-    LOG(DEBUG) << "[Snapshot] ftyp size: " << ftypBox.size() << " bytes";
-    LOG(DEBUG) << "[Snapshot] mp4Data size after ftyp: " << mp4Data.size() << " bytes";
-    LOG(DEBUG) << "[Snapshot] mp4Data first 32 bytes after ftyp: 0x" << std::hex << std::setfill('0');
-    for (size_t i = 0; i < 32 && i < mp4Data.size(); i++) {
-        LOG(DEBUG) << std::setw(2) << (int)mp4Data[i];
-    }
-    LOG(DEBUG) << std::dec;
-    
     // Prepare mdat content: SPS + PPS + Frame (each with 4-byte length prefix)
     std::vector<uint8_t> mdatContent;
     
@@ -499,27 +491,11 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     write32(mdatContent, dataSize);
     mdatContent.insert(mdatContent.end(), h264Data, h264Data + dataSize);
     
-    LOG(DEBUG) << "[Snapshot] mdatContent size: " << mdatContent.size() << " bytes (SPS:" << sps.size() << " PPS:" << pps.size() << " Frame:" << dataSize << ")";
-    
     // Create mdat box with all data
     auto mdatBox = createMdatBox(mdatContent);
-    LOG(DEBUG) << "[Snapshot] mdatBox size: " << mdatBox.size() << " bytes, first 8 bytes: 0x" 
-               << std::hex << std::setfill('0')
-               << std::setw(2) << (int)mdatBox[0] << std::setw(2) << (int)mdatBox[1] 
-               << std::setw(2) << (int)mdatBox[2] << std::setw(2) << (int)mdatBox[3] << " "
-               << std::setw(2) << (int)mdatBox[4] << std::setw(2) << (int)mdatBox[5]
-               << std::setw(2) << (int)mdatBox[6] << std::setw(2) << (int)mdatBox[7]
-               << std::dec;
     
     uint32_t mdatOffset = ftypBox.size(); // Offset where mdat starts
     mp4Data.insert(mp4Data.end(), mdatBox.begin(), mdatBox.end());
-    
-    LOG(DEBUG) << "[Snapshot] mp4Data size after mdat: " << mp4Data.size() << " bytes";
-    LOG(DEBUG) << "[Snapshot] mp4Data first 32 bytes after mdat: 0x" << std::hex << std::setfill('0');
-    for (size_t i = 0; i < 32 && i < mp4Data.size(); i++) {
-        LOG(DEBUG) << std::setw(2) << (int)mp4Data[i];
-    }
-    LOG(DEBUG) << std::dec;
     
     // Create moov box AFTER mdat (standard MP4 structure for streaming)
     // Note: stco offset in moov needs to point to SPS (first data in mdat)
@@ -530,16 +506,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     );
     
     // Fix stco offset in moov to point to actual mdat data position (after mdat header)
-    // Find 'stco' box in moov and update the chunk offset
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
-    
-    // Search for 'stco' signature (0x7374636F) in moovBox
-    LOG(DEBUG) << "[Snapshot] Searching for stco in moovBox (size=" << moovBox.size() << " bytes)";
-    LOG(DEBUG) << "[Snapshot] moovBox first 32 bytes: 0x" << std::hex << std::setfill('0');
-    for (size_t i = 0; i < 32 && i < moovBox.size(); i++) {
-        LOG(DEBUG) << std::setw(2) << (int)moovBox[i];
-    }
-    LOG(DEBUG) << std::dec;
     
     bool stcoFound = false;
     for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
@@ -555,8 +522,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
                 moovBox[offsetPos+2] = (actualOffset >> 8) & 0xFF;
                 moovBox[offsetPos+3] = actualOffset & 0xFF;
                 stcoFound = true;
-                LOG(DEBUG) << "[Snapshot] Fixed stco offset at position " << offsetPos 
-                          << " (old: 0x" << std::hex << oldOffset << ", new: 0x" << actualOffset << ")" << std::dec;
                 break;
             }
         }
@@ -585,8 +550,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
                 moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
                 moovBox[entryPos+3] = frameSize & 0xFF;
                 stszFound = true;
-                LOG(DEBUG) << "[Snapshot] Fixed stsz entry_sizes[0] at position " << entryPos 
-                          << " (old: " << oldSize << ", new: " << frameSize << ")";
                 break;
             }
         }
@@ -597,13 +560,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     }
     
     mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
-    
-    LOG(DEBUG) << "[Snapshot] Final MP4 size: " << mp4Data.size() << " bytes (ftyp:" << ftypBox.size() << " mdat:" << mdatBox.size() << " moov:" << moovBox.size() << ")";
-    LOG(DEBUG) << "[Snapshot] First 48 bytes of MP4: 0x" << std::hex << std::setfill('0');
-    for (size_t i = 0; i < 48 && i < mp4Data.size(); i++) {
-        LOG(DEBUG) << std::setw(2) << (int)mp4Data[i];
-    }
-    LOG(DEBUG) << std::dec;
     
     return mp4Data;
 }
