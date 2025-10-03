@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 class QuickTimeMuxer {
 public:
