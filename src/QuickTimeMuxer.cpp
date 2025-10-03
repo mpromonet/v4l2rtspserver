@@ -469,24 +469,16 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
     auto ftypBox = createFtypBox();
     mp4Data.insert(mp4Data.end(), ftypBox.begin(), ftypBox.end());
     
-    // Prepare mdat content: SPS + PPS + Frame (each with 4-byte length prefix)
-    std::vector<uint8_t> mdatContent;
-    
-    // Add SPS with length prefix
+    // Prepare mdat content: SPS + PPS + Frame (each with 4-byte length prefix) using BoxBuilder
+    BoxBuilder mdatBuilder;
     if (!sps.empty()) {
-        write32(mdatContent, sps.size());
-        mdatContent.insert(mdatContent.end(), sps.begin(), sps.end());
+        mdatBuilder.add32(sps.size()).addBytes(sps.data(), sps.size());
     }
-    
-    // Add PPS with length prefix
     if (!pps.empty()) {
-        write32(mdatContent, pps.size());
-        mdatContent.insert(mdatContent.end(), pps.begin(), pps.end());
+        mdatBuilder.add32(pps.size()).addBytes(pps.data(), pps.size());
     }
-    
-    // Add frame data with length prefix
-    write32(mdatContent, dataSize);
-    mdatContent.insert(mdatContent.end(), h264Data, h264Data + dataSize);
+    mdatBuilder.add32(dataSize).addBytes(h264Data, dataSize);
+    auto mdatContent = mdatBuilder.getData();
     
     // Create mdat box with all data
     auto mdatBox = createMdatBox(mdatContent);
@@ -600,14 +592,11 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
     
     auto trak = createTrakBox(sps, pps, width, height, timescale, duration, frameCount);
     
-    // Assemble moov box: moov_header(8) + mvhd + trak
-    uint32_t moovSize = 8 + mvhd.size() + trak.size();
-    write32(moov, moovSize);
-    write32(moov, 0x6D6F6F76); // 'moov'
-    moov.insert(moov.end(), mvhd.begin(), mvhd.end());
-    moov.insert(moov.end(), trak.begin(), trak.end());
-    
-    return moov;
+    // Assemble moov box using BoxBuilder
+    return BoxBuilder()
+        .addBytes(mvhd.data(), mvhd.size())
+        .addBytes(trak.data(), trak.size())
+        .build("moov");
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& sps,
@@ -634,15 +623,11 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
     
     auto mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
     
-    // Assemble trak
-    std::vector<uint8_t> trak;
-    uint32_t trakSize = 8 + tkhd.size() + mdia.size();
-    write32(trak, trakSize);
-    write32(trak, 0x7472616B); // 'trak'
-    trak.insert(trak.end(), tkhd.begin(), tkhd.end());
-    trak.insert(trak.end(), mdia.begin(), mdia.end());
-    
-    return trak;
+    // Assemble trak using BoxBuilder
+    return BoxBuilder()
+        .addBytes(tkhd.data(), tkhd.size())
+        .addBytes(mdia.data(), mdia.size())
+        .build("trak");
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& sps,
@@ -668,16 +653,12 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
     
     auto minf = createMinfBox(sps, pps, width, height, frameCount);
     
-    // Assemble mdia
-    std::vector<uint8_t> mdia;
-    uint32_t mdiaSize = 8 + mdhd.size() + hdlr.size() + minf.size();
-    write32(mdia, mdiaSize);
-    write32(mdia, 0x6D646961); // 'mdia'
-    mdia.insert(mdia.end(), mdhd.begin(), mdhd.end());
-    mdia.insert(mdia.end(), hdlr.begin(), hdlr.end());
-    mdia.insert(mdia.end(), minf.begin(), minf.end());
-    
-    return mdia;
+    // Assemble mdia using BoxBuilder
+    return BoxBuilder()
+        .addBytes(mdhd.data(), mdhd.size())
+        .addBytes(hdlr.data(), hdlr.size())
+        .addBytes(minf.data(), minf.size())
+        .build("mdia");
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& sps,
@@ -705,16 +686,12 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     
     auto stbl = createStblBox(sps, pps, width, height, frameCount);
     
-    // Assemble minf
-    std::vector<uint8_t> minf;
-    uint32_t minfSize = 8 + vmhd.size() + dinf.size() + stbl.size();
-    write32(minf, minfSize);
-    write32(minf, 0x6D696E66); // 'minf'
-    minf.insert(minf.end(), vmhd.begin(), vmhd.end());
-    minf.insert(minf.end(), dinf.begin(), dinf.end());
-    minf.insert(minf.end(), stbl.begin(), stbl.end());
-    
-    return minf;
+    // Assemble minf using BoxBuilder
+    return BoxBuilder()
+        .addBytes(vmhd.data(), vmhd.size())
+        .addBytes(dinf.data(), dinf.size())
+        .addBytes(stbl.data(), stbl.size())
+        .build("minf");
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& sps,
@@ -810,41 +787,21 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .add32(0)                   // chunk_offset (placeholder)
         .build("stco");
     
-    // Assemble stbl (Sample Table box)
-    std::vector<uint8_t> stbl;
-    write32(stbl, 0); // size placeholder
-    stbl.insert(stbl.end(), {'s', 't', 'b', 'l'});
-    stbl.insert(stbl.end(), stsd.begin(), stsd.end());
-    stbl.insert(stbl.end(), stts.begin(), stts.end());
-    stbl.insert(stbl.end(), stss.begin(), stss.end());
-    stbl.insert(stbl.end(), stsc.begin(), stsc.end());
-    stbl.insert(stbl.end(), stsz.begin(), stsz.end());
-    stbl.insert(stbl.end(), stco.begin(), stco.end());
-    
-    // Update stbl size
-    uint32_t stblSize = stbl.size();
-    stbl[0] = (stblSize >> 24) & 0xFF;
-    stbl[1] = (stblSize >> 16) & 0xFF;
-    stbl[2] = (stblSize >> 8) & 0xFF;
-    stbl[3] = stblSize & 0xFF;
-    
-    return stbl;
+    // Assemble stbl using BoxBuilder
+    return BoxBuilder()
+        .addBytes(stsd.data(), stsd.size())
+        .addBytes(stts.data(), stts.size())
+        .addBytes(stss.data(), stss.size())
+        .addBytes(stsc.data(), stsc.size())
+        .addBytes(stsz.data(), stsz.size())
+        .addBytes(stco.data(), stco.size())
+        .build("stbl");
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
     // frameData should already contain SPS+PPS+Frame with length prefixes
     return BoxBuilder().addBytes(frameData.data(), frameData.size()).build("mdat");
 }
-
-// Helper functions for writing multi-byte values (used in legacy code paths)
-void QuickTimeMuxer::write32(std::vector<uint8_t>& vec, uint32_t value) {
-    vec.push_back((value >> 24) & 0xFF); vec.push_back((value >> 16) & 0xFF);
-    vec.push_back((value >> 8) & 0xFF);  vec.push_back(value & 0xFF);
-}
-void QuickTimeMuxer::write16(std::vector<uint8_t>& vec, uint16_t value) {
-    vec.push_back((value >> 8) & 0xFF); vec.push_back(value & 0xFF);
-}
-void QuickTimeMuxer::write8(std::vector<uint8_t>& vec, uint8_t value) { vec.push_back(value); }
 
 // Flush write buffer to disk (like old MP4Muxer)
 void QuickTimeMuxer::flushBufferToDisk(bool force) {

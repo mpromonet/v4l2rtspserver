@@ -109,9 +109,6 @@ private:
                                              int width, int height,
                                              uint32_t frameCount);
     static std::vector<uint8_t> createMdatBox(const std::vector<uint8_t>& frameData);
-    static void write32(std::vector<uint8_t>& vec, uint32_t value);
-    static void write16(std::vector<uint8_t>& vec, uint16_t value);
-    static void write8(std::vector<uint8_t>& vec, uint8_t value);
     
     // Helper methods for writeMoovBox (Step 19)
     bool updateMdatSize(size_t mdatTotalSize);
