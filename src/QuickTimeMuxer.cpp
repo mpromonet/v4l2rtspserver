@@ -12,15 +12,67 @@
 
 #include "../inc/QuickTimeMuxer.h"
 #include "../libv4l2cpp/inc/logger.h"
-#include <iomanip>
 #include <unistd.h>
 #include <cstring>
 #include <errno.h>
-#include <sstream>
-#include <iomanip>
 #include <chrono>
-#include <ctime>
 #include <arpa/inet.h>
+
+// Universal MP4 box builder helper
+class BoxBuilder {
+    std::vector<uint8_t> data;
+    
+public:
+    BoxBuilder& add32(uint32_t value) {
+        data.push_back((value >> 24) & 0xFF);
+        data.push_back((value >> 16) & 0xFF);
+        data.push_back((value >> 8) & 0xFF);
+        data.push_back(value & 0xFF);
+        return *this;
+    }
+    
+    BoxBuilder& add16(uint16_t value) {
+        data.push_back((value >> 8) & 0xFF);
+        data.push_back(value & 0xFF);
+        return *this;
+    }
+    
+    BoxBuilder& add8(uint8_t value) {
+        data.push_back(value);
+        return *this;
+    }
+    
+    BoxBuilder& addBytes(const void* bytes, size_t size) {
+        if (!bytes || size == 0) return *this;
+        const uint8_t* ptr = static_cast<const uint8_t*>(bytes);
+        data.insert(data.end(), ptr, ptr + size);
+        return *this;
+    }
+    
+    BoxBuilder& addString(const char* str) {
+        if (!str) return *this;
+        return addBytes(str, strlen(str));
+    }
+    
+    BoxBuilder& addZeros(size_t count) {
+        data.insert(data.end(), count, 0);
+        return *this;
+    }
+    
+    std::vector<uint8_t> build(const char* type) {
+        std::vector<uint8_t> result;
+        uint32_t size = data.size() + 8;
+        result.push_back((size >> 24) & 0xFF);
+        result.push_back((size >> 16) & 0xFF);
+        result.push_back((size >> 8) & 0xFF);
+        result.push_back(size & 0xFF);
+        result.insert(result.end(), type, type + 4);
+        result.insert(result.end(), data.begin(), data.end());
+        return result;
+    }
+    
+    const std::vector<uint8_t>& getData() const { return data; }
+};
 
 QuickTimeMuxer::QuickTimeMuxer() 
     : m_initialized(false), m_fd(-1), m_width(0), m_height(0), m_fps(30),
@@ -587,15 +639,7 @@ std::vector<uint8_t> QuickTimeMuxer::createFtypBox() {
     return box;
 }
 
-std::vector<uint8_t> QuickTimeMuxer::createMinimalMoovBox() {
-    std::vector<uint8_t> box;
-    
-    // Placeholder moov box - will be replaced in finalize
-    write32(box, 8);
-    write32(box, 0x6D6F6F76); // 'moov'
-    
-    return box;
-}
+// createMinimalMoovBox removed - was not used
 
 std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<uint8_t>& sps, 
                                                              const std::vector<uint8_t>& pps, 
@@ -990,28 +1034,7 @@ void QuickTimeMuxer::write8(std::vector<uint8_t>& vec, uint8_t value) {
     vec.push_back(value);
 }
 
-std::string QuickTimeMuxer::getNALTypeName(uint8_t nalType) {
-    switch (nalType) {
-        case 1: return "P-frame";
-        case 5: return "IDR-frame";
-        case 7: return "SPS";
-        case 8: return "PPS";
-        case 9: return "AUD";
-        default: return "Unknown";
-    }
-}
-
-std::string QuickTimeMuxer::getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()) % 1000;
-    
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
-    ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
-    return ss.str();
-}
+// getNALTypeName and getCurrentTimestamp removed - were only used for debug logging
 
 // Flush write buffer to disk (like old MP4Muxer)
 void QuickTimeMuxer::flushBufferToDisk(bool force) {

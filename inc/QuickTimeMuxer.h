@@ -86,7 +86,6 @@ private:
     
     // Static helper methods - based on live555 QuickTimeFileSink structure
     static std::vector<uint8_t> createFtypBox();
-    static std::vector<uint8_t> createMinimalMoovBox();
     static std::vector<uint8_t> createVideoTrackMoovBox(const std::vector<uint8_t>& sps, 
                                                        const std::vector<uint8_t>& pps, 
                                                        int width, int height, int fps, 
