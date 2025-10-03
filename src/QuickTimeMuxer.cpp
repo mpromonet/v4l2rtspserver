@@ -784,14 +784,12 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     stsd[2] = (stsdSize >> 8) & 0xFF;
     stsd[3] = stsdSize & 0xFF;
     
-    // Build stts (Time-to-Sample)
     auto stts = BoxBuilder()
         .add32(0).add32(1)          // version/flags, entry_count
         .add32(frameCount)          // sample_count
         .add32(1000)                // sample_delta
         .build("stts");
     
-    // Build stss (Sync Sample) using BoxBuilder
     BoxBuilder stssBuilder;
     stssBuilder.add32(0).add32(frameCount); // version/flags, entry_count
     for (uint32_t i = 1; i <= frameCount; i++) {
@@ -799,7 +797,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     }
     auto stss = stssBuilder.build("stss");
     
-    // Build stsc (Sample-to-Chunk)
     auto stsc = BoxBuilder()
         .add32(0).add32(1)          // version/flags, entry_count
         .add32(1)                   // first_chunk
@@ -807,7 +804,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .add32(1)                   // sample_description_index
         .build("stsc");
     
-    // Build stsz (Sample Size) using BoxBuilder
     BoxBuilder stszBuilder;
     stszBuilder.add32(0)            // version/flags
                .add32(0)            // sample_size = 0 (variable sizes)
@@ -817,7 +813,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     }
     auto stsz = stszBuilder.build("stsz");
     
-    // Build stco (Chunk Offset)
     auto stco = BoxBuilder()
         .add32(0).add32(1)          // version/flags, entry_count
         .add32(0)                   // chunk_offset (placeholder)
