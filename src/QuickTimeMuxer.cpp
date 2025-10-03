@@ -266,21 +266,64 @@ bool QuickTimeMuxer::writeMoovBox() {
                 }
             }
             
-            // If stss is now smaller, we need to adjust moov size
+            // If stss is now smaller, we need to adjust container sizes
             if (newStssSize < oldStssSize) {
+                size_t sizeDiff = oldStssSize - newStssSize;
+                
                 // Shift remaining data
                 size_t stssEnd = i - 4 + oldStssSize;
                 size_t newStssEnd = i - 4 + newStssSize;
                 size_t remainingSize = moovBox.size() - stssEnd;
                 memmove(&moovBox[newStssEnd], &moovBox[stssEnd], remainingSize);
-                moovBox.resize(moovBox.size() - (oldStssSize - newStssSize));
+                moovBox.resize(moovBox.size() - sizeDiff);
                 
-                // Update moov size
+                // Update moov size (top level)
                 uint32_t moovSize = moovBox.size();
                 moovBox[0] = (moovSize >> 24) & 0xFF;
                 moovBox[1] = (moovSize >> 16) & 0xFF;
                 moovBox[2] = (moovSize >> 8) & 0xFF;
                 moovBox[3] = moovSize & 0xFF;
+                
+                // CRITICAL: Also update parent containers (trak, mdia, minf, stbl)
+                // that contain stss and their sizes are now incorrect
+                // We need to find and update each parent's size field
+                
+                // Find trak (should be after mvhd, around offset 8+108=116)
+                for (size_t j = 8; j < 200 && j + 8 <= moovBox.size(); j++) {
+                    if (moovBox[j] == 0x74 && moovBox[j+1] == 0x72 &&
+                        moovBox[j+2] == 0x61 && moovBox[j+3] == 0x6B) {
+                        // Found 'trak', update its size (4 bytes before)
+                        uint32_t trakSize = (moovBox[j-4] << 24) | (moovBox[j-3] << 16) |
+                                           (moovBox[j-2] << 8) | moovBox[j-1];
+                        trakSize -= sizeDiff;
+                        moovBox[j-4] = (trakSize >> 24) & 0xFF;
+                        moovBox[j-3] = (trakSize >> 16) & 0xFF;
+                        moovBox[j-2] = (trakSize >> 8) & 0xFF;
+                        moovBox[j-1] = trakSize & 0xFF;
+                        LOG(DEBUG) << "[QuickTimeMuxer] Updated trak size: " << trakSize;
+                        break;
+                    }
+                }
+                
+                // Find mdia, minf, stbl (nested inside trak) and update their sizes
+                std::vector<std::string> containers = {"mdia", "minf", "stbl"};
+                for (const auto& containerName : containers) {
+                    for (size_t j = 116; j < moovBox.size() - 8; j++) {
+                        if (moovBox[j] == containerName[0] && moovBox[j+1] == containerName[1] &&
+                            moovBox[j+2] == containerName[2] && moovBox[j+3] == containerName[3]) {
+                            // Found container, update its size (4 bytes before)
+                            uint32_t containerSize = (moovBox[j-4] << 24) | (moovBox[j-3] << 16) |
+                                                    (moovBox[j-2] << 8) | moovBox[j-1];
+                            containerSize -= sizeDiff;
+                            moovBox[j-4] = (containerSize >> 24) & 0xFF;
+                            moovBox[j-3] = (containerSize >> 16) & 0xFF;
+                            moovBox[j-2] = (containerSize >> 8) & 0xFF;
+                            moovBox[j-1] = containerSize & 0xFF;
+                            LOG(DEBUG) << "[QuickTimeMuxer] Updated " << containerName << " size: " << containerSize;
+                            break;
+                        }
+                    }
+                }
             }
             
             stssFound = true;
