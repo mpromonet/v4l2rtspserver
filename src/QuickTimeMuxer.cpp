@@ -196,6 +196,9 @@ bool QuickTimeMuxer::writeMoovBox() {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
     }
     
+    // Get current position (before writing moov)
+    off_t moovStart = lseek(m_fd, 0, SEEK_CUR);
+    
     // Write moov at the end of file
     written = write(m_fd, moovBox.data(), moovBox.size());
     if (written != static_cast<ssize_t>(moovBox.size())) {
@@ -203,10 +206,16 @@ bool QuickTimeMuxer::writeMoovBox() {
         return false;
     }
     
+    // Truncate file to current position (remove any garbage after moov)
+    off_t finalSize = moovStart + moovBox.size();
+    if (ftruncate(m_fd, finalSize) == -1) {
+        LOG(WARN) << "[QuickTimeMuxer] Failed to truncate file to " << finalSize << " bytes";
+    }
+    
     // Sync file to disk
     fsync(m_fd);
     
-    LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes)";
+    LOG(INFO) << "[QuickTimeMuxer] Wrote moov box (" << moovBox.size() << " bytes) at end, mdat size (" << mdatTotalSize << " bytes), final file size " << finalSize;
     
     return true;
 }
