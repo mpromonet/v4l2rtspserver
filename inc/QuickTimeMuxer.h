@@ -117,9 +117,8 @@ private:
     bool updateMdatSize(size_t mdatTotalSize);
     void updateFrameSizes(std::vector<uint8_t>& moovBox);
     void updateKeyframes(std::vector<uint8_t>& moovBox);
-    void updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
     
-    // Static helper methods for createMP4Snapshot (Step 20)
-    static void updateChunkOffsetStatic(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
-    static void updateFrameSizeStatic(std::vector<uint8_t>& moovBox, uint32_t frameSize);
+    // Universal static helpers (Step B) - used by both recordings and snapshots
+    static void updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset);
+    static void updateFrameSize(std::vector<uint8_t>& moovBox, uint32_t frameSize, size_t frameIndex = 0);
 };

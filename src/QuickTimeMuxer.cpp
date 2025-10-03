@@ -393,34 +393,6 @@ void QuickTimeMuxer::updateKeyframes(std::vector<uint8_t>& moovBox) {
     }
 }
 
-// Step 19.4: Extract chunk offset update logic
-void QuickTimeMuxer::updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset) {
-    bool stcoFound = false;
-    for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
-        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
-            moovBox[i+2] == 0x63 && moovBox[i+3] == 0x6F) {
-            // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
-            size_t offsetPos = i + 12;
-            if (offsetPos + 4 <= moovBox.size()) {
-                uint32_t oldOffset = (moovBox[offsetPos] << 24) | (moovBox[offsetPos+1] << 16) | 
-                                     (moovBox[offsetPos+2] << 8) | moovBox[offsetPos+3];
-                moovBox[offsetPos]   = (actualChunkOffset >> 24) & 0xFF;
-                moovBox[offsetPos+1] = (actualChunkOffset >> 16) & 0xFF;
-                moovBox[offsetPos+2] = (actualChunkOffset >> 8) & 0xFF;
-                moovBox[offsetPos+3] = actualChunkOffset & 0xFF;
-                stcoFound = true;
-                LOG(DEBUG) << "[QuickTimeMuxer] Fixed stco offset: 0x" << std::hex << oldOffset 
-                          << " -> 0x" << actualChunkOffset << std::dec;
-                break;
-            }
-        }
-    }
-    
-    if (!stcoFound) {
-        LOG(WARN) << "[QuickTimeMuxer] Could not find stco box in moov to fix chunk offset!";
-    }
-}
-
 // Step 19.2: Extract frame sizes update logic
 void QuickTimeMuxer::updateFrameSizes(std::vector<uint8_t>& moovBox) {
     bool stszFound = false;
@@ -530,21 +502,20 @@ std::vector<uint8_t> QuickTimeMuxer::createMP4Snapshot(const unsigned char* h264
         width, height, fps, 1
     );
     
-    // Fix stco offset in moov to point to actual mdat data position (after mdat header)
+    // Fix stco offset and stsz frame size using universal helpers
     uint32_t actualOffset = mdatOffset + 8; // Skip mdat header (8 bytes: size + 'mdat')
-    updateChunkOffsetStatic(moovBox, actualOffset);
+    updateChunkOffset(moovBox, actualOffset);
     
-    // Fix stsz entry_sizes[0] to contain actual frame size
     uint32_t frameSize = mdatContent.size(); // Total size of all data in mdat (SPS + PPS + Frame)
-    updateFrameSizeStatic(moovBox, frameSize);
+    updateFrameSize(moovBox, frameSize, 0); // Index 0 for snapshot (single frame)
     
     mp4Data.insert(mp4Data.end(), moovBox.begin(), moovBox.end());
     
     return mp4Data;
 }
 
-// Step 20: Static helper for updating chunk offset in snapshot
-void QuickTimeMuxer::updateChunkOffsetStatic(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset) {
+// Step B: Universal static helper for updating chunk offset (used by both snapshots and recordings)
+void QuickTimeMuxer::updateChunkOffset(std::vector<uint8_t>& moovBox, uint32_t actualChunkOffset) {
     bool stcoFound = false;
     for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
@@ -557,37 +528,39 @@ void QuickTimeMuxer::updateChunkOffsetStatic(std::vector<uint8_t>& moovBox, uint
                 moovBox[offsetPos+2] = (actualChunkOffset >> 8) & 0xFF;
                 moovBox[offsetPos+3] = actualChunkOffset & 0xFF;
                 stcoFound = true;
+                LOG(DEBUG) << "[QuickTimeMuxer] Updated stco offset: 0x" << std::hex << actualChunkOffset << std::dec;
                 break;
             }
         }
     }
     
     if (!stcoFound) {
-        LOG(WARN) << "[Snapshot] Could not find stco box in moov to fix offset!";
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stco box in moov to fix offset!";
     }
 }
 
-// Step 20: Static helper for updating frame size in snapshot
-void QuickTimeMuxer::updateFrameSizeStatic(std::vector<uint8_t>& moovBox, uint32_t frameSize) {
+// Step B: Universal static helper for updating frame size (used by both snapshots and recordings)
+void QuickTimeMuxer::updateFrameSize(std::vector<uint8_t>& moovBox, uint32_t frameSize, size_t frameIndex) {
     bool stszFound = false;
     for (size_t i = 0; i + 24 <= moovBox.size(); i++) {
         if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
             moovBox[i+2] == 0x73 && moovBox[i+3] == 0x7A) {
-            // Found 'stsz', skip to first entry: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) = 16 bytes
-            size_t entryPos = i + 16;
+            // Found 'stsz', skip to specified entry: 'stsz'(4) + version/flags(4) + sample_size(4) + sample_count(4) + (frameIndex * 4) = 16 + frameIndex * 4
+            size_t entryPos = i + 16 + (frameIndex * 4);
             if (entryPos + 4 <= moovBox.size()) {
                 moovBox[entryPos]   = (frameSize >> 24) & 0xFF;
                 moovBox[entryPos+1] = (frameSize >> 16) & 0xFF;
                 moovBox[entryPos+2] = (frameSize >> 8) & 0xFF;
                 moovBox[entryPos+3] = frameSize & 0xFF;
                 stszFound = true;
+                LOG(DEBUG) << "[QuickTimeMuxer] Updated stsz entry[" << frameIndex << "] = " << frameSize << " bytes";
                 break;
             }
         }
     }
     
     if (!stszFound) {
-        LOG(WARN) << "[Snapshot] Could not find stsz box in moov to fix entry size!";
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to fix entry size!";
     }
 }
 
