@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 project(v4l2rtspserver)
 
@@ -10,23 +10,25 @@ set(STATICSTDCPP ON CACHE BOOL "use gcc static lib if available")
 set(LOG4CPP OFF CACHE BOOL "use log4cpp if available")
 set(LIVE555URL http://www.live555.com/liveMedia/public/live555-latest.tar.gz CACHE STRING "live555 url")
 set(LIVE555CFLAGS -DBSD=1 -DSOCKLEN_T=socklen_t -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -DALLOW_RTSP_SERVER_PORT_REUSE=1 -DNO_STD_LIB=1 CACHE STRING "live555 CFGLAGS")
-
-if(NOT CMAKE_BUILD_TYPE)
-     set (CMAKE_BUILD_TYPE "Release")
-endif()
+set(SYSTEMD ON CACHE BOOL "install SystemD service")
 
 set(CMAKE_CXX_STANDARD 20)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/")
 
-# set version based on git
 find_package(Git)
-if(GIT_FOUND)
+if(DEFINED ENV{V4L2RTSPSERVER_VERSION})
+    # set version from V4L2RTSPSERVER_VERSION env variable
+    add_compile_definitions("VERSION=\"$ENV{V4L2RTSPSERVER_VERSION}\"")
+elseif(GIT_FOUND)
+    # set version based on git
     EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} -C ${CMAKE_CURRENT_SOURCE_DIR} describe --tags --always --dirty OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
     STRING(REGEX REPLACE "^v(.*)" "\\1" VERSION "${VERSION}")
-    add_definitions("-DVERSION=\"${VERSION}\"")
+    add_compile_definitions("VERSION=\"${VERSION}\"")
+else()
+    message(WARNING "VERSION is undefined")
+    add_compile_definitions("VERSION=\"undefined\"")
 endif()
-
 
 # define executable to build
 include_directories("inc")
@@ -84,7 +86,7 @@ target_compile_definitions(libv4l2rtspserver PUBLIC ${LIVE555CFLAGS})
 target_link_libraries (${PROJECT_NAME} libv4l2rtspserver ${LIVE_LIBRARIES}) 
 set (LIBRARIES "")
 if (OpenSSL_FOUND)
-    set(LIBRARIES ${LIBRARIES} ${OPENSSL_LIBRARIES})
+    set(LIBRARIES ${LIBRARIES} OpenSSL::SSL)
 endif ()
 
 #pthread
@@ -108,15 +110,17 @@ if (ALSA)
     find_package(ALSA QUIET)
     MESSAGE("ALSA_FOUND = ${ALSA_FOUND}")
     if (ALSA_LIBRARY)
-	    target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_ALSA)
-        set(LIBRARIES ${LIBRARIES} ${ALSA_LIBRARY})
-        
+        target_compile_definitions(libv4l2rtspserver PUBLIC HAVE_ALSA)
+        set(LIBRARIES ${LIBRARIES} ALSA::ALSA)
+
         SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS}libasound2,)	
     endif ()
 endif()
 
 # libv4l2cpp
-execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init)
+if (GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init)
+endif()
 add_subdirectory(libv4l2cpp EXCLUDE_FROM_ALL)
 target_include_directories(libv4l2rtspserver PUBLIC libv4l2cpp/inc)
 target_link_libraries (libv4l2rtspserver PUBLIC libv4l2cpp ${LIBRARIES}) 
@@ -139,17 +143,19 @@ enable_testing()
 add_test(help ./${PROJECT_NAME} -h)
 
 #systemd
-find_package(PkgConfig)
-pkg_check_modules(SYSTEMD systemd QUIET)
-if (SYSTEMD_FOUND)
-	message(STATUS "SystemD available")
-	execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=systemdsystemunitdir systemd OUTPUT_VARIABLE SYSTEMD_SERVICES_INSTALL_DIR)
-	string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_SERVICES_INSTALL_DIR "${SYSTEMD_SERVICES_INSTALL_DIR}")
-	message(STATUS "SystemD directory '${SYSTEMD_SERVICES_INSTALL_DIR}'")
-	
-	configure_file(v4l2rtspserver.service.in ${CMAKE_CURRENT_BINARY_DIR}/v4l2rtspserver.service @ONLY)
+if (SYSTEMD)
+    find_package(PkgConfig)
+    pkg_check_modules(SYSTEMD systemd QUIET)
+    if (SYSTEMD_FOUND)
+        message(STATUS "SystemD available")
+        execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=systemdsystemunitdir systemd OUTPUT_VARIABLE SYSTEMD_SERVICES_INSTALL_DIR)
+        string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_SERVICES_INSTALL_DIR "${SYSTEMD_SERVICES_INSTALL_DIR}")
+        message(STATUS "SystemD directory '${SYSTEMD_SERVICES_INSTALL_DIR}'")
+        
+        configure_file(v4l2rtspserver.service.in ${CMAKE_CURRENT_BINARY_DIR}/v4l2rtspserver.service @ONLY)
         install(FILES ${CMAKE_CURRENT_BINARY_DIR}/v4l2rtspserver.service DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR})
-endif (SYSTEMD_FOUND)
+    endif (SYSTEMD_FOUND)
+endif (SYSTEMD)
 
 # package
 install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

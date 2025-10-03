@@ -18,9 +18,10 @@
 #include <cstring>
 #include <time.h>
 #include "ByteStreamMemoryBufferSource.hh"
-
 #include "HTTPServer.h"
 #include "SnapshotManager.h"
+
+#include "BaseServerMediaSubsession.h"
 
 u_int32_t HTTPServer::HTTPClientConnection::m_ClientSessionId = 0;
 

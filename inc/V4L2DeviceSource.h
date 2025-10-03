@@ -16,8 +16,8 @@
 #include <list> 
 #include <iostream>
 #include <iomanip>
-
-#include <pthread.h>
+#include <mutex>
+#include <thread>
 
 // live555
 #include <liveMedia.hh>
@@ -77,6 +77,11 @@ class V4L2DeviceSource: public FramedSource
 	public:
 		static V4L2DeviceSource* createNew(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode) ;
 		std::string getAuxLine()                   { return m_auxLine;    }
+		std::string getLastFrame() 	{ 
+			std::lock_guard<std::mutex> lock(m_lastFrameMutex);
+			std::string frame(m_lastFrame);
+			return frame; 
+		}
 		DeviceInterface* getDevice()               { return m_device;     }	
 		void postFrame(char * frame, int frameSize, const timeval &ref);
 		virtual std::list< std::string > getInitFrames() { return std::list< std::string >(); }
@@ -87,8 +92,7 @@ class V4L2DeviceSource: public FramedSource
 		V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * device, int outputFd, unsigned int queueSize, CaptureMode captureMode);
 		virtual ~V4L2DeviceSource();
 
-	protected:	
-		static void* threadStub(void* clientData) { return ((V4L2DeviceSource*) clientData)->thread();};
+	protected:
 		virtual void* thread();
 		static void deliverFrameStub(void* clientData) {((V4L2DeviceSource*) clientData)->deliverFrame();};
 		void deliverFrame();
@@ -112,8 +116,10 @@ class V4L2DeviceSource: public FramedSource
 		int m_outfd;
 		DeviceInterface * m_device;
 		unsigned int m_queueSize;
-		pthread_t m_thid;
-		pthread_mutex_t m_mutex;
+		std::thread m_thread;
+		std::mutex  m_mutex;
 		std::string m_auxLine;
+		std::mutex  m_lastFrameMutex;
+		std::string m_lastFrame;
 };
 

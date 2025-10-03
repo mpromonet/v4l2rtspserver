@@ -62,14 +62,11 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * devi
 	m_queueSize(queueSize)
 {
 	m_eventTriggerId = envir().taskScheduler().createEventTrigger(V4L2DeviceSource::deliverFrameStub);
-	memset(&m_thid, 0, sizeof(m_thid));
-	memset(&m_mutex, 0, sizeof(m_mutex));
-	pthread_mutex_init(&m_mutex, NULL);
 	if (m_device)
 	{
 		switch (captureMode) {
 			case CAPTURE_INTERNAL_THREAD:
-				pthread_create(&m_thid, NULL, threadStub, this);		
+				m_thread = std::thread(&V4L2DeviceSource::thread, this);	
 			break;
 			case CAPTURE_LIVE555_THREAD:
 				envir().taskScheduler().turnOnBackgroundReadHandling( m_device->getFd(), V4L2DeviceSource::incomingPacketHandlerStub, this);
@@ -85,8 +82,9 @@ V4L2DeviceSource::V4L2DeviceSource(UsageEnvironment& env, DeviceInterface * devi
 V4L2DeviceSource::~V4L2DeviceSource()
 {	
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
-	pthread_join(m_thid, NULL);	
-	pthread_mutex_destroy(&m_mutex);
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
 	delete m_device;
 }
 
@@ -141,7 +139,7 @@ void V4L2DeviceSource::deliverFrame()
 		fDurationInMicroseconds = 0;
 		fFrameSize = 0;
 		
-		pthread_mutex_lock (&m_mutex);
+		m_mutex.lock();
 		if (m_captureQueue.empty())
 		{
 			LOG(DEBUG) << "Queue is empty";		
@@ -176,7 +174,7 @@ void V4L2DeviceSource::deliverFrame()
 				envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
 			}
 		}
-		pthread_mutex_unlock (&m_mutex);
+		m_mutex.unlock();
 		
 		if (fFrameSize > 0)
 		{
@@ -284,7 +282,7 @@ void V4L2DeviceSource::processFrame(char * frame, int frameSize, const timeval &
 // post a frame to fifo
 void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv, char * allocatedBuffer) 
 {
-	pthread_mutex_lock (&m_mutex);
+	m_mutex.lock();
 	while (m_captureQueue.size() >= m_queueSize)
 	{
 		LOG(DEBUG) << "Queue full size drop frame size:"  << (int)m_captureQueue.size() ;		
@@ -292,7 +290,7 @@ void V4L2DeviceSource::queueFrame(char * frame, int frameSize, const timeval &tv
 		m_captureQueue.pop_front();
 	}
 	m_captureQueue.push_back(new Frame(frame, frameSize, tv, allocatedBuffer));	
-	pthread_mutex_unlock (&m_mutex);
+	m_mutex.unlock();
 	
 	// post an event to ask to deliver the frame
 	envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
@@ -305,6 +303,9 @@ std::list< std::pair<unsigned char*,size_t> > V4L2DeviceSource::splitFrames(unsi
 	if (frame != NULL)
 	{
 		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
+
+		std::lock_guard<std::mutex> lock(m_lastFrameMutex);
+		m_lastFrame.assign((char*)frame, frameSize);
 	}
 	return frameList;
 }

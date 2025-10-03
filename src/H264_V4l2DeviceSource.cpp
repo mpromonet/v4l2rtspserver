@@ -89,7 +89,7 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 	{	
 		switch (frameType&0x1F)					
 		{
-			case 7: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); break;
+			case 7: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); m_pps.clear(); break;
 			case 8: LOG(INFO) << "PPS size:" << size << " bufSize:" << bufSize; m_pps.assign((char*)buffer,size); break;
 			case 5: 
 				LOG(INFO) << "IDR size:" << size << " bufSize:" << bufSize; 
@@ -122,6 +122,15 @@ std::list< std::pair<unsigned char*,size_t> > H264_V4L2DeviceSource::splitFrames
 						outputBuffer.insert(outputBuffer.end(), H264marker, H264marker + 4);
 						outputBuffer.insert(outputBuffer.end(), m_pps.begin(), m_pps.end());
 					}
+				}
+				if (!m_sps.empty() && !m_pps.empty()) {
+					std::lock_guard<std::mutex> lock(m_lastFrameMutex);					
+					m_lastFrame.assign(H264marker, sizeof(H264marker));
+					m_lastFrame.append(m_sps.c_str(), m_sps.size());
+					m_lastFrame.append(H264marker, sizeof(H264marker));
+					m_lastFrame.append(m_pps.c_str(), m_pps.size());
+					m_lastFrame.append(H264marker, sizeof(H264marker));
+					m_lastFrame.append((char*)buffer, size);
 				}
 			break;
 			default: 
