@@ -905,14 +905,11 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     stsd[3] = stsdSize & 0xFF;
     
     // Build stts (Time-to-Sample)
-    std::vector<uint8_t> stts;
-    write32(stts, 24); // size
-    stts.insert(stts.end(), {'s', 't', 't', 's'});
-    write8(stts, 0); // version
-    write8(stts, 0); write8(stts, 0); write8(stts, 0); // flags
-    write32(stts, 1); // entry_count
-    write32(stts, frameCount); // sample_count
-    write32(stts, 1000); // sample_delta
+    auto stts = BoxBuilder()
+        .add32(0).add32(1)          // version/flags, entry_count
+        .add32(frameCount)          // sample_count
+        .add32(1000)                // sample_delta
+        .build("stts");
     
     // Build stss (Sync Sample)
     std::vector<uint8_t> stss;
@@ -927,15 +924,12 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     }
     
     // Build stsc (Sample-to-Chunk)
-    std::vector<uint8_t> stsc;
-    write32(stsc, 28); // size
-    stsc.insert(stsc.end(), {'s', 't', 's', 'c'});
-    write8(stsc, 0); // version
-    write8(stsc, 0); write8(stsc, 0); write8(stsc, 0); // flags
-    write32(stsc, 1); // entry_count
-    write32(stsc, 1); // first_chunk
-    write32(stsc, frameCount); // samples_per_chunk
-    write32(stsc, 1); // sample_description_index
+    auto stsc = BoxBuilder()
+        .add32(0).add32(1)          // version/flags, entry_count
+        .add32(1)                   // first_chunk
+        .add32(frameCount)          // samples_per_chunk
+        .add32(1)                   // sample_description_index
+        .build("stsc");
     
     // Build stsz (Sample Size)
     std::vector<uint8_t> stsz;
@@ -951,13 +945,10 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     }
     
     // Build stco (Chunk Offset)
-    std::vector<uint8_t> stco;
-    write32(stco, 20); // size
-    stco.insert(stco.end(), {'s', 't', 'c', 'o'});
-    write8(stco, 0); // version
-    write8(stco, 0); write8(stco, 0); write8(stco, 0); // flags
-    write32(stco, 1); // entry_count
-    write32(stco, 0); // chunk_offset (placeholder)
+    auto stco = BoxBuilder()
+        .add32(0).add32(1)          // version/flags, entry_count
+        .add32(0)                   // chunk_offset (placeholder)
+        .build("stco");
     
     // Assemble stbl (Sample Table box)
     write32(stbl, 0); // size placeholder
