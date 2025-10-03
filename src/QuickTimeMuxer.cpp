@@ -623,8 +623,6 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
                                                     int width, int height,
                                                     uint32_t timescale, uint32_t duration,
                                                     uint32_t frameCount) {
-    std::vector<uint8_t> trak;
-    
     // Build tkhd (Track Header) using BoxBuilder
     auto tkhd = BoxBuilder()
         .add32(0x0000000F)              // version/flags (enabled|in_movie|in_preview)
@@ -647,6 +645,7 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
     auto mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
     
     // Assemble trak
+    std::vector<uint8_t> trak;
     uint32_t trakSize = 8 + tkhd.size() + mdia.size();
     write32(trak, trakSize);
     write32(trak, 0x7472616B); // 'trak'
@@ -661,8 +660,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
                                                     int width, int height,
                                                     uint32_t timescale, uint32_t duration,
                                                     uint32_t frameCount) {
-    std::vector<uint8_t> mdia;
-    
     // Build mdhd (Media Header) using BoxBuilder
     auto mdhd = BoxBuilder()
         .add32(0)                       // version/flags
@@ -685,6 +682,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
     auto minf = createMinfBox(sps, pps, width, height, frameCount);
     
     // Assemble mdia
+    std::vector<uint8_t> mdia;
     uint32_t mdiaSize = 8 + mdhd.size() + hdlr.size() + minf.size();
     write32(mdia, mdiaSize);
     write32(mdia, 0x6D646961); // 'mdia'
@@ -699,8 +697,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
                                                     const std::vector<uint8_t>& pps,
                                                     int width, int height,
                                                     uint32_t frameCount) {
-    std::vector<uint8_t> minf;
-    
     // Build vmhd (Video Media Header) using BoxBuilder
     auto vmhd = BoxBuilder()
         .add32(0x00000001)              // version/flags
@@ -727,6 +723,7 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
     auto stbl = createStblBox(sps, pps, width, height, frameCount);
     
     // Assemble minf
+    std::vector<uint8_t> minf;
     uint32_t minfSize = 8 + vmhd.size() + dinf.size() + stbl.size();
     write32(minf, minfSize);
     write32(minf, 0x6D696E66); // 'minf'
@@ -741,8 +738,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
                                                     const std::vector<uint8_t>& pps,
                                                     int width, int height,
                                                     uint32_t frameCount) {
-    std::vector<uint8_t> stbl;
-    
     // Build avcC configuration box using BoxBuilder
     auto avcCBox = BoxBuilder()
         .add8(1)                                            // configurationVersion
@@ -841,6 +836,7 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .build("stco");
     
     // Assemble stbl (Sample Table box)
+    std::vector<uint8_t> stbl;
     write32(stbl, 0); // size placeholder
     stbl.insert(stbl.end(), {'s', 't', 'b', 'l'});
     
