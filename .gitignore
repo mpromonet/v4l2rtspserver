@@ -17,5 +17,6 @@ live555-latest.tar.gz
 # OS
 .DS_Store
 /tmp
+/test
 .cursor
 .ssh
