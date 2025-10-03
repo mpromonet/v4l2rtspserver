@@ -605,7 +605,6 @@ std::vector<uint8_t> QuickTimeMuxer::createVideoTrackMoovBox(const std::vector<u
         .add32(2)                       // next_track_ID
         .build("mvhd");
     
-    // Build trak (Track)
     auto trak = createTrakBox(sps, pps, width, height, timescale, duration, frameCount);
     
     // Assemble moov box: moov_header(8) + mvhd + trak
@@ -822,8 +821,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     std::vector<uint8_t> stbl;
     write32(stbl, 0); // size placeholder
     stbl.insert(stbl.end(), {'s', 't', 'b', 'l'});
-    
-    // All boxes now have sizes, insert as-is
     stbl.insert(stbl.end(), stsd.begin(), stsd.end());
     stbl.insert(stbl.end(), stts.begin(), stts.end());
     stbl.insert(stbl.end(), stss.begin(), stss.end());
@@ -857,8 +854,6 @@ void QuickTimeMuxer::write16(std::vector<uint8_t>& vec, uint16_t value) {
     vec.push_back((value >> 8) & 0xFF); vec.push_back(value & 0xFF);
 }
 void QuickTimeMuxer::write8(std::vector<uint8_t>& vec, uint8_t value) { vec.push_back(value); }
-
-// getNALTypeName and getCurrentTimestamp removed - were only used for debug logging
 
 // Flush write buffer to disk (like old MP4Muxer)
 void QuickTimeMuxer::flushBufferToDisk(bool force) {
