@@ -207,6 +207,35 @@ bool QuickTimeMuxer::writeMoovBox() {
         LOG(WARN) << "[QuickTimeMuxer] Could not find stsz box in moov to update frame sizes!";
     }
     
+    // Fix stco (chunk offset) to point to actual mdat data position
+    // stco must point to where frames start in the file (after ftyp and mdat header)
+    uint32_t actualChunkOffset = m_mdatStartPos + 8; // mdat header is 8 bytes (size + 'mdat')
+    
+    bool stcoFound = false;
+    for (size_t i = 0; i + 16 <= moovBox.size(); i++) {
+        if (moovBox[i] == 0x73 && moovBox[i+1] == 0x74 && 
+            moovBox[i+2] == 0x63 && moovBox[i+3] == 0x6F) {
+            // Found 'stco', skip 'stco'(4) + version/flags(4) + entry_count(4) = 12 bytes
+            size_t offsetPos = i + 12;
+            if (offsetPos + 4 <= moovBox.size()) {
+                uint32_t oldOffset = (moovBox[offsetPos] << 24) | (moovBox[offsetPos+1] << 16) | 
+                                     (moovBox[offsetPos+2] << 8) | moovBox[offsetPos+3];
+                moovBox[offsetPos]   = (actualChunkOffset >> 24) & 0xFF;
+                moovBox[offsetPos+1] = (actualChunkOffset >> 16) & 0xFF;
+                moovBox[offsetPos+2] = (actualChunkOffset >> 8) & 0xFF;
+                moovBox[offsetPos+3] = actualChunkOffset & 0xFF;
+                stcoFound = true;
+                LOG(DEBUG) << "[QuickTimeMuxer] Fixed stco offset: 0x" << std::hex << oldOffset 
+                          << " -> 0x" << actualChunkOffset << std::dec;
+                break;
+            }
+        }
+    }
+    
+    if (!stcoFound) {
+        LOG(WARN) << "[QuickTimeMuxer] Could not find stco box in moov to fix chunk offset!";
+    }
+    
     // Write moov at the end of file
     written = write(m_fd, moovBox.data(), moovBox.size());
     if (written != static_cast<ssize_t>(moovBox.size())) {
