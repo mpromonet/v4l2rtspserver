@@ -74,22 +74,67 @@ bool QuickTimeMuxer::addFrame(const unsigned char* h264Data, size_t dataSize, bo
     // They are only stored in avcC box in moov (standard MP4 structure)
     // Only for snapshots (single frame), SPS/PPS are included in mdat via createMP4Snapshot
     
-    // Write frame data with length prefix (MP4 format)
-    uint32_t frameSize = static_cast<uint32_t>(dataSize);
+    // Convert Annex-B format (start codes) to MP4 format (length-prefixed NALUs)
+    std::vector<uint8_t> mp4Data;
+    size_t pos = 0;
     
-    // Big-endian format for MP4 compatibility
-    uint8_t lenBytes[4];
-    lenBytes[0] = (frameSize >> 24) & 0xFF;
-    lenBytes[1] = (frameSize >> 16) & 0xFF;
-    lenBytes[2] = (frameSize >> 8) & 0xFF;
-    lenBytes[3] = frameSize & 0xFF;
+    while (pos < dataSize) {
+        // Find start code (00 00 00 01 or 00 00 01)
+        size_t startCodeLen = 0;
+        if (pos + 3 < dataSize && 
+            h264Data[pos] == 0 && h264Data[pos+1] == 0 && h264Data[pos+2] == 0 && h264Data[pos+3] == 1) {
+            startCodeLen = 4;
+        } else if (pos + 2 < dataSize && 
+                   h264Data[pos] == 0 && h264Data[pos+1] == 0 && h264Data[pos+2] == 1) {
+            startCodeLen = 3;
+        }
+        
+        if (startCodeLen > 0) {
+            // Skip start code
+            pos += startCodeLen;
+            
+            // Find next start code or end of data
+            size_t nextStartCode = pos;
+            while (nextStartCode + 3 < dataSize) {
+                if ((h264Data[nextStartCode] == 0 && h264Data[nextStartCode+1] == 0 && 
+                     h264Data[nextStartCode+2] == 0 && h264Data[nextStartCode+3] == 1) ||
+                    (h264Data[nextStartCode] == 0 && h264Data[nextStartCode+1] == 0 && 
+                     h264Data[nextStartCode+2] == 1)) {
+                    break;
+                }
+                nextStartCode++;
+            }
+            
+            // Calculate NAL unit size
+            size_t nalSize = nextStartCode - pos;
+            if (nextStartCode >= dataSize) {
+                nalSize = dataSize - pos;
+            }
+            
+            // Write length prefix (4 bytes, big-endian)
+            mp4Data.push_back((nalSize >> 24) & 0xFF);
+            mp4Data.push_back((nalSize >> 16) & 0xFF);
+            mp4Data.push_back((nalSize >> 8) & 0xFF);
+            mp4Data.push_back(nalSize & 0xFF);
+            
+            // Write NAL unit data
+            mp4Data.insert(mp4Data.end(), h264Data + pos, h264Data + pos + nalSize);
+            
+            pos += nalSize;
+        } else {
+            // No start code found, assume entire data is a single NAL (already length-prefixed?)
+            // Just write it as-is
+            mp4Data.insert(mp4Data.end(), h264Data, h264Data + dataSize);
+            break;
+        }
+    }
     
-    writeToFile(lenBytes, 4);
-    writeToFile(h264Data, dataSize);
+    // Write converted MP4 data
+    writeToFile(mp4Data.data(), mp4Data.size());
     
     // Save frame metadata
     FrameInfo frameInfo;
-    frameInfo.size = dataSize + 4; // Frame data + 4-byte length prefix
+    frameInfo.size = mp4Data.size();
     frameInfo.isKeyFrame = isKeyFrame;
     frameInfo.offset = m_currentPos - frameInfo.size;
     m_frames.push_back(frameInfo);
@@ -99,7 +144,7 @@ bool QuickTimeMuxer::addFrame(const unsigned char* h264Data, size_t dataSize, bo
         m_keyFrameCount++;
     }
     
-    LOG(DEBUG) << "[QuickTimeMuxer] Added frame " << m_frameCount << " (" << dataSize << " bytes" 
+    LOG(DEBUG) << "[QuickTimeMuxer] Added frame " << m_frameCount << " (" << mp4Data.size() << " bytes" 
                << (isKeyFrame ? ", keyframe" : "") << ") at offset " << frameInfo.offset;
     
     return true;
