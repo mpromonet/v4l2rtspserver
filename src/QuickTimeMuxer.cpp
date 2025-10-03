@@ -743,26 +743,20 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
                                                     uint32_t frameCount) {
     std::vector<uint8_t> stbl;
     
-    // Build stsd (Sample Description)
-    // avcC configuration record (content only, type and size added below)
-    std::vector<uint8_t> avcC;
-    write8(avcC, 1); // configurationVersion
-    write8(avcC, sps.size() > 1 ? sps[1] : 0x64); // AVCProfileIndication
-    write8(avcC, sps.size() > 2 ? sps[2] : 0x00); // profile_compatibility
-    write8(avcC, sps.size() > 3 ? sps[3] : 0x28); // AVCLevelIndication
-    write8(avcC, 0xFF); // lengthSizeMinusOne
-    write8(avcC, 0xE1); // numOfSequenceParameterSets
-    write16(avcC, sps.size());
-    avcC.insert(avcC.end(), sps.begin(), sps.end());
-    write8(avcC, 1); // numOfPictureParameterSets
-    write16(avcC, pps.size());
-    avcC.insert(avcC.end(), pps.begin(), pps.end());
-    
-    // avcC box (size + type + content)
-    std::vector<uint8_t> avcCBox;
-    write32(avcCBox, 8 + avcC.size()); // size
-    write32(avcCBox, 0x61766343); // 'avcC'
-    avcCBox.insert(avcCBox.end(), avcC.begin(), avcC.end());
+    // Build avcC configuration box using BoxBuilder
+    auto avcCBox = BoxBuilder()
+        .add8(1)                                            // configurationVersion
+        .add8(sps.size() > 1 ? sps[1] : 0x64)              // AVCProfileIndication
+        .add8(sps.size() > 2 ? sps[2] : 0x00)              // profile_compatibility
+        .add8(sps.size() > 3 ? sps[3] : 0x28)              // AVCLevelIndication
+        .add8(0xFF)                                         // lengthSizeMinusOne
+        .add8(0xE1)                                         // numOfSequenceParameterSets
+        .add16(sps.size())
+        .addBytes(sps.data(), sps.size())
+        .add8(1)                                            // numOfPictureParameterSets
+        .add16(pps.size())
+        .addBytes(pps.data(), pps.size())
+        .build("avcC");
     
     // Build avc1 sample entry using BoxBuilder
     BoxBuilder avc1Builder;
