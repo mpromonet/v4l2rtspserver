@@ -982,19 +982,10 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
 }
 
 std::vector<uint8_t> QuickTimeMuxer::createMdatBox(const std::vector<uint8_t>& frameData) {
-    std::vector<uint8_t> box;
-    
     // Note: For snapshots, frameData should already contain SPS+PPS+Frame with length prefixes
-    // Box size (8 + data size)
-    write32(box, 8 + frameData.size());
-    
-    // Box type: 'mdat'
-    write32(box, 0x6D646174);
-    
-    // Insert frame data as-is (should already have length prefixes)
-    box.insert(box.end(), frameData.begin(), frameData.end());
-    
-    return box;
+    return BoxBuilder()
+        .addBytes(frameData.data(), frameData.size())
+        .build("mdat");
 }
 
 void QuickTimeMuxer::write32(std::vector<uint8_t>& vec, uint32_t value) {
