@@ -623,7 +623,6 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
                                                     int width, int height,
                                                     uint32_t timescale, uint32_t duration,
                                                     uint32_t frameCount) {
-    // Build tkhd (Track Header) using BoxBuilder
     auto tkhd = BoxBuilder()
         .add32(0x0000000F)              // version/flags (enabled|in_movie|in_preview)
         .add32(0).add32(0)              // creation_time, modification_time
@@ -641,7 +640,6 @@ std::vector<uint8_t> QuickTimeMuxer::createTrakBox(const std::vector<uint8_t>& s
         .add32(height << 16)            // track height
         .build("tkhd");
     
-    // Build mdia (Media)
     auto mdia = createMdiaBox(sps, pps, width, height, timescale, duration, frameCount);
     
     // Assemble trak
@@ -660,7 +658,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
                                                     int width, int height,
                                                     uint32_t timescale, uint32_t duration,
                                                     uint32_t frameCount) {
-    // Build mdhd (Media Header) using BoxBuilder
     auto mdhd = BoxBuilder()
         .add32(0)                       // version/flags
         .add32(0).add32(0)              // creation_time, modification_time
@@ -669,7 +666,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
         .add16(0x55C4).add16(0)         // language (undetermined), pre_defined
         .build("mdhd");
     
-    // Build hdlr (Handler Reference) using BoxBuilder
     auto hdlr = BoxBuilder()
         .add32(0)                       // version/flags
         .add32(0)                       // pre_defined
@@ -678,7 +674,6 @@ std::vector<uint8_t> QuickTimeMuxer::createMdiaBox(const std::vector<uint8_t>& s
         .addString("VideoHandler")      // handler name (with null terminator)
         .build("hdlr");
     
-    // Build minf (Media Information)
     auto minf = createMinfBox(sps, pps, width, height, frameCount);
     
     // Assemble mdia
@@ -697,14 +692,12 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
                                                     const std::vector<uint8_t>& pps,
                                                     int width, int height,
                                                     uint32_t frameCount) {
-    // Build vmhd (Video Media Header) using BoxBuilder
     auto vmhd = BoxBuilder()
         .add32(0x00000001)              // version/flags
         .add16(0)                       // graphicsmode
         .add16(0).add16(0).add16(0)     // opcolor[3]
         .build("vmhd");
     
-    // Build dref (Data Reference) using BoxBuilder
     auto dref = BoxBuilder()
         .add32(0)                       // version/flags
         .add32(1)                       // entry_count
@@ -714,12 +707,10 @@ std::vector<uint8_t> QuickTimeMuxer::createMinfBox(const std::vector<uint8_t>& s
         .add32(1)                       // version/flags (self-contained)
         .build("dref");
     
-    // Build dinf (Data Information) using BoxBuilder
     auto dinf = BoxBuilder()
         .addBytes(dref.data(), dref.size())
         .build("dinf");
     
-    // Build stbl (Sample Table)
     auto stbl = createStblBox(sps, pps, width, height, frameCount);
     
     // Assemble minf
@@ -738,7 +729,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
                                                     const std::vector<uint8_t>& pps,
                                                     int width, int height,
                                                     uint32_t frameCount) {
-    // Build avcC configuration box using BoxBuilder
     auto avcCBox = BoxBuilder()
         .add8(1)                                            // configurationVersion
         .add8(sps.size() > 1 ? sps[1] : 0x64)              // AVCProfileIndication
@@ -753,7 +743,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
         .addBytes(pps.data(), pps.size())
         .build("avcC");
     
-    // Build avc1 sample entry using BoxBuilder
     BoxBuilder avc1Builder;
     avc1Builder.add32(0)              // size placeholder
                .addString("avc1")
@@ -780,7 +769,6 @@ std::vector<uint8_t> QuickTimeMuxer::createStblBox(const std::vector<uint8_t>& s
     avc1[2] = (avc1Size >> 8) & 0xFF;
     avc1[3] = avc1Size & 0xFF;
     
-    // Build stsd (Sample Description box) using BoxBuilder
     BoxBuilder stsdBuilder;
     stsdBuilder.add32(0)              // size placeholder
                .addString("stsd")
