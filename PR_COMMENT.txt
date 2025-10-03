@@ -2,14 +2,14 @@
 
 Hi @mpromonet,
 
-Thank you for the feedback about using live555 QuickTimeFileSink. I investigated this thoroughly and wanted to explain our approach.
+Thank you for the feedback about using live555 QuickTimeFileSink. I investigated this thoroughly and wanted to explain my approach.
 
-### What We Tried
+### What I Tried
 
 **Approach 1: Direct QuickTimeFileSink Integration**
 - QuickTimeFileSink requires full live555 environment (UsageEnvironment, MediaSession, RTPSource)
 - It's designed for recording RTP streams, not direct H.264 frame muxing
-- Our use cases (file output + HTTP snapshots) don't fit the async sink pattern
+- My use cases (file output + HTTP snapshots) don't fit the async sink pattern
 - Would require creating fake RTP/Session objects, defeating the "reduce complexity" goal
 
 **Approach 2: Copy live555 Code**
@@ -17,7 +17,7 @@ Thank you for the feedback about using live555 QuickTimeFileSink. I investigated
 - License concerns (LGPL)
 - Lose upstream bug fixes
 
-### Our Solution: Standalone Muxer with live555 Structure ✅
+### My Solution: Standalone Muxer with live555 Structure ✅
 
 Created `QuickTimeMuxer` (~850 lines) that:
 - **Uses live555's exact MP4 structure** (studied `QuickTimeFileSink::addAtom_*()` methods)
@@ -42,15 +42,15 @@ Created `QuickTimeMuxer` (~850 lines) that:
 
 ### Why This Approach
 
-We **did** use live555 (as you suggested), but smartly:
-- ✅ We use **live555's MP4 knowledge** (same structure)
-- ✅ We **don't duplicate** live555 code (studied, not copied)
-- ✅ We **don't require** live555 runtime for non-RTP use case
+I **did** use live555 (as you suggested), but smartly:
+- ✅ I use **live555's MP4 knowledge** (same structure)
+- ✅ I **don't duplicate** live555 code (studied, not copied)
+- ✅ I **don't require** live555 runtime for non-RTP use case
 - ✅ Output is **fully compatible** with live555 files
 
 ### Comparison
 
-| Aspect | Custom (old) | QuickTimeFileSink (direct) | Our Implementation |
+| Aspect | Custom (old) | QuickTimeFileSink (direct) | My Implementation |
 |--------|-------------|---------------------------|-------------------|
 | Code size | 1774 lines | N/A (impossible) | 850 lines |
 | live555 structure | ❌ | ✅ | ✅ |

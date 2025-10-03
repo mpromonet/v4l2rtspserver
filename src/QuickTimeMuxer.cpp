@@ -51,11 +51,10 @@ public:
     
     BoxBuilder& addString(const char* str) {
         if (!str) return *this;
-        // Safe string length calculation (SonarCloud compliant: cpp:S5816)
-        char buffer[256];
-        strncpy(buffer, str, sizeof(buffer) - 1); // Leave space for null terminator
-        buffer[sizeof(buffer) - 1] = '\0';        // Guarantee null-termination
-        return addBytes(buffer, strlen(buffer));  // Safe: buffer is now guaranteed null-terminated
+        // Safe string handling (SonarCloud cpp:S5816 compliant)
+        // Use strnlen to safely get length without risking buffer overflow
+        size_t len = strnlen(str, 255);  // Safe: will not read beyond 255 chars
+        return addBytes(str, len);        // Direct copy, no intermediate buffer needed
     }
     
     BoxBuilder& addZeros(size_t count) {

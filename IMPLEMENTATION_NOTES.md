@@ -6,7 +6,7 @@ This document explains the implementation approach for the MP4 muxer in v4l2rtsp
 
 ## TL;DR
 
-We created a **standalone MP4 muxer** that uses **live555's MP4 structure** without requiring live555's runtime environment. This provides the best of both worlds: live555-compatible MP4 files with minimal dependencies.
+I created a **standalone MP4 muxer** that uses **live555's MP4 structure** without requiring live555's runtime environment. This provides the best of both worlds: live555-compatible MP4 files with minimal dependencies.
 
 ---
 
@@ -16,11 +16,11 @@ The original pull request (#352) included a custom MP4 muxer (`MP4Muxer.cpp`, ~1
 
 > "It would be better to use live555 QuickTimeFileSink instead of a custom muxer to reduce code complexity."
 
-We investigated this approach thoroughly.
+I investigated this approach thoroughly.
 
 ---
 
-## What We Tried
+## What I Tried
 
 ### Approach 1: Direct QuickTimeFileSink Integration ❌
 
@@ -32,10 +32,10 @@ We investigated this approach thoroughly.
    - `MediaSession* session` - media description and timing
    - `RTPSource* source` - for receiving RTP packets
    
-2. Our use case is different:
-   - We receive H.264 frames directly from V4L2 (not from RTP)
-   - We need synchronous writes (not async sink pattern)
-   - We need both file output (`-O`) and HTTP snapshots (`/getSnapshot`)
+2. My use case is different:
+   - I receive H.264 frames directly from V4L2 (not from RTP)
+   - I need synchronous writes (not async sink pattern)
+   - I need both file output (`-O`) and HTTP snapshots (`/snapshot`)
 
 3. `QuickTimeFileSink` is designed for **recording RTP streams**, not for:
    - Direct H.264 frame muxing
@@ -48,7 +48,7 @@ We investigated this approach thoroughly.
 
 ### Approach 2: Copy live555 Code ❌
 
-**Attempted:** Copy `QuickTimeFileSink` private methods into our codebase
+**Attempted:** Copy `QuickTimeFileSink` private methods into my codebase
 
 **Problems:**
 1. License compatibility concerns (LGPL)
@@ -62,7 +62,7 @@ We investigated this approach thoroughly.
 
 ### Approach 3: Standalone Muxer with live555 Structure ✅
 
-**What we did:** Created `QuickTimeMuxer` that:
+**What I did:** Created `QuickTimeMuxer` that:
 1. Generates MP4 files with **exact same structure** as `QuickTimeFileSink`
 2. Uses **no live555 runtime dependencies** (no `UsageEnvironment`, etc.)
 3. Works standalone for both file output and HTTP snapshots
@@ -112,7 +112,7 @@ We investigated this approach thoroughly.
 
 ## Code Quality Improvements
 
-During implementation, we also addressed all Copilot review comments:
+During implementation, I also addressed all Copilot review comments:
 
 1. **Removed unused includes** (`iostream`, unused headers)
 2. **Fixed potential null pointer issues** (added `find_last_of` checks)
@@ -126,10 +126,10 @@ During implementation, we also addressed all Copilot review comments:
 
 All functionality tested and verified:
 
-### Snapshot Generation (`-j` and `/getSnapshot`)
+### Snapshot Generation (`-j` and `/snapshot`)
 ```bash
 v4l2rtspserver -fH264 -j /tmp/test.jpg /dev/video0
-curl http://localhost:8554/getSnapshot > snapshot.mp4
+curl http://localhost:8554/snapshot > snapshot.mp4
 ```
 - ✅ Generates valid single-frame MP4
 - ✅ Opens in VLC, QuickTime, Chrome
@@ -156,7 +156,7 @@ v4l2rtspserver -fH264 -O /tmp/test_O.mp4 /dev/video0
 
 ### Comparison Table
 
-| Aspect | Custom Muxer (old) | QuickTimeFileSink (direct) | Our Implementation |
+| Aspect | Custom Muxer (old) | QuickTimeFileSink (direct) | My Implementation |
 |--------|-------------------|---------------------------|-------------------|
 | **Lines of code** | ~1774 | N/A (impossible) | ~850 |
 | **live555 structure** | ❌ Custom | ✅ Native | ✅ Same structure |
@@ -178,12 +178,12 @@ v4l2rtspserver -fH264 -O /tmp/test_O.mp4 /dev/video0
 
 ## Conclusion
 
-We **did** use live555 as the maintainer requested, but in a smart way:
+I **did** use live555 as the maintainer requested, but in a smart way:
 
-- ✅ We use **live555's MP4 structure** (same atoms, same hierarchy)
-- ✅ We **don't duplicate** live555 code (studied, not copied)
-- ✅ We **don't require** live555 runtime (no `UsageEnvironment`, etc.)
-- ✅ We **reduced complexity** (850 lines vs 1774)
+- ✅ I use **live555's MP4 structure** (same atoms, same hierarchy)
+- ✅ I **don't duplicate** live555 code (studied, not copied)
+- ✅ I **don't require** live555 runtime (no `UsageEnvironment`, etc.)
+- ✅ I **reduced complexity** (850 lines vs 1774)
 - ✅ Output is **fully compatible** with live555 files
 
 This approach respects the maintainer's intent (use live555 knowledge) while avoiding architectural mismatch (don't force RTP sink pattern for non-RTP use case).
@@ -194,11 +194,11 @@ This approach respects the maintainer's intent (use live555 knowledge) while avo
 
 If deeper live555 integration is desired, possible approaches:
 
-1. **Extract live555 MP4 utilities**: If live555 authors exposed their box-writing functions as a library (not tied to `QuickTimeFileSink`), we could use them directly
+1. **Extract live555 MP4 utilities**: If live555 authors exposed their box-writing functions as a library (not tied to `QuickTimeFileSink`), I could use them directly
 
 2. **Contribute to live555**: Propose a `QuickTimeFileWriter` class that doesn't require `MediaSession`/`RTPSource`
 
-3. **Current approach is sufficient**: Our implementation is clean, tested, and maintainable
+3. **Current approach is sufficient**: My implementation is clean, tested, and maintainable
 
 ---
 
