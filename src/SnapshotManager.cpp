@@ -21,12 +21,7 @@
 #include <linux/videodev2.h>
 #endif
 
-// Debug dump functionality - enable by uncommenting the line below
-//#define DEBUG_DUMP_H264_DATA
-
-#ifdef DEBUG_DUMP_H264_DATA
-#include "H264DebugDumper.h"
-#endif
+// Debug dump functionality removed - H264DebugDumper deleted
 
 SnapshotManager::SnapshotManager() 
     : m_enabled(false), m_mode(SnapshotMode::DISABLED), 
