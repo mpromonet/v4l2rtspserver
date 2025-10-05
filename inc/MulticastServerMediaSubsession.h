@@ -4,7 +4,7 @@
 ** any purpose.
 **
 ** ServerMediaSubsession.h
-** 
+**
 ** -------------------------------------------------------------------------*/
 
 #pragma once
@@ -17,41 +17,25 @@
 // -----------------------------------------
 class MulticastServerMediaSubsession : public BaseServerMediaSubsession, public PassiveServerMediaSubsession
 {
-	public:
-		static MulticastServerMediaSubsession* createNew(UsageEnvironment& env
-								, struct in_addr destinationAddress
-								, Port rtpPortNum, Port rtcpPortNum
-								, int ttl
-								, StreamReplicator* replicator);
-		
-	protected:
-		MulticastServerMediaSubsession(UsageEnvironment& env
-								, struct in_addr destinationAddress
-								, Port rtpPortNum, Port rtcpPortNum
-								, int ttl
-								, StreamReplicator* replicator) 
-				: BaseServerMediaSubsession(replicator)
-				, PassiveServerMediaSubsession(*this->createRtpSink(env, destinationAddress, rtpPortNum, rtcpPortNum, ttl, replicator)
-											  , m_rtcpInstance)
-				{}			
+public:
+	static MulticastServerMediaSubsession *createNew(UsageEnvironment &env, struct in_addr destinationAddress, Port rtpPortNum, Port rtcpPortNum, int ttl, StreamReplicator *replicator);
+
+protected:
+	MulticastServerMediaSubsession(UsageEnvironment &env, struct in_addr destinationAddress, Port rtpPortNum, Port rtcpPortNum, int ttl, StreamReplicator *replicator)
+		: BaseServerMediaSubsession(replicator), PassiveServerMediaSubsession(*this->createRtpSink(env, destinationAddress, rtpPortNum, rtcpPortNum, ttl, replicator), m_rtcpInstance)
+	{
+	}
 
 #if LIVEMEDIA_LIBRARY_VERSION_INT < 1610928000
-		virtual char const* sdpLines();
-#else		 
-		virtual char const* sdpLines(int addressFamily);
-#endif		
-		virtual char const* getAuxSDPLine(RTPSink* rtpSink,FramedSource* inputSource);
-		RTPSink* createRtpSink(UsageEnvironment& env
-								, struct in_addr destinationAddress
-								, Port rtpPortNum, Port rtcpPortNum
-								, int ttl
-								, StreamReplicator* replicator);
-		
-	protected:
-		RTPSink*                    m_rtpSink;
-		RTCPInstance*               m_rtcpInstance;
-		std::map<int,std::string>   m_SDPLines;
+	virtual char const *sdpLines();
+#else
+	virtual char const *sdpLines(int addressFamily);
+#endif
+	virtual char const *getAuxSDPLine(RTPSink *rtpSink, FramedSource *inputSource);
+	RTPSink *createRtpSink(UsageEnvironment &env, struct in_addr destinationAddress, Port rtpPortNum, Port rtcpPortNum, int ttl, StreamReplicator *replicator);
+
+protected:
+	RTPSink *m_rtpSink;
+	RTCPInstance *m_rtcpInstance;
+	std::map<int, std::string> m_SDPLines;
 };
-
-
-

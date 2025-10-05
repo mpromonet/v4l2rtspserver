@@ -4,8 +4,8 @@
 ** any purpose.
 **
 ** H265_V4l2DeviceSource.cpp
-** 
-** H265 V4L2 Live555 source 
+**
+** H265 V4L2 Live555 source
 **
 ** -------------------------------------------------------------------------*/
 
@@ -18,82 +18,98 @@
 #include "logger.h"
 #include "H265_V4l2DeviceSource.h"
 
-// split packet in frames					
-std::list< std::pair<unsigned char*,size_t> > H265_V4L2DeviceSource::splitFrames(unsigned char* frame, unsigned frameSize) 
-{				
-	std::list< std::pair<unsigned char*,size_t> > frameList;
-	
+// split packet in frames
+std::list<std::pair<unsigned char *, size_t>> H265_V4L2DeviceSource::splitFrames(unsigned char *frame, unsigned frameSize)
+{
+	std::list<std::pair<unsigned char *, size_t>> frameList;
+
 	size_t bufSize = frameSize;
 	size_t size = 0;
 	int frameType = 0;
-	unsigned char* buffer = this->extractFrame(frame, bufSize, size, frameType);
-	while (buffer != NULL)				
+	unsigned char *buffer = this->extractFrame(frame, bufSize, size, frameType);
+	while (buffer != NULL)
 	{
-		switch ((frameType&0x7E)>>1)					
+		switch ((frameType & 0x7E) >> 1)
 		{
-			case 32: LOG(INFO) << "VPS size:" << size << " bufSize:" << bufSize; m_vps.assign((char*)buffer,size); m_sps.clear(); m_pps.clear(); break;
-			case 33: LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize; m_sps.assign((char*)buffer,size); break;
-			case 34: LOG(INFO) << "PPS size:" << size << " bufSize:" << bufSize; m_pps.assign((char*)buffer,size); break;
-			case 19: 
-			case 20: LOG(INFO) << "IDR size:" << size << " bufSize:" << bufSize; 
-				if (m_repeatConfig && !m_vps.empty() && !m_sps.empty() && !m_pps.empty())
-				{
-					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_vps.c_str(), m_vps.size()));
-					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
-					frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
-				}
-				if (!m_vps.empty() && !m_sps.empty() && !m_pps.empty()) {
-					std::lock_guard<std::mutex> lock(m_lastFrameMutex);					
-					m_lastFrame.assign(H264marker, sizeof(H264marker));
-					m_lastFrame.append(m_vps.c_str(), m_vps.size());
-					m_lastFrame.append(H264marker, sizeof(H264marker));
-					m_lastFrame.append(m_sps.c_str(), m_sps.size());
-					m_lastFrame.append(H264marker, sizeof(H264marker));
-					m_lastFrame.append(m_pps.c_str(), m_pps.size());
-					m_lastFrame.append(H264marker, sizeof(H264marker));
-					m_lastFrame.append((char*)buffer, size);
-				}				
+		case 32:
+			LOG(INFO) << "VPS size:" << size << " bufSize:" << bufSize;
+			m_vps.assign((char *)buffer, size);
+			m_sps.clear();
+			m_pps.clear();
 			break;
-			default: break;
+		case 33:
+			LOG(INFO) << "SPS size:" << size << " bufSize:" << bufSize;
+			m_sps.assign((char *)buffer, size);
+			break;
+		case 34:
+			LOG(INFO) << "PPS size:" << size << " bufSize:" << bufSize;
+			m_pps.assign((char *)buffer, size);
+			break;
+		case 19:
+		case 20:
+			LOG(INFO) << "IDR size:" << size << " bufSize:" << bufSize;
+			if (m_repeatConfig && !m_vps.empty() && !m_sps.empty() && !m_pps.empty())
+			{
+				frameList.push_back(std::pair<unsigned char *, size_t>((unsigned char *)m_vps.c_str(), m_vps.size()));
+				frameList.push_back(std::pair<unsigned char *, size_t>((unsigned char *)m_sps.c_str(), m_sps.size()));
+				frameList.push_back(std::pair<unsigned char *, size_t>((unsigned char *)m_pps.c_str(), m_pps.size()));
+			}
+			if (!m_vps.empty() && !m_sps.empty() && !m_pps.empty())
+			{
+				std::lock_guard<std::mutex> lock(m_lastFrameMutex);
+				m_lastFrame.assign(H264marker, sizeof(H264marker));
+				m_lastFrame.append(m_vps.c_str(), m_vps.size());
+				m_lastFrame.append(H264marker, sizeof(H264marker));
+				m_lastFrame.append(m_sps.c_str(), m_sps.size());
+				m_lastFrame.append(H264marker, sizeof(H264marker));
+				m_lastFrame.append(m_pps.c_str(), m_pps.size());
+				m_lastFrame.append(H264marker, sizeof(H264marker));
+				m_lastFrame.append((char *)buffer, size);
+			}
+			break;
+		default:
+			break;
 		}
-		
-		if (!m_vps.empty() && !m_sps.empty() && !m_pps.empty())
-		{		
-			char* vps_base64 = base64Encode(m_vps.c_str(), m_vps.size());
-			char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
-			char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());		
 
-			std::ostringstream os; 
+		if (!m_vps.empty() && !m_sps.empty() && !m_pps.empty())
+		{
+			char *vps_base64 = base64Encode(m_vps.c_str(), m_vps.size());
+			char *sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
+			char *pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());
+
+			std::ostringstream os;
 			os << "sprop-vps=" << vps_base64;
 			os << ";sprop-sps=" << sps_base64;
 			os << ";sprop-pps=" << pps_base64;
 			m_auxLine.assign(os.str());
-			
-			delete [] vps_base64;
-			delete [] sps_base64;
-			delete [] pps_base64;
+
+			delete[] vps_base64;
+			delete[] sps_base64;
+			delete[] pps_base64;
 		}
-		frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
-		
+		frameList.push_back(std::pair<unsigned char *, size_t>(buffer, size));
+
 		buffer = this->extractFrame(&buffer[size], bufSize, size, frameType);
 	}
 	return frameList;
 }
 
-std::list< std::string > H265_V4L2DeviceSource::getInitFrames() {
-	std::list< std::string > frameList;
+std::list<std::string> H265_V4L2DeviceSource::getInitFrames()
+{
+	std::list<std::string> frameList;
 	frameList.push_back(this->getFrameWithMarker(m_vps));
 	frameList.push_back(this->getFrameWithMarker(m_sps));
 	frameList.push_back(this->getFrameWithMarker(m_pps));
 	return frameList;
 }
 
-bool H265_V4L2DeviceSource::isKeyFrame(const char* buffer, int size) {
+bool H265_V4L2DeviceSource::isKeyFrame(const char *buffer, int size)
+{
 	bool res = false;
 	if (size > 4)
 	{
-		int frameType = (buffer[4]&0x7E)>>1;
+		int frameType = (buffer[4] & 0x7E) >> 1;
 		res = (frameType == 19 || frameType == 20);
 	}
-	return res;	
+	return res;
 }

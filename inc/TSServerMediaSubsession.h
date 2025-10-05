@@ -4,7 +4,7 @@
 ** any purpose.
 **
 ** TSServerMediaSubsession.h
-** 
+**
 ** -------------------------------------------------------------------------*/
 
 #pragma once
@@ -18,24 +18,22 @@
 // -----------------------------------------
 class TSServerMediaSubsession : public UnicastServerMediaSubsession
 {
-	public:
-		static TSServerMediaSubsession* createNew(UsageEnvironment& env, StreamReplicator* videoreplicator, StreamReplicator* audioreplicator, unsigned int sliceDuration)
-		{
-			return new TSServerMediaSubsession(env, videoreplicator, audioreplicator, sliceDuration);
-		}
-		
-	protected:
-		TSServerMediaSubsession(UsageEnvironment& env, StreamReplicator* videoreplicator, StreamReplicator* audioreplicator, unsigned int sliceDuration); 
-		virtual ~TSServerMediaSubsession();
-			
-		virtual float         getCurrentNPT(void* streamToken);
-		virtual float         duration() const ;
-		virtual void          seekStream(unsigned clientSessionId, void* streamToken, double& seekNPT, double streamDuration, u_int64_t& numBytes);
-		virtual FramedSource* getStreamSource(void* streamToken);
-					
-	protected:
-		unsigned int      m_slice;
-		MemoryBufferSink* m_hlsSink;
+public:
+	static TSServerMediaSubsession *createNew(UsageEnvironment &env, StreamReplicator *videoreplicator, StreamReplicator *audioreplicator, unsigned int sliceDuration)
+	{
+		return new TSServerMediaSubsession(env, videoreplicator, audioreplicator, sliceDuration);
+	}
+
+protected:
+	TSServerMediaSubsession(UsageEnvironment &env, StreamReplicator *videoreplicator, StreamReplicator *audioreplicator, unsigned int sliceDuration);
+	virtual ~TSServerMediaSubsession();
+
+	virtual float getCurrentNPT(void *streamToken);
+	virtual float duration() const;
+	virtual void seekStream(unsigned clientSessionId, void *streamToken, double &seekNPT, double streamDuration, u_int64_t &numBytes);
+	virtual FramedSource *getStreamSource(void *streamToken);
+
+protected:
+	unsigned int m_slice;
+	MemoryBufferSink *m_hlsSink;
 };
-
-

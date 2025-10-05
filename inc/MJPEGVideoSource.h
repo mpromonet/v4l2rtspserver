@@ -4,11 +4,11 @@
 ** any purpose.
 **
 ** MJPEGVideoSource.h
-** 
-** V4L2 RTSP streamer                                                                 
-**                                                                                    
-** MJPEG Source for RTSP server                                                                                    
-**                                                                                    
+**
+** V4L2 RTSP streamer
+**
+** MJPEG Source for RTSP server
+**
 ** -------------------------------------------------------------------------*/
 
 #pragma once
@@ -18,59 +18,61 @@
 
 class MJPEGVideoSource : public JPEGVideoSource
 {
-   public:
-      static MJPEGVideoSource* createNew (UsageEnvironment& env, FramedSource* source)
+public:
+   static MJPEGVideoSource *createNew(UsageEnvironment &env, FramedSource *source)
+   {
+      return new MJPEGVideoSource(env, source);
+   }
+   virtual void doGetNextFrame()
+   {
+      if (m_inputSource)
       {
-         return new MJPEGVideoSource(env,source);
+         m_inputSource->getNextFrame(fTo, fMaxSize, afterGettingFrameSub, this, FramedSource::handleClosure, this);
       }
-      virtual void doGetNextFrame()
+   }
+   virtual void doStopGettingFrames()
+   {
+      FramedSource::doStopGettingFrames();
+      if (m_inputSource)
       {
-         if (m_inputSource) {
-            m_inputSource->getNextFrame(fTo, fMaxSize, afterGettingFrameSub, this, FramedSource::handleClosure, this);                     
-	 }
+         m_inputSource->stopGettingFrames();
       }
-      virtual void doStopGettingFrames()
-      {
-         FramedSource::doStopGettingFrames();
-         if (m_inputSource) {
-            m_inputSource->stopGettingFrames();                    
-	 }
-      }
-      static void afterGettingFrameSub(void* clientData, unsigned frameSize,unsigned numTruncatedBytes,struct timeval presentationTime,unsigned durationInMicroseconds) 
-      {
-         MJPEGVideoSource* source = (MJPEGVideoSource*)clientData;
-         source->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
-      } 
-      
-      void afterGettingFrame(unsigned frameSize,unsigned numTruncatedBytes,struct timeval presentationTime,unsigned durationInMicroseconds);
-      virtual u_int8_t type() { return m_restartInterval ? m_type | 0x40 : m_type; };
-      virtual u_int8_t qFactor() { return 128; };
-      virtual u_int8_t width() { return m_width; };
-      virtual u_int8_t height() { return m_height; };
-      virtual u_int16_t restartInterval() { return m_restartInterval; }
+   }
+   static void afterGettingFrameSub(void *clientData, unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds)
+   {
+      MJPEGVideoSource *source = (MJPEGVideoSource *)clientData;
+      source->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
+   }
 
-      u_int8_t const* quantizationTables( u_int8_t& precision, u_int16_t& length );
+   void afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);
+   virtual u_int8_t type() { return m_restartInterval ? m_type | 0x40 : m_type; };
+   virtual u_int8_t qFactor() { return 128; };
+   virtual u_int8_t width() { return m_width; };
+   virtual u_int8_t height() { return m_height; };
+   virtual u_int16_t restartInterval() { return m_restartInterval; }
 
-   protected:
-      MJPEGVideoSource(UsageEnvironment& env, FramedSource* source) : JPEGVideoSource(env),
-         m_inputSource(source),
-         m_width(0), m_height(0), m_qTableSize(0), m_precision(0),
-         m_type(0), m_restartInterval(0)
-      {
-         memset(&m_qTable,0,sizeof(m_qTable));
-      }
-      virtual ~MJPEGVideoSource() 
-      { 
-         Medium::close(m_inputSource); 
-      }
+   u_int8_t const *quantizationTables(u_int8_t &precision, u_int16_t &length);
 
-      protected:
-      FramedSource* m_inputSource;
-      u_int8_t      m_width;
-      u_int8_t      m_height;
-      u_int8_t      m_qTable[128*2];
-      unsigned int  m_qTableSize;
-      unsigned int  m_precision;
-      u_int8_t      m_type;
-      u_int16_t     m_restartInterval;
+protected:
+   MJPEGVideoSource(UsageEnvironment &env, FramedSource *source) : JPEGVideoSource(env),
+                                                                   m_inputSource(source),
+                                                                   m_width(0), m_height(0), m_qTableSize(0), m_precision(0),
+                                                                   m_type(0), m_restartInterval(0)
+   {
+      memset(&m_qTable, 0, sizeof(m_qTable));
+   }
+   virtual ~MJPEGVideoSource()
+   {
+      Medium::close(m_inputSource);
+   }
+
+protected:
+   FramedSource *m_inputSource;
+   u_int8_t m_width;
+   u_int8_t m_height;
+   u_int8_t m_qTable[128 * 2];
+   unsigned int m_qTableSize;
+   unsigned int m_precision;
+   u_int8_t m_type;
+   u_int16_t m_restartInterval;
 };

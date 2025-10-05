@@ -4,7 +4,7 @@
 ** any purpose.
 **
 ** V4l2RTSPServer.cpp
-** 
+**
 ** V4L2 RTSP server
 **
 ** -------------------------------------------------------------------------*/
@@ -24,23 +24,24 @@
 #include "ALSACapture.h"
 #endif
 
-StreamReplicator* V4l2RTSPServer::CreateVideoReplicator( 
-					const V4L2DeviceParameters& inParam,
-					int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
-					const std::string& outputFile, V4l2IoType ioTypeOut, V4l2Output*& out) {
+StreamReplicator *V4l2RTSPServer::CreateVideoReplicator(
+	const V4L2DeviceParameters &inParam,
+	int queueSize, V4L2DeviceSource::CaptureMode captureMode, int repeatConfig,
+	const std::string &outputFile, V4l2IoType ioTypeOut, V4l2Output *&out)
+{
 
-	StreamReplicator* videoReplicator = NULL;
-    std::string videoDev(inParam.m_devName);
+	StreamReplicator *videoReplicator = NULL;
+	std::string videoDev(inParam.m_devName);
 	if (!videoDev.empty())
 	{
 		// Init video capture
 		LOG(NOTICE) << "Create V4L2 Source..." << videoDev;
-		
-		V4l2Capture* videoCapture = V4l2Capture::create(inParam);
+
+		V4l2Capture *videoCapture = V4l2Capture::create(inParam);
 		if (videoCapture)
 		{
 			int outfd = -1;
-			
+
 			if (!outputFile.empty())
 			{
 				V4L2DeviceParameters outparam(outputFile.c_str(), videoCapture->getFormat(), videoCapture->getWidth(), videoCapture->getHeight(), 0, ioTypeOut);
@@ -49,18 +50,23 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 				{
 					outfd = out->getFd();
 					LOG(INFO) << "Output fd:" << outfd << " " << outputFile;
-				} else {
+				}
+				else
+				{
 					LOG(WARN) << "Cannot open output:" << outputFile;
 				}
 			}
-			
+
 			std::string rtpVideoFormat(BaseServerMediaSubsession::getVideoRtpFormat(videoCapture->getFormat()));
-			if (rtpVideoFormat.empty()) {
+			if (rtpVideoFormat.empty())
+			{
 				LOG(FATAL) << "No Streaming format supported for device " << videoDev;
 				delete videoCapture;
-			} else {
+			}
+			else
+			{
 				videoReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), videoCapture->getFormat(), new VideoCaptureAccess(videoCapture), queueSize, captureMode, outfd, repeatConfig);
-				if (videoReplicator == NULL) 
+				if (videoReplicator == NULL)
 				{
 					LOG(FATAL) << "Unable to create source for device " << videoDev;
 					delete videoCapture;
@@ -71,12 +77,13 @@ StreamReplicator* V4l2RTSPServer::CreateVideoReplicator(
 	return videoReplicator;
 }
 
-std::string getVideoDeviceName(const std::string & devicePath)
+std::string getVideoDeviceName(const std::string &devicePath)
 {
 	std::string deviceName(devicePath);
 	size_t pos = deviceName.find_last_of('/');
-	if (pos != std::string::npos) {
-		deviceName.erase(0,pos+1);
+	if (pos != std::string::npos)
+	{
+		deviceName.erase(0, pos + 1);
 	}
 	return deviceName;
 }
@@ -85,65 +92,79 @@ std::string getVideoDeviceName(const std::string & devicePath)
 /* ---------------------------------------------------------------------------
 **  get a "deviceid" from uevent sys file
 ** -------------------------------------------------------------------------*/
-std::string getDeviceId(const std::string& evt) {
-    std::string deviceid;
-    std::istringstream f(evt);
-    std::string key;
-    while (getline(f, key, '=')) {
-            std::string value;
-	    if (getline(f, value)) {
-		    if ( (key =="PRODUCT") || (key == "PCI_SUBSYS_ID") ) {
-			    deviceid = value;
-			    break;
-		    }
-	    }
-    }
-    return deviceid;
+std::string getDeviceId(const std::string &evt)
+{
+	std::string deviceid;
+	std::istringstream f(evt);
+	std::string key;
+	while (getline(f, key, '='))
+	{
+		std::string value;
+		if (getline(f, value))
+		{
+			if ((key == "PRODUCT") || (key == "PCI_SUBSYS_ID"))
+			{
+				deviceid = value;
+				break;
+			}
+		}
+	}
+	return deviceid;
 }
 
-std::string  V4l2RTSPServer::getV4l2Alsa(const std::string& v4l2device) {
+std::string V4l2RTSPServer::getV4l2Alsa(const std::string &v4l2device)
+{
 	std::string audioDevice(v4l2device);
-	
-	std::map<std::string,std::string> videodevices;
+
+	std::map<std::string, std::string> videodevices;
 	std::string video4linuxPath("/sys/class/video4linux");
 	DIR *dp = opendir(video4linuxPath.c_str());
-	if (dp != NULL) {
+	if (dp != NULL)
+	{
 		struct dirent *entry = NULL;
-		while((entry = readdir(dp))) {
+		while ((entry = readdir(dp)))
+		{
 			std::string devicename;
 			std::string deviceid;
-			if (strstr(entry->d_name,"video") == entry->d_name) {
+			if (strstr(entry->d_name, "video") == entry->d_name)
+			{
 				std::string ueventPath(video4linuxPath);
 				ueventPath.append("/").append(entry->d_name).append("/device/uevent");
 				std::ifstream ifsd(ueventPath.c_str());
 				deviceid = std::string(std::istreambuf_iterator<char>{ifsd}, {});
-				deviceid.erase(deviceid.find_last_not_of("\n")+1);
+				deviceid.erase(deviceid.find_last_not_of("\n") + 1);
 			}
 
-			if (!deviceid.empty()) {
+			if (!deviceid.empty())
+			{
 				videodevices[entry->d_name] = getDeviceId(deviceid);
 			}
 		}
 		closedir(dp);
 	}
 
-	std::map<std::string,std::string> audiodevices;
+	std::map<std::string, std::string> audiodevices;
 	int rcard = -1;
-	while ( (snd_card_next(&rcard) == 0) && (rcard>=0) ) {
+	while ((snd_card_next(&rcard) == 0) && (rcard >= 0))
+	{
 		void **hints = NULL;
-		if (snd_device_name_hint(rcard, "pcm", &hints) >= 0) {
+		if (snd_device_name_hint(rcard, "pcm", &hints) >= 0)
+		{
 			void **str = hints;
-			while (*str) {				
+			while (*str)
+			{
 				std::ostringstream os;
 				os << "/sys/class/sound/card" << rcard << "/device/uevent";
 
 				std::ifstream ifs(os.str().c_str());
 				std::string deviceid = std::string(std::istreambuf_iterator<char>{ifs}, {});
-				deviceid.erase(deviceid.find_last_not_of("\n")+1);
+				deviceid.erase(deviceid.find_last_not_of("\n") + 1);
 				deviceid = getDeviceId(deviceid);
 
-				if (!deviceid.empty()) {
-					if (audiodevices.find(deviceid) == audiodevices.end()) {
+				if (!deviceid.empty())
+				{
+					if (audiodevices.find(deviceid) == audiodevices.end())
+					{
 						std::string audioname = snd_device_name_get_hint(*str, "NAME");
 						audiodevices[deviceid] = audioname;
 					}
@@ -156,71 +177,92 @@ std::string  V4l2RTSPServer::getV4l2Alsa(const std::string& v4l2device) {
 		}
 	}
 
-	auto deviceId  = videodevices.find(getVideoDeviceName(v4l2device));
-	if (deviceId != videodevices.end()) {
+	auto deviceId = videodevices.find(getVideoDeviceName(v4l2device));
+	if (deviceId != videodevices.end())
+	{
 		auto audioDeviceIt = audiodevices.find(deviceId->second);
-		
-		if (audioDeviceIt != audiodevices.end()) {
+
+		if (audioDeviceIt != audiodevices.end())
+		{
 			audioDevice = audioDeviceIt->second;
-			std::cout <<  v4l2device << "=>" << audioDevice << std::endl;			
+			std::cout << v4l2device << "=>" << audioDevice << std::endl;
 		}
 	}
-	
-	
+
 	return audioDevice;
 }
 
-snd_pcm_format_t V4l2RTSPServer::decodeAudioFormat(const std::string& fmt)
+snd_pcm_format_t V4l2RTSPServer::decodeAudioFormat(const std::string &fmt)
 {
 	snd_pcm_format_t audioFmt = SND_PCM_FORMAT_UNKNOWN;
-	if (fmt == "S16_BE") {
+	if (fmt == "S16_BE")
+	{
 		audioFmt = SND_PCM_FORMAT_S16_BE;
-	} else if (fmt == "S16_LE") {
+	}
+	else if (fmt == "S16_LE")
+	{
 		audioFmt = SND_PCM_FORMAT_S16_LE;
-	} else if (fmt == "S24_BE") {
+	}
+	else if (fmt == "S24_BE")
+	{
 		audioFmt = SND_PCM_FORMAT_S24_BE;
-	} else if (fmt == "S24_LE") {
+	}
+	else if (fmt == "S24_LE")
+	{
 		audioFmt = SND_PCM_FORMAT_S24_LE;
-	} else if (fmt == "S32_BE") {
+	}
+	else if (fmt == "S32_BE")
+	{
 		audioFmt = SND_PCM_FORMAT_S32_BE;
-	} else if (fmt == "S32_LE") {
+	}
+	else if (fmt == "S32_LE")
+	{
 		audioFmt = SND_PCM_FORMAT_S32_LE;
-	} else if (fmt == "ALAW") {
+	}
+	else if (fmt == "ALAW")
+	{
 		audioFmt = SND_PCM_FORMAT_A_LAW;
-	} else if (fmt == "MULAW") {
+	}
+	else if (fmt == "MULAW")
+	{
 		audioFmt = SND_PCM_FORMAT_MU_LAW;
-	} else if (fmt == "S8") {
+	}
+	else if (fmt == "S8")
+	{
 		audioFmt = SND_PCM_FORMAT_S8;
-	} else if (fmt == "MPEG") {
+	}
+	else if (fmt == "MPEG")
+	{
 		audioFmt = SND_PCM_FORMAT_MPEG;
 	}
 	return audioFmt;
 }
 
-StreamReplicator* V4l2RTSPServer::CreateAudioReplicator(
-			const std::string& audioDev, const std::list<snd_pcm_format_t>& audioFmtList, int audioFreq, int audioNbChannels, int verbose,
-			int queueSize, V4L2DeviceSource::CaptureMode captureMode) {
-	StreamReplicator* audioReplicator = NULL;
+StreamReplicator *V4l2RTSPServer::CreateAudioReplicator(
+	const std::string &audioDev, const std::list<snd_pcm_format_t> &audioFmtList, int audioFreq, int audioNbChannels, int verbose,
+	int queueSize, V4L2DeviceSource::CaptureMode captureMode)
+{
+	StreamReplicator *audioReplicator = NULL;
 	if (!audioDev.empty())
 	{
 		// find the ALSA device associated with the V4L2 device
 		std::string audioDevice = getV4l2Alsa(audioDev);
-	
+
 		// Init audio capture
 		LOG(NOTICE) << "Create ALSA Source..." << audioDevice;
-		
+
 		ALSACaptureParameters param(audioDevice.c_str(), audioFmtList, audioFreq, audioNbChannels);
-		ALSACapture* audioCapture = ALSACapture::createNew(param);
-		if (audioCapture) 
+		ALSACapture *audioCapture = ALSACapture::createNew(param);
+		if (audioCapture)
 		{
 			audioReplicator = DeviceSourceFactory::createStreamReplicator(this->env(), 0, audioCapture, queueSize, captureMode);
-			if (audioReplicator == NULL) 
+			if (audioReplicator == NULL)
 			{
 				LOG(FATAL) << "Unable to create source for device " << audioDevice;
 				delete audioCapture;
 			}
 		}
-	}	
+	}
 	return audioReplicator;
 }
 #endif
