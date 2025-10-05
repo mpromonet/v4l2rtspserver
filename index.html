@@ -1,33 +1,68 @@
 <html>
-    <link rel="shortcut icon" href="about:blank"/>
-    <style>
-    h3 { text-align: center } 
-    video { display: block; margin: 0 auto } 
-    </style>
-    <body>
-	<!--fill streamList variable with the list of streams -->
-	<script src="getStreamList?streamList" ></script>
-	<h3>HLS</h3>
-	<div id="videos"></div>
-	<script src="hls.js" ></script>
-	<script>
-		if (Hls.isSupported()) {
-			var videos = document.getElementById("videos")
-			streamList.forEach( (stream) => {
-				var title = document.createElement("h3");
-				title.innerText = stream
-				videos.appendChild(title)
-				var video = document.createElement("video");
-				videos.appendChild(video)
-				var hls = new Hls();
-				hls.loadSource(stream+".m3u8");
-				hls.attachMedia(video);
-				hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
-			})
-		} else {
-			alert("HLS not supported");
-		}
-	</script>
-    </body>
-</html>
+<link rel="shortcut icon" href="about:blank" />
+<style>
+	h3 {
+		text-align: center
+	}
 
+	video {
+		display: block;
+		margin: 0 auto
+	}
+</style>
+
+<body>
+	<h3>v4l2rtspserver</h3>
+	<div id="videos"></div>
+	<script src="hls.js"></script>
+	<script>
+		fetch('version')
+			.then(response => response.text())
+			.then(data => {
+				var title = document.getElementsByTagName("h3")[0];
+				title.innerText += " - " + data
+			});
+
+		fetch('streamlist')
+			.then(response => response.json())
+			.then(streamList => {
+				streamList.forEach(stream => {
+					const [name, formats] = Object.entries(stream)[0];
+					const title = document.createElement("h3");
+					title.innerText = name;
+					document.body.appendChild(title)
+					const img = document.createElement("img");
+					img.src = "/snapshot?" + name;
+					document.body.appendChild(img)
+				})
+			});
+
+		fetch('tsstreamlist')
+			.then(response => response.json())
+			.then(streamList => {
+				if (Hls.isSupported()) {
+					var videos = document.getElementById("videos")
+					streamList.forEach((stream) => {
+						var title = document.createElement("h3");
+						title.innerText = stream
+						videos.appendChild(title)
+						var video = document.createElement("video");
+						videos.appendChild(video)
+						var hls = new Hls();
+						hls.loadSource(stream + ".m3u8");
+						hls.attachMedia(video);
+						hls.on(Hls.Events.MANIFEST_PARSED, function () { video.play(); });
+					})
+				} else {
+					alert("HLS not supported");
+				}
+
+			})
+			.catch(error => {
+				console.error('Error fetching stream list:', error);
+				return [];
+			});
+	</script>
+</body>
+
+</html>
