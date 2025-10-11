@@ -346,35 +346,6 @@ void HTTPServer::HTTPClientConnection::handleHTTPCmd_StreamingGET(char const *ur
 		this->sendHeader("text/plain", content.size());
 		this->streamSource(content);
 	}
-	else if (strncmp(urlSuffix, "tsstreamlist", strlen("tsstreamlist")) == 0)
-	{
-		std::ostringstream os;
-		os << "[\n";
-		bool first = true;
-		ServerMediaSessionIterator it(fOurServer);
-		ServerMediaSession *serverSession = NULL;
-		while ((serverSession = it.next()) != NULL)
-		{
-			if (serverSession->duration() > 0)
-			{
-				if (first)
-				{
-					first = false;
-					os << " ";
-				}
-				else
-				{
-					os << ",";
-				}
-				os << "\"" << serverSession->streamName() << "\"";
-				os << "\n";
-			}
-		}
-		os << "]\n";
-		std::string content(os.str());
-		this->sendHeader("text/plain", content.size());
-		this->streamSource(content);
-	}
 	else if (questionMarkPos == NULL)
 	{
 		std::string streamName(urlSuffix);

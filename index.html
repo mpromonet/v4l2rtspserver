@@ -1,11 +1,12 @@
 <html>
 <link rel="shortcut icon" href="about:blank" />
 <style>
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-    }
+	html,
+	body {
+		height: 100%;
+		margin: 0;
+		padding: 0;
+	}
 
 	h3 {
 		text-align: center;
@@ -21,19 +22,19 @@
 		margin: 0 auto;
 	}
 
-    body {
-        display: flex;
+	body {
+		display: flex;
 		flex-direction: column;
-    }
-	
-    #content {
-        flex: 1;
-    }
-	
+	}
+
+	#content {
+		flex: 1;
+	}
+
 	#footer {
-		text-align: center; 
+		text-align: center;
 		width: 100%;
-	}	
+	}
 </style>
 
 <body>
@@ -45,7 +46,7 @@
 			.then(response => response.text())
 			.then(version => {
 				document.getElementById("footer").innerHTML = "<p><a href='https://github.com/mpromonet/v4l2rtspserver'>v4l2rtspserver</a>"
-							+ " " + version + "</p>";
+					+ " " + version + "</p>";
 			});
 
 		fetch('streamlist')
@@ -63,34 +64,17 @@
 						img.src = "/snapshot?" + name;
 						content.appendChild(img)
 					}
-				})
-			});
-
-		fetch('tsstreamlist')
-			.then(response => response.json())
-			.then(streamList => {
-				if (Hls.isSupported()) {
-					const content = document.getElementById("content")
-					streamList.forEach((stream) => {
-						const title = document.createElement("h3");
-						title.innerText = stream;
-						content.appendChild(title)
+					else if (formats.some(fmt => fmt.toUpperCase().includes("MP2T"))) {
 						const video = document.createElement("video");
 						content.appendChild(video)
 						const hls = new Hls();
 						hls.loadSource(stream + ".m3u8");
 						hls.attachMedia(video);
 						hls.on(Hls.Events.MANIFEST_PARSED, function () { video.play(); });
-					})
-				} else {
-					alert("HLS not supported");
-				}
-
-			})
-			.catch(error => {
-				console.error('Error fetching stream list:', error);
-				return [];
+					}
+				})
 			});
+
 	</script>
 </body>
 
