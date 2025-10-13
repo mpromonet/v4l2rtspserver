@@ -7,7 +7,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates g++ autoconf automake libtool xz-utils cmake make patch pkg-config git wget libasound2-dev libssl-dev 
 COPY . .
 
-RUN cmake . && make install && apt-get clean && rm -rf /var/lib/apt/lists/
+RUN cmake -S . -B build && cmake --build build -j12 && cmake --install build && apt-get clean && rm -rf /var/lib/apt/lists/
 
 FROM $IMAGE
 WORKDIR /usr/local/share/v4l2rtspserver
