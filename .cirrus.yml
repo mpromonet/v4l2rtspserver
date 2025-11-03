@@ -4,14 +4,14 @@ linux_docker_builder:
 linuxarmv7_docker_builder:
   script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv7 . --build-arg IMAGE=balenalib/raspberry-pi2
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv7 . --platform linux/arm/v7
 
 linuxarmv6_docker_builder:    
   script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv6 . --build-arg IMAGE=balenalib/raspberry-pi
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-armv6 . --platform linux/arm/v6
 
 linuxarm64_docker_builder:    
   script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . --platform linux/arm64 --build-arg IMAGE=ubuntu:24.04
+    docker build -t $CIRRUS_REPO_FULL_NAME:cirrus-arm64 . --platform linux/arm64 
