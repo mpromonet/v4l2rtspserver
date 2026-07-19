@@ -371,8 +371,7 @@ int main(int argc, char **argv)
 			}
 
 			V4l2Output *out = NULL;
-			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, openflags);
-			inParam.m_timestampOverlay = overlay;
+			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, openflags, overlay);
 			StreamReplicator *videoReplicator = rtspServer.CreateVideoReplicator(
 				inParam,
 				queueSize, captureMode, repeatConfig,
