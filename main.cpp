@@ -100,6 +100,7 @@ int main(int argc, char **argv)
 	const char *realm = NULL;
 	std::list<std::string> userPasswordList;
 	std::string webroot;
+	bool overlay = false;
 #ifdef HAVE_ALSA
 	int audioFreq = 44100;
 	int audioNbChannels = 2;
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
 	while ((c = getopt(argc, argv, "v::Q:O:b:"
 								   "I:P:p:m::u:M::ct:S::x:X"
 								   "R:U:"
-								   "rwBsf::F:W:H:G:"
+								   "TrwBsf::F:W:H:G:"
 								   "A:C:a:"
 								   "Vh")) != -1)
 	{
@@ -186,6 +187,9 @@ int main(int argc, char **argv)
 			break;
 
 		// V4L2
+		case 'T':
+			overlay = true;
+			break;
 		case 'r':
 			ioTypeIn = IOTYPE_READWRITE;
 			break;
@@ -265,6 +269,7 @@ int main(int argc, char **argv)
 			std::cout << "\t -M <addr>        : multicast group:port (default is random_address:20000)" << std::endl;
 			std::cout << "\t -c               : don't repeat config (default repeat config before IDR frame)" << std::endl;
 			std::cout << "\t -t <timeout>     : RTCP expiration timeout in seconds (default " << timeout << ")" << std::endl;
+			std::cout << "\t -T               : burn timestamp overlay into raw YUV frames" << std::endl;
 			std::cout << "\t -S[<duration>]   : enable HLS & MPEG-DASH with segment duration  in seconds (default " << defaultHlsSegment << ")" << std::endl;
 #ifndef NO_OPENSSL
 			std::cout << "\t -x <sslkeycert>  : enable SRTP" << std::endl;
@@ -367,6 +372,7 @@ int main(int argc, char **argv)
 
 			V4l2Output *out = NULL;
 			V4L2DeviceParameters inParam(videoDev.c_str(), videoformatList, width, height, fps, ioTypeIn, openflags);
+			inParam.m_timestampOverlay = overlay;
 			StreamReplicator *videoReplicator = rtspServer.CreateVideoReplicator(
 				inParam,
 				queueSize, captureMode, repeatConfig,
