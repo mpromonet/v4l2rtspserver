@@ -74,7 +74,7 @@ else()
         endif()
 
         message(STATUS "extract live555")
-        EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xf ${CMAKE_CURRENT_SOURCE_DIR}/live555-latest.tar.gz  RESULT_VARIABLE unpack_result)
+        EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xf ${CMAKE_CURRENT_SOURCE_DIR}/live555-latest.tar.gz WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULT_VARIABLE unpack_result)
         if(NOT unpack_result STREQUAL "0")
             message(FATAL_ERROR "Fetching and compiling live555 failed!")
         endif()
