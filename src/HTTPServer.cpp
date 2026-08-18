@@ -193,11 +193,6 @@ bool HTTPServer::HTTPClientConnection::sendFile(char const *urlSuffix)
 	{
 		url.erase(0, 1);
 	}
-	std::string pattern("../");
-	while ((pos = url.find(pattern, pos)) != std::string::npos)
-	{
-		url.erase(pos, pattern.length());
-	}
 
 	std::string ext;
 	pos = url.find_last_of(".");
@@ -214,6 +209,11 @@ bool HTTPServer::HTTPClientConnection::sendFile(char const *urlSuffix)
 	if (ext == "js") {
 		ext = "javascript";
 	}
+	if (url.find("..") != std::string::npos)
+	{
+		return ok;
+	}
+
 	HTTPServer *httpServer = (HTTPServer *)(&fOurServer);
 	if (!httpServer->m_webroot.empty())
 	{
