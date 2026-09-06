@@ -91,7 +91,7 @@ if (OpenSSL_FOUND)
     set(LIBRARIES ${LIBRARIES} OpenSSL::SSL)
     # libcrypto needs zlib when statically linked
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(ZLIB REQUIRED zlib)
+    pkg_check_modules(ZLIB QUIET zlib)
     if (ZLIB_FOUND)
         set(LIBRARIES ${LIBRARIES} ${ZLIB_LIBRARIES})
         link_directories(${ZLIB_LIBRARY_DIRS})
