@@ -2,6 +2,7 @@
 [![CirusCI](https://api.cirrus-ci.com/github/mpromonet/v4l2rtspserver.svg?branch=master)](https://cirrus-ci.com/github/mpromonet/v4l2rtspserver)
 [![Snap Status](https://snapcraft.io//v4l2-rtspserver/badge.svg)](https://snapcraft.io/v4l2-rtspserver)
 [![GithubCI](https://github.com/mpromonet/v4l2rtspserver/workflows/C/C++%20CI/badge.svg)](https://github.com/mpromonet/v4l2rtspserver/actions)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmpromonet%2Fv4l2rtspserver.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmpromonet%2Fv4l2rtspserver?ref=badge_shield)
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4602f447d1c1408d865ebb4ef68f12f1)](https://app.codacy.com/gh/mpromonet/v4l2rtspserver/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/4644/badge.svg)](https://scan.coverity.com/projects/4644)
@@ -179,3 +180,6 @@ The container entry point is the v4l2rtspserver application, then you can :
 * run the container specifying some paramters :
 
         docker run --device=/dev/video0 -p 8554:8554 -it mpromonet/v4l2rtspserver -u "" -H640 -W480 
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmpromonet%2Fv4l2rtspserver.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmpromonet%2Fv4l2rtspserver?ref=badge_large)
