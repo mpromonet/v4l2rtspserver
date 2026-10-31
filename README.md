@@ -1,3 +1,6 @@
+v4l2rtspserver
+====================
+
 [![CircleCI](https://circleci.com/gh/mpromonet/v4l2rtspserver.svg?style=shield)](https://circleci.com/gh/mpromonet/v4l2rtspserver)
 [![CirusCI](https://api.cirrus-ci.com/github/mpromonet/v4l2rtspserver.svg?branch=master)](https://cirrus-ci.com/github/mpromonet/v4l2rtspserver)
 [![Snap Status](https://snapcraft.io//v4l2-rtspserver/badge.svg)](https://snapcraft.io/v4l2-rtspserver)
@@ -13,8 +16,6 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/mpromonet/v4l2rtspserver.svg)](https://hub.docker.com/r/mpromonet/v4l2rtspserver/)
 [![OpenWrt 24.10 x86_64 package](https://repology.org/badge/version-for-repo/openwrt_24_10_x86_64/v4l2rtspserver.svg)](https://repology.org/project/v4l2rtspserver/versions)
 
-v4l2rtspserver
-====================
 
 This is an streamer feed from :
  - an Video4Linux device that support H264, HEVC, JPEG, VP8 or VP9 capture.
@@ -29,6 +30,11 @@ The RTSP server support :
 The HTTP server support (available using -S option for capture format that could be muxed in Transport Stream):
 - HLS
 - MPEG-DASH
+
+## Mirrors
+* https://codeberg.org/mpromonet/v4l2rtspserver.git
+* https://gitlab.com/mpromonet/v4l2rtspserver.git
+
 
 Dependencies
 ------------
